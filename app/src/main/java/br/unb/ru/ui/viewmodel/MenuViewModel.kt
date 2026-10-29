@@ -8,6 +8,9 @@ import br.unb.ru.data.model.DailyMenu
 import br.unb.ru.data.model.MealType
 import br.unb.ru.data.model.WeeklyMenu
 import br.unb.ru.data.repository.MenuRepository
+import br.unb.ru.data.repository.NotificationConfig
+import br.unb.ru.data.repository.NotificationPreferences
+import br.unb.ru.notification.NotificationScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +25,8 @@ data class MenuUiState(
     val selectedMeal: MealType = MealType.ALMOCO,
     val todayIndex: Int = -1,
     val isDarkTheme: Boolean = false,
+    val isSettingsOpen: Boolean = false,
+    val notificationConfig: NotificationConfig = NotificationConfig(),
     val errorMessage: String? = null
 ) {
     val currentDay: DailyMenu?
@@ -30,12 +35,13 @@ data class MenuUiState(
 
 class MenuViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = MenuRepository(application)
+    private val notificationPrefs = NotificationPreferences(application)
 
     private val _uiState = MutableStateFlow(MenuUiState())
     val uiState: StateFlow<MenuUiState> = _uiState.asStateFlow()
 
     init {
-        // 1. Carregar preferência salva de tema (ou herdar do sistema)
+        // 1. Carregar preferência salva de tema
         val savedTheme = repository.getSavedThemePreference()
         val initialDark = if (savedTheme != null) {
             savedTheme
@@ -44,9 +50,18 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
             currentNightMode == Configuration.UI_MODE_NIGHT_YES
         }
 
-        _uiState.update { it.copy(isDarkTheme = initialDark) }
+        // 2. Carregar configurações de notificação e agendar
+        val notifConfig = notificationPrefs.getConfig()
+        NotificationScheduler.scheduleAll(application)
 
-        // 2. Determinar dia e refeição conforme horário exato do RU
+        _uiState.update {
+            it.copy(
+                isDarkTheme = initialDark,
+                notificationConfig = notifConfig
+            )
+        }
+
+        // 3. Determinar dia e refeição conforme horário exato do RU
         determineTodayAndMeal()
         loadMenu()
     }
@@ -69,10 +84,6 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
         val minute = calendar.get(Calendar.MINUTE)
         val timeInMinutes = hour * 60 + minute
 
-        // Horários do RU:
-        // Café: 07h00 às 09h30 (encerra às 9h30 = 570 min)
-        // Almoço: 11h00 às 14h30 (encerra às 14h30 = 870 min)
-        // Jantar: 17h00 às 19h30 (encerra às 19h30 = 1170 min)
         val initialMeal = when {
             timeInMinutes <= 9 * 60 + 30 -> MealType.CAFE
             timeInMinutes <= 14 * 60 + 30 -> MealType.ALMOCO
@@ -115,6 +126,16 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
         val newTheme = !_uiState.value.isDarkTheme
         _uiState.update { it.copy(isDarkTheme = newTheme) }
         repository.saveThemePreference(newTheme)
+    }
+
+    fun setSettingsOpen(isOpen: Boolean) {
+        _uiState.update { it.copy(isSettingsOpen = isOpen) }
+    }
+
+    fun updateNotificationConfig(config: NotificationConfig) {
+        _uiState.update { it.copy(notificationConfig = config) }
+        notificationPrefs.saveConfig(config)
+        NotificationScheduler.scheduleAll(getApplication())
     }
 
     fun selectDay(index: Int) {

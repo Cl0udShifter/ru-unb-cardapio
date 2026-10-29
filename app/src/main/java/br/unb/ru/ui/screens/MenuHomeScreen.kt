@@ -22,10 +22,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.unb.ru.data.model.MealType
+import br.unb.ru.data.repository.NotificationConfig
 import br.unb.ru.ui.components.BreakfastCard
 import br.unb.ru.ui.components.DaySelectorRail
 import br.unb.ru.ui.components.LunchDinnerCard
 import br.unb.ru.ui.components.MealBottomControl
+import br.unb.ru.ui.components.NotificationSettingsBottomSheet
 import br.unb.ru.ui.theme.NotionTypography
 import br.unb.ru.ui.viewmodel.MenuUiState
 
@@ -38,6 +40,9 @@ fun MenuHomeScreen(
     onGoToToday: () -> Unit,
     onRefresh: () -> Unit,
     onToggleTheme: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onCloseSettings: () -> Unit,
+    onUpdateNotificationConfig: (NotificationConfig) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -79,7 +84,20 @@ fun MenuHomeScreen(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Dark / Light Mode Toggle
+                    // Botão Notificações / Configurações
+                    IconButton(onClick = onOpenSettings) {
+                        val hasActiveAlerts = state.notificationConfig.cafeEnabled ||
+                                state.notificationConfig.almocoEnabled ||
+                                state.notificationConfig.jantarEnabled
+
+                        Icon(
+                            imageVector = if (hasActiveAlerts) Icons.Outlined.NotificationsActive else Icons.Outlined.NotificationsOff,
+                            contentDescription = "Configurar Notificações",
+                            tint = if (hasActiveAlerts) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f)
+                        )
+                    }
+
+                    // Botão Tema Claro / Escuro
                     IconButton(onClick = onToggleTheme) {
                         Icon(
                             imageVector = if (state.isDarkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
@@ -275,6 +293,15 @@ fun MenuHomeScreen(
                     }
                 }
             }
+        }
+
+        // BottomSheet de Notificações
+        if (state.isSettingsOpen) {
+            NotificationSettingsBottomSheet(
+                config = state.notificationConfig,
+                onConfigChange = onUpdateNotificationConfig,
+                onDismissRequest = onCloseSettings
+            )
         }
     }
 }
