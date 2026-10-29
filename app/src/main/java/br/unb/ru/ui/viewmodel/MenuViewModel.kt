@@ -35,10 +35,18 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<MenuUiState> = _uiState.asStateFlow()
 
     init {
-        val currentNightMode = application.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        val isSystemDark = currentNightMode == Configuration.UI_MODE_NIGHT_YES
-        _uiState.update { it.copy(isDarkTheme = isSystemDark) }
+        // 1. Carregar preferência salva de tema (ou herdar do sistema)
+        val savedTheme = repository.getSavedThemePreference()
+        val initialDark = if (savedTheme != null) {
+            savedTheme
+        } else {
+            val currentNightMode = application.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+            currentNightMode == Configuration.UI_MODE_NIGHT_YES
+        }
 
+        _uiState.update { it.copy(isDarkTheme = initialDark) }
+
+        // 2. Determinar dia e refeição conforme horário exato do RU
         determineTodayAndMeal()
         loadMenu()
     }
@@ -59,9 +67,15 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
 
         val hour = calendar.get(Calendar.HOUR_OF_DAY)
         val minute = calendar.get(Calendar.MINUTE)
+        val timeInMinutes = hour * 60 + minute
+
+        // Horários do RU:
+        // Café: 07h00 às 09h30 (encerra às 9h30 = 570 min)
+        // Almoço: 11h00 às 14h30 (encerra às 14h30 = 870 min)
+        // Jantar: 17h00 às 19h30 (encerra às 19h30 = 1170 min)
         val initialMeal = when {
-            hour < 9 || (hour == 9 && minute <= 30) -> MealType.CAFE
-            hour < 14 || (hour == 14 && minute <= 30) -> MealType.ALMOCO
+            timeInMinutes <= 9 * 60 + 30 -> MealType.CAFE
+            timeInMinutes <= 14 * 60 + 30 -> MealType.ALMOCO
             else -> MealType.JANTAR
         }
 
@@ -98,7 +112,9 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun toggleTheme() {
-        _uiState.update { it.copy(isDarkTheme = !it.isDarkTheme) }
+        val newTheme = !_uiState.value.isDarkTheme
+        _uiState.update { it.copy(isDarkTheme = newTheme) }
+        repository.saveThemePreference(newTheme)
     }
 
     fun selectDay(index: Int) {

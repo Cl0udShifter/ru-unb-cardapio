@@ -13,12 +13,32 @@ import java.net.URL
 class MenuRepository(private val context: Context) {
     private val gson = Gson()
     private val cacheFileName = "cached_menu.json"
+    private val prefs = context.getSharedPreferences("ru_unb_prefs", Context.MODE_PRIVATE)
 
-    // Primary remote raw URL (GitHub Pages or Raw GitHub when repo is published)
+    companion object {
+        private const val KEY_IS_DARK_MODE = "is_dark_mode"
+        private const val KEY_THEME_CUSTOMIZED = "theme_customized"
+    }
+
     private val remoteUrl = "https://raw.githubusercontent.com/Cl0udShifter/ru-unb-cardapio/main/parser/menu_darcy.json"
 
+    fun saveThemePreference(isDark: Boolean) {
+        prefs.edit()
+            .putBoolean(KEY_IS_DARK_MODE, isDark)
+            .putBoolean(KEY_THEME_CUSTOMIZED, true)
+            .apply()
+    }
+
+    fun getSavedThemePreference(): Boolean? {
+        val customized = prefs.getBoolean(KEY_THEME_CUSTOMIZED, false)
+        return if (customized) {
+            prefs.getBoolean(KEY_IS_DARK_MODE, false)
+        } else {
+            null
+        }
+    }
+
     suspend fun getMenu(): Result<WeeklyMenu> = withContext(Dispatchers.IO) {
-        // 1. Try to load from remote network
         try {
             val url = URL(remoteUrl)
             val connection = url.openConnection() as HttpURLConnection
@@ -30,22 +50,17 @@ class MenuRepository(private val context: Context) {
                 val jsonString = connection.inputStream.bufferedReader().use { it.readText() }
                 val menu = gson.fromJson(jsonString, WeeklyMenu::class.java)
                 if (menu != null && menu.dias.isNotEmpty()) {
-                    // Save to local cache
                     saveToCache(jsonString)
                     return@withContext Result.success(menu)
                 }
             }
-        } catch (_: Exception) {
-            // Network failure: fallback smoothly to cache
-        }
+        } catch (_: Exception) {}
 
-        // 2. Try to load from cached file in internal storage
         val cachedMenu = loadFromCache()
         if (cachedMenu != null && cachedMenu.dias.isNotEmpty()) {
             return@withContext Result.success(cachedMenu)
         }
 
-        // 3. Fallback to bundled asset
         try {
             context.assets.open("sample_menu.json").use { stream ->
                 InputStreamReader(stream).use { reader ->

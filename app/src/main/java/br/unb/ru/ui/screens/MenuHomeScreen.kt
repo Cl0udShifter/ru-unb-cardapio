@@ -191,12 +191,23 @@ fun MenuHomeScreen(
                                         style = NotionTypography.titleLarge,
                                         color = MaterialTheme.colorScheme.onBackground
                                     )
-                                    Text(
-                                        text = meal.title,
-                                        style = NotionTypography.titleSmall,
-                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                                        fontWeight = FontWeight.Medium
-                                    )
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = meal.title,
+                                            style = NotionTypography.titleSmall,
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            text = when (meal) {
+                                                MealType.CAFE -> "07h às 09h30"
+                                                MealType.ALMOCO -> "11h às 14h30"
+                                                MealType.JANTAR -> "17h às 19h30"
+                                            },
+                                            style = NotionTypography.labelSmall.copy(fontSize = 11.sp),
+                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f)
+                                        )
+                                    }
                                 }
 
                                 when (meal) {
