@@ -72,7 +72,7 @@ fun LunchDinnerCard(
             SimpleItemRow(label = "Guarnição", value = menu.guarnicao)
         }
         if (menu.acompanhamentos.isNotBlank()) {
-            SimpleItemRow(label = "Base", value = menu.acompanhamentos)
+            SimpleItemRow(label = "Acomp.", value = menu.acompanhamentos)
         }
 
         // Section: Sopa e Torrada (se for Jantar)
@@ -83,7 +83,7 @@ fun LunchDinnerCard(
                 SimpleItemRow(label = "Sopa", value = menu.sopa)
             }
             if (menu.torrada.isNotBlank()) {
-                SimpleItemRow(label = "Acompanhamento", value = menu.torrada)
+                SimpleItemRow(label = "Torrada", value = menu.torrada)
             }
         }
 
@@ -107,7 +107,7 @@ fun LunchDinnerCard(
         SectionHeader(title = "SOBREMESA & BEBIDA")
         if (menu.sobremesa.isNotBlank()) {
             DishRow(
-                tag = "Doce / Fruta",
+                tag = "Sobremesa",
                 tagBg = TagDessertBg,
                 tagText = TagDessertText,
                 dishName = menu.sobremesa
@@ -223,15 +223,16 @@ private fun DishRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
         DietaryChip(text = tag, backgroundColor = tagBg, textColor = tagText)
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = dishName,
             style = if (isHighlight) NotionTypography.titleSmall else NotionTypography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = if (isHighlight) FontWeight.SemiBold else FontWeight.Normal
+            fontWeight = if (isHighlight) FontWeight.SemiBold else FontWeight.Normal,
+            modifier = Modifier.weight(1f)
         )
     }
 }
@@ -244,20 +245,22 @@ private fun SimpleItemRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(vertical = 5.dp),
+        verticalAlignment = Alignment.Top
     ) {
         Text(
             text = label,
             style = NotionTypography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+            modifier = Modifier.width(74.dp)
         )
+        Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = value,
             style = NotionTypography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.weight(1f)
         )
     }
 }

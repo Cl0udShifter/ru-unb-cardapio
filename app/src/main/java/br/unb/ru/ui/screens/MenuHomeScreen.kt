@@ -4,19 +4,21 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Today
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.unb.ru.data.model.MealType
@@ -35,6 +37,7 @@ fun MenuHomeScreen(
     onMealSelected: (MealType) -> Unit,
     onGoToToday: () -> Unit,
     onRefresh: () -> Unit,
+    onToggleTheme: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -76,6 +79,15 @@ fun MenuHomeScreen(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Dark / Light Mode Toggle
+                    IconButton(onClick = onToggleTheme) {
+                        Icon(
+                            imageVector = if (state.isDarkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                            contentDescription = if (state.isDarkTheme) "Mudar para modo claro" else "Mudar para modo escuro",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+
                     if (state.selectedDayIndex != state.todayIndex && state.todayIndex != -1) {
                         IconButton(onClick = onGoToToday) {
                             Icon(
@@ -119,10 +131,8 @@ fun MenuHomeScreen(
                         detectHorizontalDragGestures(
                             onDragEnd = {
                                 if (totalDrag < -100f && state.selectedDayIndex < dias.size - 1) {
-                                    // Swipe left -> Next day
                                     onDaySelected(state.selectedDayIndex + 1)
                                 } else if (totalDrag > 100f && state.selectedDayIndex > 0) {
-                                    // Swipe right -> Previous day
                                     onDaySelected(state.selectedDayIndex - 1)
                                 }
                                 totalDrag = 0f
@@ -201,14 +211,53 @@ fun MenuHomeScreen(
                                     }
                                 }
 
+                                Spacer(modifier = Modifier.height(20.dp))
+
+                                // Mesa de apoio callout (Notion Style)
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Info,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = "Mesa de apoio",
+                                                style = NotionTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 11.sp),
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = "Água, café, açúcar, adoçante e temperos disponíveis no salão.",
+                                                style = NotionTypography.bodyMedium.copy(fontSize = 12.sp, lineHeight = 16.sp),
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                            )
+                                        }
+                                    }
+                                }
+
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // RU Info footer
+                                // Aviso formal do RU
                                 Text(
-                                    text = "Mesa de apoio: água, café, açúcar, adoçante e temperos. Cardápio sujeito a alterações pela administração do RU.",
-                                    style = NotionTypography.bodyMedium.copy(fontSize = 12.sp, lineHeight = 17.sp),
+                                    text = "Cardápio sujeito a alterações sem aviso prévio pela administração do RU.",
+                                    style = NotionTypography.bodyMedium.copy(fontSize = 11.sp, lineHeight = 15.sp),
                                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f),
-                                    modifier = Modifier.padding(bottom = 20.dp)
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 28.dp)
                                 )
                             }
                         }

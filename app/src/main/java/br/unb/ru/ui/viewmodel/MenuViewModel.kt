@@ -1,6 +1,7 @@
 package br.unb.ru.ui.viewmodel
 
 import android.app.Application
+import android.content.res.Configuration
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import br.unb.ru.data.model.DailyMenu
@@ -20,6 +21,7 @@ data class MenuUiState(
     val selectedDayIndex: Int = 0,
     val selectedMeal: MealType = MealType.ALMOCO,
     val todayIndex: Int = -1,
+    val isDarkTheme: Boolean = false,
     val errorMessage: String? = null
 ) {
     val currentDay: DailyMenu?
@@ -33,6 +35,10 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<MenuUiState> = _uiState.asStateFlow()
 
     init {
+        val currentNightMode = application.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        val isSystemDark = currentNightMode == Configuration.UI_MODE_NIGHT_YES
+        _uiState.update { it.copy(isDarkTheme = isSystemDark) }
+
         determineTodayAndMeal()
         loadMenu()
     }
@@ -40,7 +46,6 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
     private fun determineTodayAndMeal() {
         val calendar = Calendar.getInstance()
         val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-        // Convert to 0=Segunda ... 6=Domingo
         val todayIdx = when (dayOfWeek) {
             Calendar.MONDAY -> 0
             Calendar.TUESDAY -> 1
@@ -90,6 +95,10 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    fun toggleTheme() {
+        _uiState.update { it.copy(isDarkTheme = !it.isDarkTheme) }
     }
 
     fun selectDay(index: Int) {

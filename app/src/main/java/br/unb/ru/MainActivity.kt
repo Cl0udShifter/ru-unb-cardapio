@@ -16,14 +16,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            RUUnBTheme {
-                val state by viewModel.uiState.collectAsState()
+            val state by viewModel.uiState.collectAsState()
+            RUUnBTheme(darkTheme = state.isDarkTheme) {
                 MenuHomeScreen(
                     state = state,
                     onDaySelected = { viewModel.selectDay(it) },
                     onMealSelected = { viewModel.selectMeal(it) },
                     onGoToToday = { viewModel.goToToday() },
-                    onRefresh = { viewModel.loadMenu() }
+                    onRefresh = { viewModel.loadMenu() },
+                    onToggleTheme = { viewModel.toggleTheme() }
                 )
             }
         }
