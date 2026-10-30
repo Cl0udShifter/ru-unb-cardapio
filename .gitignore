@@ -12,3 +12,4 @@ app/build
 parser/.venv
 parser/__pycache__
 parser/current_menu.pdf
+*.apk
