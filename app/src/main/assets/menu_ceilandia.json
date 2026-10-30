@@ -1,12 +1,12 @@
 {
   "campus": "FCE (Ceilândia)",
   "vigencia": "26/10/2026 À 01/11/2026",
-  "atualizado_em": "2026-10-30T22:23:53.248754+00:00",
+  "atualizado_em": "2026-10-30T22:42:52.496612+00:00",
   "pdf_url": "https://ru.unb.br/wp-content/uploads/2026/10/Ceilandia-Semana-02-26-10-a-01-11-1.pdf",
   "dias": [
     {
       "dia_semana": "Segunda-feira",
-      "data": "Dia 1",
+      "data": "26/10/2026",
       "cafe": {
         "bebidas": "Leite integral ou Bebida de soja",
         "panificacao": "Pão francês ou Pão careca ou Pão integral",
@@ -46,7 +46,7 @@
     },
     {
       "dia_semana": "Terça-feira",
-      "data": "Dia 2",
+      "data": "27/10/2026",
       "cafe": {
         "bebidas": "Leite integral ou Bebida de soja",
         "panificacao": "Pão francês ou Pão careca ou",
@@ -86,7 +86,7 @@
     },
     {
       "dia_semana": "Quarta-feira",
-      "data": "Dia 3",
+      "data": "28/10/2026",
       "cafe": {
         "bebidas": "Leite integral ou Bebida de soja",
         "panificacao": "Pão francês ou Pão careca ou Pão integral",
@@ -126,7 +126,7 @@
     },
     {
       "dia_semana": "Quinta-feira",
-      "data": "Dia 4",
+      "data": "29/10/2026",
       "cafe": {
         "bebidas": "Leite integral ou Bebida de soja",
         "panificacao": "Pão francês ou Pão careca ou Pão integral",
@@ -166,7 +166,7 @@
     },
     {
       "dia_semana": "Sexta-feira",
-      "data": "Dia 5",
+      "data": "30/10/2026",
       "cafe": {
         "bebidas": "Leite integral ou Bebida de soja",
         "panificacao": "Pão francês ou Pão careca ou",
@@ -206,7 +206,7 @@
     },
     {
       "dia_semana": "Sábado",
-      "data": "Dia 6",
+      "data": "31/10/2026",
       "cafe": {
         "bebidas": "Leite integral ou Bebida de soja",
         "panificacao": "Pão francês ou Pão careca ou Pão integral",
@@ -246,13 +246,13 @@
     },
     {
       "dia_semana": "Domingo",
-      "data": "Dia 7",
+      "data": "01/11/2026",
       "cafe": {
-        "bebidas": "Leite integral ou Bebida de soja",
-        "panificacao": "Pães variados",
-        "gordura": "Manteiga ou creme vegetal",
+        "bebidas": "",
+        "panificacao": "",
+        "gordura": "",
         "opcao_extra": "",
-        "prato_principal": "Padrão",
+        "prato_principal": "Refeitório fechado aos domingos",
         "vegetariano": "",
         "vegano": "",
         "fruta": ""
@@ -261,11 +261,11 @@
         "salada_1": "",
         "salada_2": "",
         "molho": "",
-        "prato_principal": "",
+        "prato_principal": "Refeitório fechado aos domingos",
         "vegetariano": "",
         "vegano": "",
         "guarnicao": "",
-        "acompanhamentos": "Arroz e feijão",
+        "acompanhamentos": "",
         "sobremesa": "",
         "bebida": ""
       },
@@ -273,11 +273,11 @@
         "salada_1": "",
         "salada_2": "",
         "molho": "",
-        "prato_principal": "",
+        "prato_principal": "Refeitório fechado aos domingos",
         "vegetariano": "",
         "vegano": "",
         "guarnicao": "",
-        "acompanhamentos": "Arroz e feijão",
+        "acompanhamentos": "",
         "sobremesa": "",
         "bebida": "",
         "sopa": "",

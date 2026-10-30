@@ -72,7 +72,46 @@ def clean_text(txt):
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     return cleaned
 
-def parse_pdf_menu(pdf_path, vigencia_label, pdf_url, campus_name="Darcy Ribeiro"):
+def select_active_pdf(links, today=None):
+    if today is None:
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        today = (now_utc - datetime.timedelta(hours=3)).date()
+
+    date_pat = re.compile(r'(\d{2})/(\d{2})/(\d{4})')
+    parsed = []
+    for txt, href in links:
+        matches = date_pat.findall(txt + " " + href)
+        if len(matches) >= 2:
+            try:
+                d_start = datetime.date(int(matches[0][2]), int(matches[0][1]), int(matches[0][0]))
+                d_end = datetime.date(int(matches[1][2]), int(matches[1][1]), int(matches[1][0]))
+                parsed.append((d_start, d_end, txt, href))
+            except Exception:
+                pass
+
+    if not parsed:
+        return links[0] if links else (None, None)
+
+    # 1. Prioriza o PDF da semana vigente (d_start <= today <= d_end)
+    for d_start, d_end, txt, href in parsed:
+        if d_start <= today <= d_end:
+            return (txt, href)
+
+    # 2. Se a data atual ainda for anterior ao início da próxima semana, busca o PDF mais recente
+    past_links = [l for l in parsed if l[1] <= today]
+    if past_links:
+        past_links.sort(key=lambda x: x[1], reverse=True)
+        return (past_links[0][2], past_links[0][3])
+
+    # 3. Fallback: o PDF mais próximo no futuro
+    future_links = [l for l in parsed if l[0] > today]
+    if future_links:
+        future_links.sort(key=lambda x: x[0])
+        return (future_links[0][2], future_links[0][3])
+
+    return (parsed[0][2], parsed[0][3])
+
+def parse_pdf_menu(pdf_path, vigencia_label, pdf_url, campus_name="Darcy Ribeiro", campus_id="darcy"):
     days_names = [
         "Segunda-feira",
         "Terça-feira",
@@ -86,26 +125,48 @@ def parse_pdf_menu(pdf_path, vigencia_label, pdf_url, campus_name="Darcy Ribeiro
     with pdfplumber.open(pdf_path) as pdf:
         pages = pdf.pages
 
-        # Extract dates from Page 2 (Almoco)
-        p2_table = pages[1].extract_tables()[0]
+        # Extração de datas da tabela
         date_pattern = re.compile(r'\d{2}/\d{2}/\d{4}')
-        dates = []
-        for r in p2_table[:3]:
-            found = [c.strip() for c in r if c and date_pattern.search(c)]
-            if len(found) == 7:
-                dates = found
+        extracted_dates = []
+        for p in pages:
+            tables = p.extract_tables()
+            if not tables:
+                continue
+            for r in tables[0][:4]:
+                found = [c.strip() for c in r if c and date_pattern.search(c)]
+                if len(found) >= 3:
+                    extracted_dates = found
+                    break
+            if extracted_dates:
                 break
+
+        # Reconstituição das 7 datas completas da semana (Segunda a Domingo)
+        full_dates = []
+        if extracted_dates:
+            try:
+                base_d = datetime.datetime.strptime(extracted_dates[0], "%d/%m/%Y").date()
+                for i in range(7):
+                    if i < len(extracted_dates):
+                        full_dates.append(extracted_dates[i])
+                    else:
+                        calc_d = base_d + datetime.timedelta(days=i)
+                        full_dates.append(calc_d.strftime("%d/%m/%Y"))
+            except Exception:
+                full_dates = [extracted_dates[i] if i < len(extracted_dates) else f"Dia {i+1}" for i in range(7)]
+        else:
+            full_dates = [f"Dia {i+1}" for i in range(7)]
 
         dias = []
         for i in range(7):
-            d_str = dates[i] if i < len(dates) else f"Dia {i+1}"
             dias.append({
                 "dia_semana": days_names[i],
-                "data": d_str,
+                "data": full_dates[i],
                 "cafe": {},
                 "almoco": {},
                 "jantar": {}
             })
+
+        operating_days_count = len(extracted_dates) if extracted_dates else 7
 
         def process_page(table, meal_key):
             header_row_idx = -1
@@ -139,13 +200,12 @@ def parse_pdf_menu(pdf_path, vigencia_label, pdf_url, campus_name="Darcy Ribeiro
                 non_empty = [it for it in items if it]
                 if len(non_empty) == 1 and items[0]:
                     merged_val = items[0]
-                    for day_idx in range(7):
+                    for day_idx in range(operating_days_count):
                         dias[day_idx][meal_key][cat_name] = merged_val
                 else:
                     for day_idx in range(7):
-                        val = items[day_idx]
-                        if val:
-                            dias[day_idx][meal_key][cat_name] = val
+                        if day_idx < operating_days_count and items[day_idx]:
+                            dias[day_idx][meal_key][cat_name] = items[day_idx]
 
         # Page 1: Cafe
         process_page(pages[0].extract_tables()[0], "cafe")
@@ -154,7 +214,18 @@ def parse_pdf_menu(pdf_path, vigencia_label, pdf_url, campus_name="Darcy Ribeiro
         # Page 3: Jantar
         process_page(pages[2].extract_tables()[0], "jantar")
 
-    def map_cafe(raw):
+    def map_cafe(raw, is_closed=False, closed_msg=""):
+        if is_closed:
+            return {
+                "bebidas": "",
+                "panificacao": "",
+                "gordura": "",
+                "opcao_extra": "",
+                "prato_principal": closed_msg or "Café não servido aos fins de semana",
+                "vegetariano": "",
+                "vegano": "",
+                "fruta": ""
+            }
         return {
             "bebidas": raw.get("BEBIDAS", "Café, leite e chá"),
             "panificacao": raw.get("PANIFICAÇÃO", "Pães variados"),
@@ -166,7 +237,25 @@ def parse_pdf_menu(pdf_path, vigencia_label, pdf_url, campus_name="Darcy Ribeiro
             "fruta": raw.get("FRUTA", "")
         }
 
-    def map_almoco_jantar(raw, is_jantar=False):
+    def map_almoco_jantar(raw, is_jantar=False, is_closed=False, closed_msg=""):
+        if is_closed:
+            res = {
+                "salada_1": "",
+                "salada_2": "",
+                "molho": "",
+                "prato_principal": closed_msg or "Refeitório fechado",
+                "vegetariano": "",
+                "vegano": "",
+                "guarnicao": "",
+                "acompanhamentos": "",
+                "sobremesa": "",
+                "bebida": ""
+            }
+            if is_jantar:
+                res["sopa"] = ""
+                res["torrada"] = ""
+            return res
+
         res = {
             "salada_1": raw.get("SALADA 1", ""),
             "salada_2": raw.get("SALADA 2", ""),
@@ -185,13 +274,23 @@ def parse_pdf_menu(pdf_path, vigencia_label, pdf_url, campus_name="Darcy Ribeiro
         return res
 
     formatted_dias = []
-    for d in dias:
+    for idx, d in enumerate(dias):
+        is_day_closed = idx >= operating_days_count
+        if campus_id == "gama" and idx in (5, 6):
+            is_day_closed = True
+            closed_reason = "Refeitório fechado aos finais de semana"
+        elif campus_id == "ceilandia" and idx == 6:
+            is_day_closed = True
+            closed_reason = "Refeitório fechado aos domingos"
+        else:
+            closed_reason = "Refeitório sem funcionamento neste dia"
+
         formatted_dias.append({
             "dia_semana": d["dia_semana"],
             "data": d["data"],
-            "cafe": map_cafe(d["cafe"]),
-            "almoco": map_almoco_jantar(d["almoco"], is_jantar=False),
-            "jantar": map_almoco_jantar(d["jantar"], is_jantar=True)
+            "cafe": map_cafe(d["cafe"], is_closed=is_day_closed, closed_msg=closed_reason),
+            "almoco": map_almoco_jantar(d["almoco"], is_jantar=False, is_closed=is_day_closed, closed_msg=closed_reason),
+            "jantar": map_almoco_jantar(d["jantar"], is_jantar=True, is_closed=is_day_closed, closed_msg=closed_reason)
         })
 
     return {
@@ -226,26 +325,22 @@ def main():
         cfile = campus["output_file"]
         cfallback = campus["fallback_url"]
 
-        matched_link = None
-        for txt, href in scraped_links:
-            if ckey in href.lower():
-                matched_link = (txt, href)
-                break
+        campus_links = [l for l in scraped_links if ckey in l[1].lower()]
+        active_txt, active_url = select_active_pdf(campus_links)
 
-        if matched_link:
-            txt, pdf_url = matched_link
-            vigencia = txt.replace("ISM –", "").replace("ISM -", "").strip()
+        if not active_url:
+            active_url = cfallback
+            vigencia = "26/10/2026 a 01/11/2026"
+        else:
+            vigencia = active_txt.replace("ISM –", "").replace("ISM -", "").strip()
             if not vigencia:
                 vigencia = "26/10/2026 a 01/11/2026"
-        else:
-            pdf_url = cfallback
-            vigencia = "26/10/2026 a 01/11/2026"
 
-        print(f"Processando {cname} ({vigencia}): {pdf_url}")
+        print(f"Processando {cname} ({vigencia}): {active_url}")
         tmp_pdf = os.path.join(parser_dir, f"tmp_{cid}.pdf")
         try:
-            urllib.request.urlretrieve(pdf_url, tmp_pdf)
-            menu_data = parse_pdf_menu(tmp_pdf, vigencia, pdf_url, campus_name=cname)
+            urllib.request.urlretrieve(active_url, tmp_pdf)
+            menu_data = parse_pdf_menu(tmp_pdf, vigencia, active_url, campus_name=cname, campus_id=cid)
             out_path = os.path.join(parser_dir, cfile)
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(menu_data, f, ensure_ascii=False, indent=2)
