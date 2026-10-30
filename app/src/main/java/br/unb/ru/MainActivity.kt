@@ -52,7 +52,8 @@ class MainActivity : ComponentActivity() {
                     onOpenCard = { viewModel.setCardOpen(true) },
                     onCloseCard = { viewModel.setCardOpen(false) },
                     onSaveCard = { viewModel.updateStudentCard(it) },
-                    onSyncCardFromSigaa = { mat, pass -> viewModel.syncCardFromSigaa(mat, pass) }
+                    onSyncCardFromSigaa = { mat, pass -> viewModel.syncCardFromSigaa(mat, pass) },
+                    onDisconnectCard = { viewModel.disconnectStudentCard() }
                 )
             }
         }

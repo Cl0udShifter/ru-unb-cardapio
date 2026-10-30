@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import br.unb.ru.data.model.DailyMenu
 import br.unb.ru.data.model.MealType
+import br.unb.ru.data.model.RestaurantStatement
 import br.unb.ru.data.model.StudentCard
 import br.unb.ru.data.model.WeeklyMenu
 import br.unb.ru.data.repository.MenuRepository
@@ -30,7 +31,9 @@ data class MenuUiState(
     val isSettingsOpen: Boolean = false,
     val isCardOpen: Boolean = false,
     val studentCard: StudentCard = StudentCard(),
+    val statement: RestaurantStatement = RestaurantStatement(),
     val isSyncingCard: Boolean = false,
+    val syncProgressMessage: String? = null,
     val cardSyncError: String? = null,
     val notificationConfig: NotificationConfig = NotificationConfig(),
     val errorMessage: String? = null
@@ -61,14 +64,20 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
         val notifConfig = notificationPrefs.getConfig()
         NotificationScheduler.scheduleAll(application)
 
-        // 3. Carregar dados da carteirinha discente
+        // 3. Carregar dados da carteirinha discente e extrato
         val savedCard = cardRepository.getStudentCard()
+        val savedStatement = if (savedCard.isConfigured) {
+            cardRepository.getStatement(savedCard.matricula)
+        } else {
+            RestaurantStatement()
+        }
 
         _uiState.update {
             it.copy(
                 isDarkTheme = initialDark,
                 notificationConfig = notifConfig,
-                studentCard = savedCard
+                studentCard = savedCard,
+                statement = savedStatement
             )
         }
 
@@ -154,20 +163,47 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
 
     fun syncCardFromSigaa(matricula: String, pass: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isSyncingCard = true, cardSyncError = null) }
-            val result = cardRepository.syncFromSigaa(matricula, pass)
+            _uiState.update {
+                it.copy(
+                    isSyncingCard = true,
+                    syncProgressMessage = "Iniciando conexão...",
+                    cardSyncError = null
+                )
+            }
+            val result = cardRepository.syncFromSigaa(matricula, pass) { stepMsg ->
+                _uiState.update { it.copy(syncProgressMessage = stepMsg) }
+            }
             result.fold(
-                onSuccess = { card ->
-                    _uiState.update { it.copy(isSyncingCard = false, studentCard = card, cardSyncError = null) }
+                onSuccess = { syncResult ->
+                    _uiState.update {
+                        it.copy(
+                            isSyncingCard = false,
+                            syncProgressMessage = null,
+                            studentCard = syncResult.card,
+                            statement = syncResult.statement,
+                            cardSyncError = null
+                        )
+                    }
                 },
                 onFailure = { err ->
                     _uiState.update {
                         it.copy(
                             isSyncingCard = false,
+                            syncProgressMessage = null,
                             cardSyncError = err.message ?: "Erro ao sincronizar com o SIGAA"
                         )
                     }
                 }
+            )
+        }
+    }
+
+    fun disconnectStudentCard() {
+        cardRepository.clearStudentCard()
+        _uiState.update {
+            it.copy(
+                studentCard = StudentCard(),
+                statement = RestaurantStatement()
             )
         }
     }

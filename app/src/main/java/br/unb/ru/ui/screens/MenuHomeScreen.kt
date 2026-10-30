@@ -13,9 +13,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -29,7 +32,7 @@ import br.unb.ru.ui.components.DaySelectorRail
 import br.unb.ru.ui.components.LunchDinnerCard
 import br.unb.ru.ui.components.MealBottomControl
 import br.unb.ru.ui.components.NotificationSettingsBottomSheet
-import br.unb.ru.ui.components.StudentCardBottomSheet
+import br.unb.ru.ui.components.StudentCardScreen
 import br.unb.ru.ui.theme.NotionTypography
 import br.unb.ru.ui.viewmodel.MenuUiState
 
@@ -49,8 +52,21 @@ fun MenuHomeScreen(
     onCloseCard: () -> Unit,
     onSaveCard: (StudentCard) -> Unit,
     onSyncCardFromSigaa: (matricula: String, pass: String) -> Unit,
+    onDisconnectCard: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val pullRefreshState = rememberPullToRefreshState()
+    if (pullRefreshState.isRefreshing) {
+        LaunchedEffect(true) {
+            onRefresh()
+        }
+    }
+    LaunchedEffect(state.isLoading) {
+        if (!state.isLoading) {
+            pullRefreshState.endRefresh()
+        }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -62,12 +78,17 @@ fun MenuHomeScreen(
             )
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .statusBarsPadding()
+                .nestedScroll(pullRefreshState.nestedScrollConnection)
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+            ) {
             // Header
             Row(
                 modifier = Modifier
@@ -307,28 +328,41 @@ fun MenuHomeScreen(
                         }
                     }
                 }
-            }
-        }
+            } // Fechamento do Box de gestos
+        } // Fechamento do Column principal
 
-        // BottomSheet de Notificações
-        if (state.isSettingsOpen) {
-            NotificationSettingsBottomSheet(
-                config = state.notificationConfig,
-                onConfigChange = onUpdateNotificationConfig,
-                onDismissRequest = onCloseSettings
-            )
-        }
+        PullToRefreshContainer(
+            state = pullRefreshState,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding(),
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.primary
+        )
+    } // Fechamento do Box outer
+    } // Fechamento do Scaffold
 
-        // BottomSheet da Carteirinha Digital UnB
-        if (state.isCardOpen) {
-            StudentCardBottomSheet(
-                card = state.studentCard,
-                onSaveCard = onSaveCard,
-                onSyncFromSigaa = onSyncCardFromSigaa,
-                isSyncing = state.isSyncingCard,
-                syncError = state.cardSyncError,
-                onDismissRequest = onCloseCard
-            )
-        }
+    // BottomSheet de Notificações
+    if (state.isSettingsOpen) {
+        NotificationSettingsBottomSheet(
+            config = state.notificationConfig,
+            onConfigChange = onUpdateNotificationConfig,
+            onDismissRequest = onCloseSettings
+        )
+    }
+
+    // Tela Cheia da Carteirinha Digital UnB
+    if (state.isCardOpen) {
+        StudentCardScreen(
+            card = state.studentCard,
+            statement = state.statement,
+            isSyncing = state.isSyncingCard,
+            syncProgressMessage = state.syncProgressMessage,
+            syncError = state.cardSyncError,
+            onSaveCard = onSaveCard,
+            onSyncFromSigaa = onSyncCardFromSigaa,
+            onDisconnect = onDisconnectCard,
+            onClose = onCloseCard
+        )
     }
 }

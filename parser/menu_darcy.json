@@ -49,7 +49,7 @@
       "data": "27/10/2026",
       "cafe": {
         "bebidas": "Leite integral ou Bebida de soja",
-        "panificacao": "Pão francês ou Pão careca ou",
+        "panificacao": "Pão francês ou Pão careca",
         "gordura": "Manteiga ou creme vegetal",
         "opcao_extra": "Canjica",
         "prato_principal": "Ovos mexidos",
@@ -169,7 +169,7 @@
       "data": "30/10/2026",
       "cafe": {
         "bebidas": "Leite integral ou Bebida de soja",
-        "panificacao": "Pão francês ou Pão careca ou",
+        "panificacao": "Pão francês ou Pão careca",
         "gordura": "Manteiga ou creme vegetal",
         "opcao_extra": "Broa de milho",
         "prato_principal": "Queijo minas",

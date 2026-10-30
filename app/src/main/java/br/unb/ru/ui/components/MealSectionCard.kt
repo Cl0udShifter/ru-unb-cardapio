@@ -228,7 +228,7 @@ private fun DishRow(
         DietaryChip(text = tag, backgroundColor = tagBg, textColor = tagText)
         Spacer(modifier = Modifier.width(12.dp))
         Text(
-            text = dishName,
+            text = dishName.cleanTrailingText(),
             style = if (isHighlight) NotionTypography.titleSmall else NotionTypography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = if (isHighlight) FontWeight.SemiBold else FontWeight.Normal,
@@ -236,6 +236,9 @@ private fun DishRow(
         )
     }
 }
+
+private fun String.cleanTrailingText(): String =
+    this.replace(Regex("""\s+(ou|e)\s*$""", RegexOption.IGNORE_CASE), "").trim()
 
 @Composable
 private fun SimpleItemRow(
@@ -256,7 +259,7 @@ private fun SimpleItemRow(
         )
         Spacer(modifier = Modifier.width(12.dp))
         Text(
-            text = value,
+            text = value.cleanTrailingText(),
             style = NotionTypography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Medium,
