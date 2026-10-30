@@ -42,8 +42,6 @@ Aplicativo Android nativo para consulta rápida, moderna e offline do cardápio 
 
 ## 🛠️ Arquitetura e Tecnologias
 
-O projeto segue padrões modernos de desenvolvimento Android:
-
 - **Linguagem:** Kotlin
 - **Toolkit de UI:** Jetpack Compose + Material 3
 - **Gerador de QR Code:** ZXing (`com.google.zxing:core`)
