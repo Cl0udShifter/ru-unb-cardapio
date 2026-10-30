@@ -6,9 +6,7 @@
 [![Material 3](https://img.shields.io/badge/Material%203-Enabled-teal.svg)](https://m3.material.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Aplicativo Android nativo para consulta rápida, moderna e offline do cardápio semanal, emissão de carteirinha digital com QR Code para as catracas e acompanhamento de saldo do Restaurante Universitário (RU) da Universidade de Brasília (**UnB - Campus Darcy Ribeiro**).
-
-Projetado sob a filosofia visual **Notion Editorial (Warm Paper)**: estética limpa, tipografia acolhedora, espaçamento generoso, tema claro/escuro integrado com edge-to-edge e ergonomia pensada para uso diário com apenas uma mão.
+Aplicativo Android nativo para consulta rápida, moderna e offline do cardápio semanal, emissão de carteirinha digital com QR Code para as catracas e acompanhamento de saldo do Restaurante Universitário (RU) da Universidade de Brasília (**UnB**).
 
 ---
 
@@ -16,11 +14,6 @@ Projetado sob a filosofia visual **Notion Editorial (Warm Paper)**: estética li
 
 ### 1. Cardápio Semanal Sem Fricção
 - **Zero PDFs:** Elimina a necessidade de abrir PDFs semanais e dar zoom para ler os pratos.
-- **Detecção Temporal Automática:** Ao abrir, o app identifica o horário do dispositivo e seleciona diretamente a refeição atual:
-  - **Café da Manhã:** das 07h00 às 09h30
-  - **Almoço:** das 11h00 às 14h30
-  - **Jantar:** das 17h00 às 19h30
-- **Navegação por Fita & Gesto:** Fita de dias da semana (Segunda a Domingo) no topo e controle inferior flutuante ao alcance do polegar (*thumb zone*), com suporte a gesto lateral (*swipe*).
 - **Classificação Dietética:** Destaque para opções Padrão, Ovolactovegetariana, Vegana e Sobremesa/Fruta.
 - **Pull to Refresh:** Puxe a tela para baixo a qualquer momento para atualizar o cardápio.
 - **Offline-First:** Guarda em cache o cardápio mais recente com fallback imediato para dados embutidos.
@@ -40,24 +33,10 @@ Projetado sob a filosofia visual **Notion Editorial (Warm Paper)**: estética li
 ### 4. Notificações Inteligentes & Granulares
 - **Avisos Prévios:** Notificações disparadas 1 hora antes de cada refeição (6h00 para café, 10h00 para almoço e 16h00 para jantar).
 - **Controle por Dia da Semana:** Configure individualmente quais dias e quais refeições deseja ser notificado.
-- **Deep Linking:** Tocar na notificação abre o app diretamente na aba da respectiva refeição.
 
 ### 5. Guia Oficial & Regulamento do RU
 - Consulta integrada às regras e valores do restaurante:
-  - **Grupo 1 (Isentos):** R\$ 0,00 (PNAES / CadÚnico)
-  - **Grupo 2 (Estudantes UnB):** R\$ 6,10 (Graduação e Pós-graduação)
-  - **Grupo 4 (Comunidade Universitária):** R\$ 14,35
-  - **Grupo 3 (Visitantes):** R\$ 17,90
-  - **4º Andar (Bufê Executivo):** R\$ 60,42/kg
-- Orientações de circulação, salão vegetariano e devolução de bandejas.
-
----
-
-## 🎨 Design System: Notion Editorial
-
-- **Modo Claro (Warm Paper):** Fundo off-white acolhedor (`#FBFBFA`), superfície pura (`#FFFFFF`) e tipografia de alto contraste (`#2E2E2E`).
-- **Modo Escuro:** Tons profundos suaves (`#191919` e `#242424`) com integração contínua até a barra de navegação do sistema (edge-to-edge).
-- **Tipografia:** Hierarquia refinada com títulos em serif editorial e corpos de texto em sans-serif geométrica limpa.
+- Orientações de circulação, salão vegetariano e convivência.
 
 ---
 
