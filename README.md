@@ -40,7 +40,14 @@ Aplicativo Android nativo para consulta rápida, moderna e offline do cardápio 
 
 ---
 
-## 🛠️ Arquitetura e Tecnologias
+## Privacidade
+
+- As credenciais de acesso ao SIGAA são utilizadas unicamente para autenticação direta com os servidores oficiais da Universidade de Brasília (`sigaa.unb.br`).
+- Nenhum dado pessoal, senha, matrícula ou histórico é transmitido para servidores de terceiros ou serviços externos. Todo o armazenamento é local no dispositivo do usuário.
+
+---
+
+## Arquitetura e Tecnologias
 
 - **Linguagem:** Kotlin
 - **Toolkit de UI:** Jetpack Compose + Material 3
@@ -83,7 +90,7 @@ app/src/main/java/br/unb/ru/
 
 ---
 
-## 🚀 Como Compilar e Instalar
+## Como Compilar e Instalar
 
 ### Pré-requisitos
 - JDK 17
@@ -107,13 +114,6 @@ app/src/main/java/br/unb/ru/
    ```bash
    adb install -r app/build/outputs/apk/debug/app-debug.apk
    ```
-
----
-
-## 🔒 Privacidade
-
-- As credenciais de acesso ao SIGAA são utilizadas unicamente para autenticação direta com os servidores oficiais da Universidade de Brasília (`sigaa.unb.br`).
-- Nenhum dado pessoal, senha, matrícula ou histórico é transmitido para servidores de terceiros ou serviços externos. Todo o armazenamento é local no dispositivo do usuário.
 
 ---
 
