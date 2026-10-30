@@ -64,6 +64,11 @@ O aplicativo conta com checagem de atualizações automática e manual conectada
 - **Avisos Prévios:** Notificações disparadas 1 hora antes de cada refeição (6h00 para café, 10h00 para almoço e 16h00 para jantar).
 - **Controle por Dia da Semana:** Configure individualmente quais dias e quais refeições deseja ser notificado.
 - **Deep Linking:** Tocar na notificação abre o app diretamente na aba da respectiva refeição.
+- **Botão de Teste Imediato:** Valide instantaneamente o recebimento de notificações diretamente pelo menu de preferências.
+- **Segundo Plano & Economia de Bateria:** Diferentes fabricantes de smartphones Android (Xiaomi HyperOS/MIUI, Samsung OneUI, Motorola, Realme, Asus, etc.) possuem políticas agressivas de suspensão de processos em segundo plano. Para garantir o recebimento dos alertas diários com o app fechado ou em repouso:
+  - Abra as **Informações do App** nas configurações do Android;
+  - Defina o uso de bateria como **Sem restrições** (ou *Não otimizar*);
+  - Em aparelhos Xiaomi/Redmi/POCO, certifique-se também de habilitar a permissão de **Início Automático** (*Autostart*).
 
 ### 5. Guia Oficial & Regulamento do RU
 - Consulta integrada às regras e valores do restaurante:

@@ -1,0 +1,20 @@
+Ideias detalhadas para complementar e evoluir o app
+1. Widget de Tela Inicial (Jetpack Glance)
+O que faz: Um widget minimalista 4x2 ou 2x2 para a tela inicial do celular.
+Utilidade: Mostra diretamente o prato principal da refeição atual (ou da próxima se a atual já acabou) sem precisar abrir o app. Inclui um botão de atalho que abre instantaneamente a carteirinha em tela cheia com brilho máximo na hora de entrar na fila.
+2. Quick Settings Tile ("Catraca RU")
+O que faz: Um atalho nos botões rápidos da barra de notificações do Android (ao lado de Wi-Fi, Lanterna, etc.).
+Utilidade: Quando você estiver chegando na catraca, basta puxar a barra superior e tocar no ícone "Catraca RU" para o QR Code abrir por cima de qualquer aplicativo em 1 segundo.
+3. Projeção de Refeições Restantes e Alerta de Recarga
+O que faz: Como o app já conhece a sua categoria de preço e o seu saldo atual (ex: R$ 16,65):
+Exibir abaixo do saldo um contador prático: "Seu saldo rende 3 almoços/jantares e sobram R$ 3,15".
+Disparar um alerta sutil quando o saldo ficar menor que o valor de uma refeição: "Saldo insuficiente para o almoço de amanhã. Lembre-se de recarregar no RU".
+4. Termômetro de Fila (Colaborativo e por Horário Típico)
+O que faz: No horário de pico (11h45 às 12h45 e 17h45 às 18h30), mostrar uma estimativa visual do tamanho da fila (Tranquila, Média ou Longa).
+Utilidade: Pode combinar uma previsão histórica padrão com um botão simples de 1 toque no próprio app onde quem acabou de passar a catraca confirma o estado da fila para os demais alunos.
+5. Filtro de Preferência Alimentar Padrão
+O que faz: Uma configuração simples nas preferências para marcar "Prefiro Ovolactovegetariano" ou "Prefiro Vegano".
+Utilidade: O card da refeição inverte a ordem visual automaticamente, trazendo a opção escolhida como destaque no topo do card e diminuindo o destaque das carnes convencionais.
+6. Expansão para os outros Campi da UnB (FGA, FCE, FUP)
+O que faz: Adicionar um seletor discreto de campus no cabeçalho.
+Utilidade: Como a estrutura de dados e o leitor de PDF já estão prontos, basta mapear as páginas dos refeitórios do Gama, Ceilândia e Planaltina para atender toda a universidade.

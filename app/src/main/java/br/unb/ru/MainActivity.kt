@@ -30,6 +30,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        MenuNotificationReceiver.ensureChannel(this)
         requestNotificationPermission()
         handleIntent(intent)
 
@@ -55,6 +56,10 @@ class MainActivity : ComponentActivity() {
                     onSyncCardFromSigaa = { mat, pass -> viewModel.syncCardFromSigaa(mat, pass) },
                     onRefreshStatement = { viewModel.refreshStatement() },
                     onDisconnectCard = { viewModel.disconnectStudentCard() },
+                    onTestNotification = {
+                        requestNotificationPermission()
+                        viewModel.sendTestNotification()
+                    },
                     onCheckForUpdate = { viewModel.checkForUpdate(force = true) },
                     onConfirmUpdate = { viewModel.downloadAndInstallUpdate() },
                     onDismissUpdate = { viewModel.dismissUpdateDialog() },
@@ -70,6 +75,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra("trigger_test_notification", false) == true) {
+            viewModel.sendTestNotification()
+        }
         val mealKey = intent?.getStringExtra(MenuNotificationReceiver.EXTRA_MEAL_TYPE)
         if (mealKey != null) {
             try {

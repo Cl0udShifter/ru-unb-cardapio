@@ -20,7 +20,7 @@ class MenuRepository(private val context: Context) {
         private const val KEY_THEME_CUSTOMIZED = "theme_customized"
     }
 
-    private val remoteUrl = "https://raw.githubusercontent.com/Cl0udShifter/ru-unb-cardapio/main/parser/menu_darcy.json"
+    private val remoteUrl = "https://raw.githubusercontent.com/Cl0udShifter/ru-unb-cardapio/master/parser/menu_darcy.json"
 
     fun saveThemePreference(isDark: Boolean) {
         prefs.edit()

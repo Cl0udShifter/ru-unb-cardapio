@@ -252,6 +252,10 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
         NotificationScheduler.scheduleAll(getApplication())
     }
 
+    fun sendTestNotification() {
+        NotificationScheduler.triggerTestNotification(getApplication())
+    }
+
     fun selectDay(index: Int) {
         val totalDays = _uiState.value.menu?.dias?.size ?: 7
         if (index in 0 until totalDays) {
