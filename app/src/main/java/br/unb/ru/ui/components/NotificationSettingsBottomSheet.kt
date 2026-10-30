@@ -102,13 +102,13 @@ fun NotificationSettingsBottomSheet(
 
             // Seção Dieta
             Text(
-                text = "DIETA EXIBIDA NO PUSH",
+                text = "DIETA PREFERIDA",
                 style = NotionTypography.labelSmall.copy(fontSize = 11.sp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "O texto da notificação destacará o prato da sua preferência",
+                text = "Destaca seu prato no cardápio e no texto das notificações",
                 style = NotionTypography.bodyMedium.copy(fontSize = 12.sp),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)

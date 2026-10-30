@@ -16,7 +16,15 @@ data class NotificationConfig(
     val jantarEnabled: Boolean = true,
     val jantarDays: Set<Int> = setOf(1, 2, 3, 4, 5),
     val dietPreference: DietPreference = DietPreference.PADRAO
-)
+) {
+    val hasAnyNotificationActive: Boolean
+        get() = (cafeEnabled && cafeDays.isNotEmpty()) ||
+                (almocoEnabled && almocoDays.isNotEmpty()) ||
+                (jantarEnabled && jantarDays.isNotEmpty())
+
+    val effectiveDietPreference: DietPreference
+        get() = if (hasAnyNotificationActive) dietPreference else DietPreference.PADRAO
+}
 
 class NotificationPreferences(context: Context) {
     private val prefs = context.getSharedPreferences("ru_notification_prefs", Context.MODE_PRIVATE)
