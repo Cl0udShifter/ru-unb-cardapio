@@ -319,47 +319,26 @@ fun StudentCardScreen(
                             Spacer(modifier = Modifier.height(10.dp))
 
                             // Cartão de Saldo Atual
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(MaterialTheme.colorScheme.surface)
                                     .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
-                                    .padding(14.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
                             ) {
-                                Column {
-                                    Text(
-                                        text = "SALDO ATUAL",
-                                        style = NotionTypography.labelSmall.copy(fontSize = 10.sp),
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        text = statement.saldoAtual.ifBlank { "R$ 0,00" },
-                                        style = NotionTypography.titleLarge.copy(fontSize = 22.sp),
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-
-                                if (statement.saldoAnterior.isNotBlank() && statement.saldoAnterior != "R$ 0,00") {
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text(
-                                            text = "SALDO ANTERIOR",
-                                            style = NotionTypography.labelSmall.copy(fontSize = 10.sp),
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                        Text(
-                                            text = statement.saldoAnterior,
-                                            style = NotionTypography.bodyMedium.copy(fontSize = 13.5.sp),
-                                            fontWeight = FontWeight.Medium,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                        )
-                                    }
-                                }
+                                Text(
+                                    text = "SALDO ATUAL",
+                                    style = NotionTypography.labelSmall.copy(fontSize = 10.sp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = statement.saldoAtual.ifBlank { "R$ 0,00" },
+                                    style = NotionTypography.titleLarge.copy(fontSize = 24.sp),
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
 
                             Spacer(modifier = Modifier.height(14.dp))
