@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
                     onCloseCard = { viewModel.setCardOpen(false) },
                     onSaveCard = { viewModel.updateStudentCard(it) },
                     onSyncCardFromSigaa = { mat, pass -> viewModel.syncCardFromSigaa(mat, pass) },
+                    onRefreshStatement = { viewModel.refreshStatement() },
                     onDisconnectCard = { viewModel.disconnectStudentCard() }
                 )
             }

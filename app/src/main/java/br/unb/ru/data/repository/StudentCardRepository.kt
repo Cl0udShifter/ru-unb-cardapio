@@ -77,14 +77,41 @@ class StudentCardRepository(private val context: Context) {
     }
 
     fun clearStudentCard() {
+        clearCredentials()
         prefs.edit().clear().apply()
+    }
+
+    fun saveCredentials(matricula: String, pass: String) {
+        prefs.edit()
+            .putString("saved_matricula", matricula)
+            .putString("saved_pass", pass)
+            .apply()
+    }
+
+    fun getSavedCredentials(): Pair<String, String>? {
+        val m = prefs.getString("saved_matricula", null) ?: return null
+        val p = prefs.getString("saved_pass", null) ?: return null
+        if (m.isBlank() || p.isBlank()) return null
+        return Pair(m, p)
+    }
+
+    fun clearCredentials() {
+        prefs.edit()
+            .remove("saved_matricula")
+            .remove("saved_pass")
+            .apply()
     }
 
     fun getStatement(matricula: String): RestaurantStatement {
         if (matricula.isBlank()) return RestaurantStatement()
         val json = statementPrefs.getString("statement_$matricula", null) ?: return RestaurantStatement(matricula = matricula)
         return try {
-            gson.fromJson(json, RestaurantStatement::class.java)
+            val stmt = gson.fromJson(json, RestaurantStatement::class.java)
+            stmt.copy(
+                transacoes = stmt.transacoes.map {
+                    it.copy(descricao = decodeHtmlEntities(it.descricao))
+                }
+            )
         } catch (_: Exception) {
             RestaurantStatement(matricula = matricula)
         }
@@ -271,6 +298,7 @@ class StudentCardRepository(private val context: Context) {
                 codigoQr = qrPayload
             )
             saveStudentCard(newCard)
+            saveCredentials(matricula, pass)
 
             // 6. Consultar Extrato do Restaurante Universitário
             onProgress("Consultando saldo e extrato do RU...")
@@ -279,6 +307,84 @@ class StudentCardRepository(private val context: Context) {
 
             onProgress("Pronto!")
             Result.success(SyncResult(card = newCard, statement = statement))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun refreshStatement(): Result<RestaurantStatement> = withContext(Dispatchers.IO) {
+        val creds = getSavedCredentials() ?: return@withContext Result.failure(Exception("Nenhuma conta sincronizada encontrada."))
+        val (matricula, pass) = creds
+        try {
+            val client = OkHttpClient.Builder()
+                .cookieJar(MemoryCookieJar())
+                .followRedirects(true)
+                .followSslRedirects(true)
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build()
+
+            val ssoUrl = "https://autenticacao.unb.br/sso-server/login?service=https%3A%2F%2Fsig.unb.br%2Fsigaa%2Flogin%2Fcas"
+            val ssoReq = Request.Builder()
+                .url(ssoUrl)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                .build()
+
+            val ssoHtml = client.newCall(ssoReq).execute().body?.string() ?: ""
+            val actionUrl = extractFormAction(ssoHtml, "https://autenticacao.unb.br")
+            val hiddenInputs = extractInputFields(ssoHtml).toMutableMap()
+            hiddenInputs["username"] = matricula
+            hiddenInputs["password"] = pass
+            hiddenInputs["submit"] = "ENTRAR"
+
+            val postForm = FormBody.Builder()
+            hiddenInputs.forEach { (k, v) -> postForm.add(k, v) }
+
+            val loginReq = Request.Builder()
+                .url(actionUrl)
+                .post(postForm.build())
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                .build()
+
+            var currentResp = client.newCall(loginReq).execute()
+            var currentHtml = currentResp.body?.string() ?: ""
+            var currentUrl = currentResp.request.url.toString()
+
+            var avisoAttempts = 0
+            while (currentUrl.contains("telaAvisoLogon.jsf") && avisoAttempts < 6) {
+                val avisoFormAction = extractFormAction(currentHtml, "https://sigaa.unb.br")
+                val hasPasswordField = currentHtml.contains("type=\"password\"") || currentHtml.contains("formConfirmacaoDeclaracao")
+                val formBody = FormBody.Builder()
+
+                if (hasPasswordField) {
+                    val pInputName = extractInputNameByPattern(currentHtml, "password") ?: "formConfirmacaoDeclaracao:senha"
+                    val allInputs = extractInputFields(currentHtml)
+                    allInputs.forEach { (k, v) ->
+                        if (k == pInputName) formBody.add(k, pass) else formBody.add(k, v)
+                    }
+                    formBody.add("formConfirmacaoDeclaracao:buttonConfirmar", "Confirmar")
+                } else {
+                    val allInputs = extractInputFields(currentHtml)
+                    allInputs.forEach { (k, v) -> formBody.add(k, v) }
+                    val submitBtn = extractSubmitButton(currentHtml, "Continuar")
+                    if (submitBtn != null) formBody.add(submitBtn.first, submitBtn.second)
+                }
+
+                val avisoReq = Request.Builder()
+                    .url(avisoFormAction)
+                    .post(formBody.build())
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                    .build()
+
+                currentResp = client.newCall(avisoReq).execute()
+                currentHtml = currentResp.body?.string() ?: ""
+                currentUrl = currentResp.request.url.toString()
+                avisoAttempts++
+            }
+
+            val updatedStatement = fetchStatementFromPortal(client, currentHtml, matricula)
+            saveStatement(updatedStatement)
+            Result.success(updatedStatement)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -326,7 +432,7 @@ class StudentCardRepository(private val context: Context) {
             val cols = mutableListOf<String>()
             while (tdMatcher.find()) {
                 val text = (tdMatcher.group(1) ?: "").replace(Regex("<[^>]+>"), "").trim()
-                cols.add(text)
+                cols.add(decodeHtmlEntities(text))
             }
 
             if (cols.size >= 3) {
@@ -362,6 +468,10 @@ class StudentCardRepository(private val context: Context) {
             ultimaAtualizacao = now,
             transacoes = sortedList
         )
+    }
+
+    private fun decodeHtmlEntities(input: String): String {
+        return android.text.Html.fromHtml(input, android.text.Html.FROM_HTML_MODE_LEGACY).toString().trim()
     }
 
     private fun decodeQrFromBitmap(bitmap: Bitmap): String? {

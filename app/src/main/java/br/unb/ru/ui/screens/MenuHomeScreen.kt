@@ -52,6 +52,7 @@ fun MenuHomeScreen(
     onCloseCard: () -> Unit,
     onSaveCard: (StudentCard) -> Unit,
     onSyncCardFromSigaa: (matricula: String, pass: String) -> Unit,
+    onRefreshStatement: () -> Unit,
     onDisconnectCard: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -357,10 +358,12 @@ fun MenuHomeScreen(
             card = state.studentCard,
             statement = state.statement,
             isSyncing = state.isSyncingCard,
+            isRefreshingStatement = state.isRefreshingStatement,
             syncProgressMessage = state.syncProgressMessage,
             syncError = state.cardSyncError,
             onSaveCard = onSaveCard,
             onSyncFromSigaa = onSyncCardFromSigaa,
+            onRefreshStatement = onRefreshStatement,
             onDisconnect = onDisconnectCard,
             onClose = onCloseCard
         )

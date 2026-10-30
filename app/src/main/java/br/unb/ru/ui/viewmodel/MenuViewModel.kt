@@ -33,6 +33,7 @@ data class MenuUiState(
     val studentCard: StudentCard = StudentCard(),
     val statement: RestaurantStatement = RestaurantStatement(),
     val isSyncingCard: Boolean = false,
+    val isRefreshingStatement: Boolean = false,
     val syncProgressMessage: String? = null,
     val cardSyncError: String? = null,
     val notificationConfig: NotificationConfig = NotificationConfig(),
@@ -204,6 +205,32 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
             it.copy(
                 studentCard = StudentCard(),
                 statement = RestaurantStatement()
+            )
+        }
+    }
+
+    fun refreshStatement() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshingStatement = true, cardSyncError = null) }
+            val result = cardRepository.refreshStatement()
+            result.fold(
+                onSuccess = { updated ->
+                    _uiState.update {
+                        it.copy(
+                            isRefreshingStatement = false,
+                            statement = updated,
+                            cardSyncError = null
+                        )
+                    }
+                },
+                onFailure = { err ->
+                    _uiState.update {
+                        it.copy(
+                            isRefreshingStatement = false,
+                            cardSyncError = err.message
+                        )
+                    }
+                }
             )
         }
     }

@@ -45,10 +45,12 @@ fun StudentCardScreen(
     card: StudentCard,
     statement: RestaurantStatement,
     isSyncing: Boolean,
+    isRefreshingStatement: Boolean,
     syncProgressMessage: String?,
     syncError: String?,
     onSaveCard: (StudentCard) -> Unit,
     onSyncFromSigaa: (matricula: String, pass: String) -> Unit,
+    onRefreshStatement: () -> Unit,
     onDisconnect: () -> Unit,
     onClose: () -> Unit
 ) {
@@ -58,6 +60,12 @@ fun StudentCardScreen(
     var showSyncDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showRuGuide by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isSyncing, card.isConfigured, syncError) {
+        if (!isSyncing && card.isConfigured && syncError == null) {
+            showSyncDialog = false
+        }
+    }
 
     val qrBitmap = remember(card.codigoQr) {
         if (card.codigoQr.isNotBlank()) {
@@ -103,12 +111,14 @@ fun StudentCardScreen(
                     }
 
                     Row {
-                        IconButton(onClick = { showSyncDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Outlined.AccountCircle,
-                                contentDescription = "Conectar ou Atualizar SIGAA",
-                                tint = MaterialTheme.colorScheme.onBackground
-                            )
+                        if (!card.isConfigured) {
+                            IconButton(onClick = { showSyncDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Outlined.AccountCircle,
+                                    contentDescription = "Conectar SIGAA",
+                                    tint = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
                         }
                     }
                 }
@@ -281,14 +291,28 @@ fun StudentCardScreen(
                                     }
                                 }
 
-                                TextButton(onClick = { showSyncDialog = true }) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Refresh,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(15.dp)
-                                    )
+                                TextButton(
+                                    onClick = onRefreshStatement,
+                                    enabled = !isRefreshingStatement
+                                ) {
+                                    if (isRefreshingStatement) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(13.dp),
+                                            strokeWidth = 2.dp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Refresh,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                    }
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Atualizar", style = NotionTypography.bodyMedium.copy(fontSize = 12.sp))
+                                    Text(
+                                        text = if (isRefreshingStatement) "Atualizando..." else "Atualizar",
+                                        style = NotionTypography.bodyMedium.copy(fontSize = 12.sp)
+                                    )
                                 }
                             }
 
@@ -341,7 +365,7 @@ fun StudentCardScreen(
                             Spacer(modifier = Modifier.height(14.dp))
 
                             Text(
-                                text = "HISTÓRICO ACUMULADO",
+                                text = "HISTÓRICO",
                                 style = NotionTypography.labelSmall.copy(fontSize = 10.5.sp),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                 fontWeight = FontWeight.SemiBold,
@@ -400,11 +424,12 @@ fun StudentCardScreen(
                     // Botões e Guia do RU
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedButton(
                             onClick = { showRuGuide = !showRuGuide },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1.15f),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp),
                             shape = RoundedCornerShape(10.dp),
                             border = ButtonDefaults.outlinedButtonBorder.copy(
                                 brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.outline)
@@ -413,20 +438,23 @@ fun StudentCardScreen(
                             Icon(
                                 imageVector = Icons.Outlined.Info,
                                 contentDescription = null,
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(15.dp),
                                 tint = MaterialTheme.colorScheme.onBackground
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Informações do RU",
-                                style = NotionTypography.bodyMedium.copy(fontSize = 12.5.sp),
-                                color = MaterialTheme.colorScheme.onBackground
+                                style = NotionTypography.bodyMedium.copy(fontSize = 11.5.sp),
+                                color = MaterialTheme.colorScheme.onBackground,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
 
                         OutlinedButton(
                             onClick = onDisconnect,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(0.85f),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp),
                             shape = RoundedCornerShape(10.dp),
                             border = ButtonDefaults.outlinedButtonBorder.copy(
                                 brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.outline)
@@ -435,14 +463,16 @@ fun StudentCardScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.Logout,
                                 contentDescription = null,
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(15.dp),
                                 tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Trocar Conta",
-                                style = NotionTypography.bodyMedium.copy(fontSize = 12.5.sp),
-                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                                style = NotionTypography.bodyMedium.copy(fontSize = 11.5.sp),
+                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
@@ -461,42 +491,93 @@ fun StudentCardScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
                                         imageVector = Icons.Outlined.Info,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
+                                        modifier = Modifier.size(17.dp),
                                         tint = MaterialTheme.colorScheme.onSurface
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "Informações importantes do RU",
+                                        text = "Informações e Regras do RU",
                                         style = NotionTypography.titleSmall,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
+
+                                // Seção Preços
                                 Text(
-                                    text = "• Valor por refeição: R$ 6,10 (estudantes de graduação/pós) ou gratuito para discentes atendidos pela assistência estudantil.",
-                                    style = NotionTypography.bodyMedium.copy(fontSize = 12.sp),
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                    text = "PREÇOS POR GRUPO",
+                                    style = NotionTypography.labelSmall.copy(fontSize = 10.5.sp),
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                 )
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    GuideItem(
+                                        title = "Grupo 1 (Isentos): R$ 0,00",
+                                        description = "Estudantes de graduação e pós-graduação assistidos pelo PNAES, CadÚnico, cotistas de baixa renda, indígenas, quilombolas e outros critérios de vulnerabilidade."
+                                    )
+                                    GuideItem(
+                                        title = "Grupo 2 (Estudantes não isentos): R$ 2,00 café / R$ 4,50 almoço ou jantar",
+                                        description = "Estudantes de graduação, pós-graduação e estagiários do DGP/UnB não isentos."
+                                    )
+                                    GuideItem(
+                                        title = "Grupo 4 (Escolas públicas não PNAES): R$ 1,50 café / R$ 2,50 almoço ou jantar",
+                                        description = "Estudantes de escolas públicas não contemplados pelo PNAES."
+                                    )
+                                    GuideItem(
+                                        title = "Grupo 3 (Servidores e visitantes): R$ 7,05 café / R$ 15,20 almoço ou jantar",
+                                        description = "Servidores, trabalhadores terceirizados e visitantes (valor integral do contrato)."
+                                    )
+                                }
+
+                                HorizontalDivider(
+                                    thickness = 0.5.dp,
+                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
+
+                                // Seção Refeitórios
                                 Text(
-                                    text = "• Leitura na catraca: Aponte a tela do celular voltada para o leitor de vidro (cerca de 10 a 15 cm de distância). O app conta com modo tela cheia e brilho máximo.",
-                                    style = NotionTypography.bodyMedium.copy(fontSize = 12.sp),
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                    text = "REFEITÓRIOS E RESTAURANTE EXECUTIVO",
+                                    style = NotionTypography.labelSmall.copy(fontSize = 10.5.sp),
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                 )
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    GuideItem(
+                                        title = "6 Refeitórios Tradicionais (por andar)",
+                                        description = "Existem 6 refeitórios: 2 no térreo, 2 no 1º andar e 2 no 2º andar."
+                                    )
+                                    GuideItem(
+                                        title = "Restaurante Executivo (Piso Superior - 4º andar): R$ 60,42/kg",
+                                        description = "Modalidade self-service por peso sem subsídio da universidade. O valor final depende exclusivamente do peso do prato. Formas de pagamento aceitas: Pix, cartão de débito, crédito e dinheiro em espécie."
+                                    )
+                                }
+
+                                HorizontalDivider(
+                                    thickness = 0.5.dp,
+                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
+
+                                // Seção Regras e Convivência
                                 Text(
-                                    text = "• Recarga de saldo: A compra de créditos é feita presencialmente nos guichês do RU.",
-                                    style = NotionTypography.bodyMedium.copy(fontSize = 12.sp),
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                    text = "REGRAS E CONVIVÊNCIA",
+                                    style = NotionTypography.labelSmall.copy(fontSize = 10.5.sp),
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                 )
-                                Text(
-                                    text = "• Mesa de apoio: Ao lado das estações de servir, você encontra temperos, azeite, vinagre, açúcar e café.",
-                                    style = NotionTypography.bodyMedium.copy(fontSize = 12.sp),
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    GuideBulletItem(text = "Prato principal: Não é permitido repetir o prato principal.")
+                                    GuideBulletItem(text = "Opções Vegetariana e Ovolacto: Ficam disponíveis em um refeitório específico divulgado pela administração em tela ou cartaz na parede. A mesa de servir dessas opções fica separada do prato principal padrão.")
+                                    GuideBulletItem(text = "Não segure lugar: Ao terminar de comer, retire-se da mesa para liberar espaço. As filas são grandes e os lugares são limitados.")
+                                    GuideBulletItem(text = "Devolução das bandejas: Não deixe nada na mesa. Pratos, talheres, copos e bandejas devem ser levados até a área de higienização, no lado oposto às catracas de entrada.")
+                                    GuideBulletItem(text = "Catraca do RU: Aponte o QR Code para o leitor de vidro (a cerca de 10 a 15 cm). Use o toque para tela cheia com brilho máximo se houver reflexo.")
+                                }
                             }
                         }
                     }
@@ -895,4 +976,41 @@ private fun EditCardDialog(
             }
         }
     )
+}
+
+@Composable
+private fun GuideItem(title: String, description: String) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+        Text(
+            text = title,
+            style = NotionTypography.bodyMedium.copy(fontSize = 12.sp),
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = description,
+            style = NotionTypography.bodyMedium.copy(fontSize = 11.sp, lineHeight = 15.sp),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+        )
+    }
+}
+
+@Composable
+private fun GuideBulletItem(text: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = "•",
+            style = NotionTypography.bodyMedium.copy(fontSize = 12.sp),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            modifier = Modifier.padding(end = 6.dp)
+        )
+        Text(
+            text = text,
+            style = NotionTypography.bodyMedium.copy(fontSize = 11.5.sp, lineHeight = 16.sp),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+        )
+    }
 }
