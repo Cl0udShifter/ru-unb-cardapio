@@ -48,9 +48,10 @@ Estimativa visual do tempo de espera nas catracas do Campus Darcy Ribeiro.
 ## 5. Filtro de Preferência Alimentar no Cardápio
 Reorganização visual automática das seções de prato conforme a dieta do estudante.
 
-- [ ] **Persistência da Dieta:** Utilizar as preferências já salvas no app (Padrão, Ovolactovegetariano ou Vegano).
-- [ ] **Inversão da Hierarquia Visual:** Quando o usuário tiver selecionado dieta vegetariana ou vegana, o prato correspondente sobe para o topo do card da refeição em `MealSectionCard.kt`, diminuindo o destaque visual das carnes convencionais.
-- [ ] **Filtro Rápido na Barra Superior:** Alternador direto na tela inicial para alternar a visualização sem precisar abrir as configurações.
+- [x] **Persistência da Dieta:** Integrada com as preferências salvas no app (Padrão, Ovolactovegetariano ou Vegano).
+- [x] **Inversão da Hierarquia Visual:** Ao selecionar dieta vegetariana ou vegana, o prato correspondente sobe automaticamente para o topo do card como prato destacado (`MealSectionCard.kt`), reduzindo o destaque visual das carnes convencionais.
+- [x] **Filtro Rápido na Tela Inicial:** Barra de seleção rápida (`DietFilterBar.kt`) diretamente abaixo dos dias da semana para alternância instantânea com 1 toque.
+- [x] **Hierarquia de Pílulas Limpa:** Pílulas coloridas mantidas exclusivamente nos pratos principais (Padrão, Ovolacto, Vegano), convertendo sobremesa, refresco, fruta e complementos extras para linhas limpas.
 
 ---
 

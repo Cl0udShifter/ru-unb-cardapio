@@ -35,6 +35,7 @@ import br.unb.ru.ui.components.AppUpdateDialog
 import br.unb.ru.ui.components.BreakfastCard
 import br.unb.ru.ui.components.CampusSelectorBottomSheet
 import br.unb.ru.ui.components.DaySelectorRail
+import br.unb.ru.ui.components.DietFilterBar
 import br.unb.ru.ui.components.LunchDinnerCard
 import br.unb.ru.ui.components.MealBottomControl
 import br.unb.ru.ui.components.NotificationSettingsBottomSheet
@@ -212,9 +213,16 @@ fun MenuHomeScreen(
                     onDaySelected = onDaySelected,
                     todayIndex = state.todayIndex
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+                DietFilterBar(
+                    selectedDiet = state.notificationConfig.dietPreference,
+                    onDietSelected = { newDiet ->
+                        onUpdateNotificationConfig(state.notificationConfig.copy(dietPreference = newDiet))
+                    }
+                )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             // Swipeable and Scrollable Meal Card Area
             var totalDrag by remember { mutableFloatStateOf(0f) }
@@ -307,13 +315,24 @@ fun MenuHomeScreen(
 
                                 when (meal) {
                                     MealType.CAFE -> {
-                                        BreakfastCard(menu = currentDay.cafe)
+                                        BreakfastCard(
+                                            menu = currentDay.cafe,
+                                            dietPreference = state.notificationConfig.dietPreference
+                                        )
                                     }
                                     MealType.ALMOCO -> {
-                                        LunchDinnerCard(menu = currentDay.almoco, isJantar = false)
+                                        LunchDinnerCard(
+                                            menu = currentDay.almoco,
+                                            isJantar = false,
+                                            dietPreference = state.notificationConfig.dietPreference
+                                        )
                                     }
                                     MealType.JANTAR -> {
-                                        LunchDinnerCard(menu = currentDay.jantar, isJantar = true)
+                                        LunchDinnerCard(
+                                            menu = currentDay.jantar,
+                                            isJantar = true,
+                                            dietPreference = state.notificationConfig.dietPreference
+                                        )
                                     }
                                 }
 

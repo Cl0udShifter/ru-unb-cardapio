@@ -17,12 +17,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.unb.ru.data.model.BreakfastMenu
 import br.unb.ru.data.model.LunchDinnerMenu
+import br.unb.ru.data.repository.DietPreference
 import br.unb.ru.ui.theme.*
+
+private data class DishEntry(
+    val tag: String,
+    val name: String,
+    val type: DietPreference
+)
 
 @Composable
 fun LunchDinnerCard(
     menu: LunchDinnerMenu,
     isJantar: Boolean,
+    dietPreference: DietPreference = DietPreference.PADRAO,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -36,31 +44,50 @@ fun LunchDinnerCard(
         // Section: Pratos Principais
         SectionHeader(title = "PRATOS PRINCIPAIS")
 
-        if (menu.pratoPrincipal.isNotBlank()) {
-            DishRow(
-                tag = "Padrão",
-                tagBg = TagStandardBg,
-                tagText = TagStandardText,
-                dishName = menu.pratoPrincipal,
-                isHighlight = true
-            )
+        val rawDishes = buildList {
+            if (menu.pratoPrincipal.isNotBlank()) {
+                add(DishEntry("Padrão", menu.pratoPrincipal, DietPreference.PADRAO))
+            }
+            if (menu.vegetariano.isNotBlank()) {
+                add(DishEntry("Ovolacto", menu.vegetariano, DietPreference.OVOLACTO))
+            }
+            if (menu.vegano.isNotBlank()) {
+                add(DishEntry("Vegano", menu.vegano, DietPreference.VEGANO))
+            }
         }
 
-        if (menu.vegetariano.isNotBlank()) {
-            DishRow(
-                tag = "Ovolacto",
-                tagBg = TagOvolactoBg,
-                tagText = TagOvolactoText,
-                dishName = menu.vegetariano
-            )
+        val sortedDishes = when (dietPreference) {
+            DietPreference.PADRAO -> rawDishes
+            DietPreference.OVOLACTO -> rawDishes.sortedWith(compareBy { entry ->
+                when (entry.type) {
+                    DietPreference.OVOLACTO -> 0
+                    DietPreference.VEGANO -> 1
+                    DietPreference.PADRAO -> 2
+                }
+            })
+            DietPreference.VEGANO -> rawDishes.sortedWith(compareBy { entry ->
+                when (entry.type) {
+                    DietPreference.VEGANO -> 0
+                    DietPreference.OVOLACTO -> 1
+                    DietPreference.PADRAO -> 2
+                }
+            })
         }
 
-        if (menu.vegano.isNotBlank()) {
+        sortedDishes.forEachIndexed { idx, dish ->
+            val isHighlight = (idx == 0 && dish.type == dietPreference) ||
+                    (dietPreference == DietPreference.PADRAO && dish.type == DietPreference.PADRAO)
+            val (tagBg, tagText) = when (dish.type) {
+                DietPreference.PADRAO -> Pair(TagStandardBg, TagStandardText)
+                DietPreference.OVOLACTO -> Pair(TagOvolactoBg, TagOvolactoText)
+                DietPreference.VEGANO -> Pair(TagVeggieBg, TagVeggieText)
+            }
             DishRow(
-                tag = "Vegano",
-                tagBg = TagVeggieBg,
-                tagText = TagVeggieText,
-                dishName = menu.vegano
+                tag = dish.tag,
+                tagBg = tagBg,
+                tagText = tagText,
+                dishName = dish.name,
+                isHighlight = isHighlight
             )
         }
 
@@ -103,23 +130,13 @@ fun LunchDinnerCard(
 
         NotionDivider()
 
-        // Section: Sobremesa e Bebida
+        // Section: Sobremesa e Bebida (Texto puro em linhas simples, sem pílulas coloridas)
         SectionHeader(title = "SOBREMESA & BEBIDA")
         if (menu.sobremesa.isNotBlank()) {
-            DishRow(
-                tag = "Sobremesa",
-                tagBg = TagDessertBg,
-                tagText = TagDessertText,
-                dishName = menu.sobremesa
-            )
+            SimpleItemRow(label = "Sobremesa", value = menu.sobremesa)
         }
         if (menu.bebida.isNotBlank()) {
-            DishRow(
-                tag = "Refresco",
-                tagBg = TagSideBg,
-                tagText = TagSideText,
-                dishName = menu.bebida
-            )
+            SimpleItemRow(label = "Refresco", value = menu.bebida)
         }
     }
 }
@@ -127,6 +144,7 @@ fun LunchDinnerCard(
 @Composable
 fun BreakfastCard(
     menu: BreakfastMenu,
+    dietPreference: DietPreference = DietPreference.PADRAO,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -139,39 +157,55 @@ fun BreakfastCard(
     ) {
         SectionHeader(title = "COMPLEMENTOS")
 
-        if (menu.pratoPrincipal.isNotBlank()) {
-            DishRow(
-                tag = "Padrão",
-                tagBg = TagStandardBg,
-                tagText = TagStandardText,
-                dishName = menu.pratoPrincipal,
-                isHighlight = true
-            )
+        val rawComplements = buildList {
+            if (menu.pratoPrincipal.isNotBlank()) {
+                add(DishEntry("Padrão", menu.pratoPrincipal, DietPreference.PADRAO))
+            }
+            if (menu.vegetariano.isNotBlank()) {
+                add(DishEntry("Ovolacto", menu.vegetariano, DietPreference.OVOLACTO))
+            }
+            if (menu.vegano.isNotBlank()) {
+                add(DishEntry("Vegano", menu.vegano, DietPreference.VEGANO))
+            }
         }
-        if (menu.vegetariano.isNotBlank()) {
-            DishRow(
-                tag = "Ovolacto",
-                tagBg = TagOvolactoBg,
-                tagText = TagOvolactoText,
-                dishName = menu.vegetariano
-            )
+
+        val sortedComplements = when (dietPreference) {
+            DietPreference.PADRAO -> rawComplements
+            DietPreference.OVOLACTO -> rawComplements.sortedWith(compareBy { entry ->
+                when (entry.type) {
+                    DietPreference.OVOLACTO -> 0
+                    DietPreference.VEGANO -> 1
+                    DietPreference.PADRAO -> 2
+                }
+            })
+            DietPreference.VEGANO -> rawComplements.sortedWith(compareBy { entry ->
+                when (entry.type) {
+                    DietPreference.VEGANO -> 0
+                    DietPreference.OVOLACTO -> 1
+                    DietPreference.PADRAO -> 2
+                }
+            })
         }
-        if (menu.vegano.isNotBlank()) {
+
+        sortedComplements.forEachIndexed { idx, dish ->
+            val isHighlight = (idx == 0 && dish.type == dietPreference) ||
+                    (dietPreference == DietPreference.PADRAO && dish.type == DietPreference.PADRAO)
+            val (tagBg, tagText) = when (dish.type) {
+                DietPreference.PADRAO -> Pair(TagStandardBg, TagStandardText)
+                DietPreference.OVOLACTO -> Pair(TagOvolactoBg, TagOvolactoText)
+                DietPreference.VEGANO -> Pair(TagVeggieBg, TagVeggieText)
+            }
             DishRow(
-                tag = "Vegano",
-                tagBg = TagVeggieBg,
-                tagText = TagVeggieText,
-                dishName = menu.vegano
+                tag = dish.tag,
+                tagBg = tagBg,
+                tagText = tagText,
+                dishName = dish.name,
+                isHighlight = isHighlight
             )
         }
 
         if (menu.opcaoExtra.isNotBlank()) {
-            DishRow(
-                tag = "Extra",
-                tagBg = TagDessertBg,
-                tagText = TagDessertText,
-                dishName = menu.opcaoExtra
-            )
+            SimpleItemRow(label = "Extra", value = menu.opcaoExtra)
         }
 
         NotionDivider()
@@ -190,12 +224,7 @@ fun BreakfastCard(
         if (menu.fruta.isNotBlank()) {
             NotionDivider()
             SectionHeader(title = "FRUTA DO DIA")
-            DishRow(
-                tag = "Fruta",
-                tagBg = TagDessertBg,
-                tagText = TagDessertText,
-                dishName = menu.fruta
-            )
+            SimpleItemRow(label = "Fruta", value = menu.fruta)
         }
     }
 }
