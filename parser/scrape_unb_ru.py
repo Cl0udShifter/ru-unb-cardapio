@@ -6,10 +6,41 @@ import urllib.request
 from html.parser import HTMLParser
 import pdfplumber
 
+CAMPUS_CONFIGS = [
+    {
+        "id": "darcy",
+        "name": "Darcy Ribeiro",
+        "keyword": "darcy",
+        "output_file": "menu_darcy.json",
+        "fallback_url": "https://ru.unb.br/wp-content/uploads/2026/10/Darcy-Ribeiro-Semana-02-26-10-a-01-11-4.pdf"
+    },
+    {
+        "id": "gama",
+        "name": "FGA (Gama)",
+        "keyword": "gama",
+        "output_file": "menu_gama.json",
+        "fallback_url": "https://ru.unb.br/wp-content/uploads/2026/10/Gama-Semana-02-26-10-a-01-11-1.pdf"
+    },
+    {
+        "id": "ceilandia",
+        "name": "FCE (Ceilândia)",
+        "keyword": "ceilandia",
+        "output_file": "menu_ceilandia.json",
+        "fallback_url": "https://ru.unb.br/wp-content/uploads/2026/10/Ceilandia-Semana-02-26-10-a-01-11-1.pdf"
+    },
+    {
+        "id": "planaltina",
+        "name": "FUP (Planaltina)",
+        "keyword": "planaltina",
+        "output_file": "menu_planaltina.json",
+        "fallback_url": "https://ru.unb.br/wp-content/uploads/2026/10/Planaltina-Semana-02-26-10-a-01-11-1.pdf"
+    }
+]
+
 class LinkFinder(HTMLParser):
     def __init__(self):
         super().__init__()
-        self.darcy_links = []
+        self.all_pdf_links = []
         self._current_tag = None
         self._current_href = None
         self._current_text = ""
@@ -28,8 +59,8 @@ class LinkFinder(HTMLParser):
 
     def handle_endtag(self, tag):
         if tag == "a":
-            if self._current_href and "darcy" in self._current_href.lower() and self._current_href.lower().endswith(".pdf"):
-                self.darcy_links.append((self._current_text.strip(), self._current_href))
+            if self._current_href and self._current_href.lower().endswith(".pdf"):
+                self.all_pdf_links.append((self._current_text.strip(), self._current_href))
             self._current_tag = None
             self._current_href = None
             self._current_text = ""
@@ -37,12 +68,11 @@ class LinkFinder(HTMLParser):
 def clean_text(txt):
     if not txt:
         return ""
-    # Normalize multiple whitespaces, newlines, tabs
     cleaned = re.sub(r'[\r\n\t]+', ' ', txt)
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     return cleaned
 
-def parse_pdf_menu(pdf_path, vigencia_label, pdf_url):
+def parse_pdf_menu(pdf_path, vigencia_label, pdf_url, campus_name="Darcy Ribeiro"):
     days_names = [
         "Segunda-feira",
         "Terça-feira",
@@ -78,7 +108,6 @@ def parse_pdf_menu(pdf_path, vigencia_label, pdf_url):
             })
 
         def process_page(table, meal_key):
-            # Locate row with "2ª" or "2ª FEIRA"
             header_row_idx = -1
             start_col = -1
             for r_idx, r in enumerate(table[:3]):
@@ -100,7 +129,6 @@ def parse_pdf_menu(pdf_path, vigencia_label, pdf_url):
                 if not cat_name:
                     continue
 
-                # Check if this row is a merged row across all days
                 items = []
                 for day_idx in range(7):
                     c_idx = start_col + day_idx
@@ -108,7 +136,6 @@ def parse_pdf_menu(pdf_path, vigencia_label, pdf_url):
                     val = clean_text(val)
                     items.append(val)
 
-                # If only column 0 has text and all others are empty, it's merged across the entire week
                 non_empty = [it for it in items if it]
                 if len(non_empty) == 1 and items[0]:
                     merged_val = items[0]
@@ -127,7 +154,6 @@ def parse_pdf_menu(pdf_path, vigencia_label, pdf_url):
         # Page 3: Jantar
         process_page(pages[2].extract_tables()[0], "jantar")
 
-    # Format into friendly standardized keys
     def map_cafe(raw):
         return {
             "bebidas": raw.get("BEBIDAS", "Café, leite e chá"),
@@ -169,7 +195,7 @@ def parse_pdf_menu(pdf_path, vigencia_label, pdf_url):
         })
 
     return {
-        "campus": "Darcy Ribeiro",
+        "campus": campus_name,
         "vigencia": vigencia_label,
         "atualizado_em": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "pdf_url": pdf_url,
@@ -180,32 +206,61 @@ def main():
     site_url = "https://ru.unb.br/cardapio-refeitorio/"
     print(f"Buscando links no site: {site_url}")
     req = urllib.request.Request(site_url, headers={'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        html = resp.read().decode('utf-8', errors='ignore')
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            html = resp.read().decode('utf-8', errors='ignore')
+        finder = LinkFinder()
+        finder.feed(html)
+        scraped_links = finder.all_pdf_links
+    except Exception as e:
+        print(f"Erro ao acessar site: {e}")
+        scraped_links = []
 
-    finder = LinkFinder()
-    finder.feed(html)
-    if not finder.darcy_links:
-        print("Nenhum PDF encontrado, usando URL de contingência...")
-        pdf_url = "https://ru.unb.br/wp-content/uploads/2026/10/Darcy-Ribeiro-Semana-02-26-10-a-01-11-4.pdf"
-        vigencia = "26/10/2026 a 01/11/2026"
-    else:
-        txt, pdf_url = finder.darcy_links[0]
-        vigencia = txt.replace("ISM –", "").replace("ISM -", "").strip()
+    parser_dir = os.path.dirname(os.path.abspath(__file__))
 
-    print(f"Baixando PDF ({vigencia}): {pdf_url}")
-    pdf_tmp = os.path.join(os.path.dirname(__file__), "current_menu.pdf")
-    urllib.request.urlretrieve(pdf_url, pdf_tmp)
+    results = {}
+    for campus in CAMPUS_CONFIGS:
+        cid = campus["id"]
+        cname = campus["name"]
+        ckey = campus["keyword"]
+        cfile = campus["output_file"]
+        cfallback = campus["fallback_url"]
 
-    result = parse_pdf_menu(pdf_tmp, vigencia, pdf_url)
-    
-    # Save local copy
-    out_file = os.path.join(os.path.dirname(__file__), "menu_darcy.json")
-    with open(out_file, "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
+        matched_link = None
+        for txt, href in scraped_links:
+            if ckey in href.lower():
+                matched_link = (txt, href)
+                break
 
-    print(f"Cardápio extraído com sucesso! Salvo em: {out_file}")
-    return result
+        if matched_link:
+            txt, pdf_url = matched_link
+            vigencia = txt.replace("ISM –", "").replace("ISM -", "").strip()
+            if not vigencia:
+                vigencia = "26/10/2026 a 01/11/2026"
+        else:
+            pdf_url = cfallback
+            vigencia = "26/10/2026 a 01/11/2026"
+
+        print(f"Processando {cname} ({vigencia}): {pdf_url}")
+        tmp_pdf = os.path.join(parser_dir, f"tmp_{cid}.pdf")
+        try:
+            urllib.request.urlretrieve(pdf_url, tmp_pdf)
+            menu_data = parse_pdf_menu(tmp_pdf, vigencia, pdf_url, campus_name=cname)
+            out_path = os.path.join(parser_dir, cfile)
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump(menu_data, f, ensure_ascii=False, indent=2)
+            print(f"[OK] Salvo com sucesso: {out_path}")
+            results[cid] = menu_data
+        except Exception as err:
+            print(f"[ERRO] Erro ao processar {cname}: {err}")
+        finally:
+            if os.path.exists(tmp_pdf):
+                try:
+                    os.remove(tmp_pdf)
+                except Exception:
+                    pass
+
+    return results
 
 if __name__ == "__main__":
     main()

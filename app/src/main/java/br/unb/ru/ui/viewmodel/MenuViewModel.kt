@@ -5,6 +5,7 @@ import android.content.res.Configuration
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import br.unb.ru.data.model.AppUpdateInfo
+import br.unb.ru.data.model.Campus
 import br.unb.ru.data.model.DailyMenu
 import br.unb.ru.data.model.MealType
 import br.unb.ru.data.model.RestaurantStatement
@@ -27,6 +28,8 @@ import java.util.Calendar
 data class MenuUiState(
     val isLoading: Boolean = true,
     val menu: WeeklyMenu? = null,
+    val selectedCampus: Campus = Campus.DARCY,
+    val isCampusSelectorOpen: Boolean = false,
     val selectedDayIndex: Int = 0,
     val selectedMeal: MealType = MealType.ALMOCO,
     val todayIndex: Int = -1,
@@ -83,18 +86,22 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
             RestaurantStatement()
         }
 
+        // 4. Carregar campus selecionado
+        val savedCampus = repository.getSelectedCampus()
+
         _uiState.update {
             it.copy(
                 isDarkTheme = initialDark,
                 notificationConfig = notifConfig,
                 studentCard = savedCard,
-                statement = savedStatement
+                statement = savedStatement,
+                selectedCampus = savedCampus
             )
         }
 
-        // 3. Determinar dia e refeição conforme horário exato do RU
+        // 5. Determinar dia e refeição conforme horário exato do RU
         determineTodayAndMeal()
-        loadMenu()
+        loadMenu(savedCampus)
         checkForUpdate(force = false)
     }
 
@@ -131,10 +138,10 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun loadMenu() {
+    fun loadMenu(campus: Campus = _uiState.value.selectedCampus) {
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {
-            val result = repository.getMenu()
+            val result = repository.getMenu(campus)
             result.onSuccess { weeklyMenu ->
                 _uiState.update {
                     it.copy(
@@ -152,6 +159,20 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    fun selectCampus(campus: Campus) {
+        if (_uiState.value.selectedCampus != campus) {
+            _uiState.update { it.copy(selectedCampus = campus, isCampusSelectorOpen = false) }
+            repository.saveSelectedCampus(campus)
+            loadMenu(campus)
+        } else {
+            _uiState.update { it.copy(isCampusSelectorOpen = false) }
+        }
+    }
+
+    fun setCampusSelectorOpen(isOpen: Boolean) {
+        _uiState.update { it.copy(isCampusSelectorOpen = isOpen) }
     }
 
     fun toggleTheme() {

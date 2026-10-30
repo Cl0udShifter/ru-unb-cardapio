@@ -5,12 +5,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
@@ -18,17 +20,20 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import br.unb.ru.data.model.Campus
 import br.unb.ru.data.model.MealType
 import br.unb.ru.data.model.StudentCard
 import br.unb.ru.data.repository.NotificationConfig
 import br.unb.ru.ui.components.AppUpdateDialog
 import br.unb.ru.ui.components.BreakfastCard
+import br.unb.ru.ui.components.CampusSelectorBottomSheet
 import br.unb.ru.ui.components.DaySelectorRail
 import br.unb.ru.ui.components.LunchDinnerCard
 import br.unb.ru.ui.components.MealBottomControl
@@ -55,6 +60,9 @@ fun MenuHomeScreen(
     onSyncCardFromSigaa: (matricula: String, pass: String) -> Unit,
     onRefreshStatement: () -> Unit,
     onDisconnectCard: () -> Unit,
+    onOpenCampusSelector: () -> Unit = {},
+    onCloseCampusSelector: () -> Unit = {},
+    onCampusSelected: (Campus) -> Unit = {},
     onCheckForUpdate: () -> Unit = {},
     onConfirmUpdate: () -> Unit = {},
     onDismissUpdate: () -> Unit = {},
@@ -119,11 +127,28 @@ fun MenuHomeScreen(
                         style = NotionTypography.displaySmall,
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    Text(
-                        text = "UnB • Campus Darcy Ribeiro",
-                        style = NotionTypography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .padding(top = 2.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable { onOpenCampusSelector() }
+                            .padding(vertical = 2.dp, horizontal = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "UnB • ${state.selectedCampus.displayName}",
+                            style = NotionTypography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = "Trocar campus",
+                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -364,6 +389,15 @@ fun MenuHomeScreen(
             config = state.notificationConfig,
             onConfigChange = onUpdateNotificationConfig,
             onDismissRequest = onCloseSettings
+        )
+    }
+
+    // BottomSheet de Seleção de Campus
+    if (state.isCampusSelectorOpen) {
+        CampusSelectorBottomSheet(
+            selectedCampus = state.selectedCampus,
+            onCampusSelected = onCampusSelected,
+            onDismissRequest = onCloseCampusSelector
         )
     }
 

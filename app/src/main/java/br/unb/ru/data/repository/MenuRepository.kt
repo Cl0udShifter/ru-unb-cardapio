@@ -1,6 +1,7 @@
 package br.unb.ru.data.repository
 
 import android.content.Context
+import br.unb.ru.data.model.Campus
 import br.unb.ru.data.model.WeeklyMenu
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -12,15 +13,22 @@ import java.net.URL
 
 class MenuRepository(private val context: Context) {
     private val gson = Gson()
-    private val cacheFileName = "cached_menu.json"
     private val prefs = context.getSharedPreferences("ru_unb_prefs", Context.MODE_PRIVATE)
 
     companion object {
         private const val KEY_IS_DARK_MODE = "is_dark_mode"
         private const val KEY_THEME_CUSTOMIZED = "theme_customized"
+        private const val KEY_SELECTED_CAMPUS = "selected_campus"
     }
 
-    private val remoteUrl = "https://raw.githubusercontent.com/Cl0udShifter/ru-unb-cardapio/master/parser/menu_darcy.json"
+    fun getSelectedCampus(): Campus {
+        val id = prefs.getString(KEY_SELECTED_CAMPUS, Campus.DARCY.id)
+        return Campus.fromId(id)
+    }
+
+    fun saveSelectedCampus(campus: Campus) {
+        prefs.edit().putString(KEY_SELECTED_CAMPUS, campus.id).apply()
+    }
 
     fun saveThemePreference(isDark: Boolean) {
         prefs.edit()
@@ -38,7 +46,8 @@ class MenuRepository(private val context: Context) {
         }
     }
 
-    suspend fun getMenu(): Result<WeeklyMenu> = withContext(Dispatchers.IO) {
+    suspend fun getMenu(campus: Campus = getSelectedCampus()): Result<WeeklyMenu> = withContext(Dispatchers.IO) {
+        val remoteUrl = "https://raw.githubusercontent.com/Cl0udShifter/ru-unb-cardapio/master/parser/${campus.remoteFileName}"
         try {
             val url = URL(remoteUrl)
             val connection = url.openConnection() as HttpURLConnection
@@ -50,19 +59,19 @@ class MenuRepository(private val context: Context) {
                 val jsonString = connection.inputStream.bufferedReader().use { it.readText() }
                 val menu = gson.fromJson(jsonString, WeeklyMenu::class.java)
                 if (menu != null && menu.dias.isNotEmpty()) {
-                    saveToCache(jsonString)
+                    saveToCache(campus, jsonString)
                     return@withContext Result.success(menu)
                 }
             }
         } catch (_: Exception) {}
 
-        val cachedMenu = loadFromCache()
+        val cachedMenu = loadFromCache(campus)
         if (cachedMenu != null && cachedMenu.dias.isNotEmpty()) {
             return@withContext Result.success(cachedMenu)
         }
 
         try {
-            context.assets.open("sample_menu.json").use { stream ->
+            context.assets.open(campus.assetFile).use { stream ->
                 InputStreamReader(stream).use { reader ->
                     val assetMenu = gson.fromJson(reader, WeeklyMenu::class.java)
                     if (assetMenu != null) {
@@ -70,23 +79,36 @@ class MenuRepository(private val context: Context) {
                     }
                 }
             }
-        } catch (e: Exception) {
-            return@withContext Result.failure(e)
+        } catch (_: Exception) {
+            try {
+                context.assets.open("sample_menu.json").use { stream ->
+                    InputStreamReader(stream).use { reader ->
+                        val assetMenu = gson.fromJson(reader, WeeklyMenu::class.java)
+                        if (assetMenu != null) {
+                            return@withContext Result.success(assetMenu)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                return@withContext Result.failure(e)
+            }
         }
 
         Result.failure(IllegalStateException("Não foi possível carregar o cardápio."))
     }
 
-    private fun saveToCache(jsonString: String) {
+    private fun getCacheFileName(campus: Campus) = "cached_menu_${campus.id}.json"
+
+    private fun saveToCache(campus: Campus, jsonString: String) {
         try {
-            val file = File(context.filesDir, cacheFileName)
+            val file = File(context.filesDir, getCacheFileName(campus))
             file.writeText(jsonString)
         } catch (_: Exception) {}
     }
 
-    private fun loadFromCache(): WeeklyMenu? {
+    private fun loadFromCache(campus: Campus): WeeklyMenu? {
         return try {
-            val file = File(context.filesDir, cacheFileName)
+            val file = File(context.filesDir, getCacheFileName(campus))
             if (file.exists()) {
                 val json = file.readText()
                 gson.fromJson(json, WeeklyMenu::class.java)

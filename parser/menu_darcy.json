@@ -1,7 +1,7 @@
 {
   "campus": "Darcy Ribeiro",
   "vigencia": "26/10/2026 À 01/11/2026",
-  "atualizado_em": "2026-10-29T22:43:35.705624+00:00",
+  "atualizado_em": "2026-10-30T22:23:51.920955+00:00",
   "pdf_url": "https://ru.unb.br/wp-content/uploads/2026/10/Darcy-Ribeiro-Semana-02-26-10-a-01-11-4.pdf",
   "dias": [
     {
@@ -49,7 +49,7 @@
       "data": "27/10/2026",
       "cafe": {
         "bebidas": "Leite integral ou Bebida de soja",
-        "panificacao": "Pão francês ou Pão careca",
+        "panificacao": "Pão francês ou Pão careca ou",
         "gordura": "Manteiga ou creme vegetal",
         "opcao_extra": "Canjica",
         "prato_principal": "Ovos mexidos",
@@ -169,7 +169,7 @@
       "data": "30/10/2026",
       "cafe": {
         "bebidas": "Leite integral ou Bebida de soja",
-        "panificacao": "Pão francês ou Pão careca",
+        "panificacao": "Pão francês ou Pão careca ou",
         "gordura": "Manteiga ou creme vegetal",
         "opcao_extra": "Broa de milho",
         "prato_principal": "Queijo minas",

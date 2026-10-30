@@ -57,10 +57,6 @@ Reorganização visual automática das seções de prato conforme a dieta do est
 ## 6. Expansão para Outros Campi da UnB (FGA, FCE, FUP)
 Suporte completo aos refeitórios das outras unidades acadêmicas da Universidade de Brasília.
 
-- [ ] **Mapeamento de Páginas no Parser:** Atualizar o script Python (`parser/parse_menu.py`) para capturar as seções específicas de:
-  - Campus Darcy Ribeiro (Plano Piloto)
-  - Faculdade do Gama (FGA)
-  - Faculdade de Ceilândia (FCE)
-  - Faculdade de Planaltina (FUP)
-- [ ] **Geração de Arquivos JSON Separados:** Estruturar `menu_darcy.json`, `menu_fga.json`, `menu_fce.json` e `menu_fup.json` no repositório.
-- [ ] **Seletor de Campus na UI:** Adicionar menu suspenso ou pílula discreta no cabeçalho do app para alternar o campus selecionado, armazenando a escolha nas preferências locais.
+- [x] **Mapeamento de Páginas no Parser:** Atualizado `parser/scrape_unb_ru.py` para capturar as seções específicas de Darcy Ribeiro, FGA (Gama), FCE (Ceilândia) e FUP (Planaltina).
+- [x] **Geração de Arquivos JSON Separados:** Estruturados `menu_darcy.json`, `menu_gama.json`, `menu_ceilandia.json` e `menu_planaltina.json` tanto no repositório quanto em `assets/` para fallback offline.
+- [x] **Seletor de Campus na UI:** Adicionado subtítulo interativo com Bottom Sheet Notion Editorial para alternar o campus selecionado com 1 toque, persistido em `SharedPreferences` e integrado aos alertas de notificação.

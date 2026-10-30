@@ -49,3 +49,46 @@ enum class MealType(val title: String, val shortName: String) {
     ALMOCO("Almoço", "Almoço"),
     JANTAR("Jantar", "Jantar")
 }
+
+enum class Campus(
+    val id: String,
+    val displayName: String,
+    val subtitle: String,
+    val assetFile: String,
+    val remoteFileName: String
+) {
+    DARCY(
+        id = "darcy",
+        displayName = "Darcy Ribeiro",
+        subtitle = "Plano Piloto",
+        assetFile = "menu_darcy.json",
+        remoteFileName = "menu_darcy.json"
+    ),
+    GAMA(
+        id = "gama",
+        displayName = "FGA (Gama)",
+        subtitle = "Faculdade do Gama",
+        assetFile = "menu_gama.json",
+        remoteFileName = "menu_gama.json"
+    ),
+    CEILANDIA(
+        id = "ceilandia",
+        displayName = "FCE (Ceilândia)",
+        subtitle = "Faculdade de Ceilândia",
+        assetFile = "menu_ceilandia.json",
+        remoteFileName = "menu_ceilandia.json"
+    ),
+    PLANALTINA(
+        id = "planaltina",
+        displayName = "FUP (Planaltina)",
+        subtitle = "Faculdade de Planaltina",
+        assetFile = "menu_planaltina.json",
+        remoteFileName = "menu_planaltina.json"
+    );
+
+    companion object {
+        fun fromId(id: String?): Campus {
+            return values().firstOrNull { it.id.equals(id, ignoreCase = true) } ?: DARCY
+        }
+    }
+}
