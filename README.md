@@ -1,4 +1,4 @@
-# RU UnB - Cardápio & Carteirinha Digital (Campus Darcy Ribeiro)
+# RU UnB - Cardápio & Carteirinha Digital
 
 [![Platform](https://img.shields.io/badge/Platform-Android-green.svg)](https://www.android.com/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.22-purple.svg)](https://kotlinlang.org/)
