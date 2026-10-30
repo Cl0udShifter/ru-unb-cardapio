@@ -55,7 +55,6 @@ fun MenuHomeScreen(
     onSyncCardFromSigaa: (matricula: String, pass: String) -> Unit,
     onRefreshStatement: () -> Unit,
     onDisconnectCard: () -> Unit,
-    onTestNotification: () -> Unit = {},
     onCheckForUpdate: () -> Unit = {},
     onConfirmUpdate: () -> Unit = {},
     onDismissUpdate: () -> Unit = {},
@@ -364,7 +363,6 @@ fun MenuHomeScreen(
         NotificationSettingsBottomSheet(
             config = state.notificationConfig,
             onConfigChange = onUpdateNotificationConfig,
-            onTestNotification = onTestNotification,
             onDismissRequest = onCloseSettings
         )
     }

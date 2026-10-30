@@ -9,8 +9,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,7 +26,6 @@ import br.unb.ru.ui.theme.NotionTypography
 fun NotificationSettingsBottomSheet(
     config: NotificationConfig,
     onConfigChange: (NotificationConfig) -> Unit,
-    onTestNotification: () -> Unit = {},
     onDismissRequest: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -152,34 +149,7 @@ fun NotificationSettingsBottomSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Botão Testar Notificação
-            OutlinedButton(
-                onClick = onTestNotification,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.outline)
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.NotificationsActive,
-                    contentDescription = null,
-                    modifier = Modifier.size(17.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Disparar Notificação de Teste",
-                    style = NotionTypography.bodyMedium.copy(fontSize = 13.sp),
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             // Dica de compatibilidade de bateria
             Surface(
@@ -188,7 +158,7 @@ fun NotificationSettingsBottomSheet(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
             ) {
                 Text(
-                    text = "💡 Segundo plano no Android: Diferentes fabricantes (Xiaomi, Samsung, Motorola, Realme e outros) aplicam otimizações rígidas de bateria. Para garantir os avisos pontuais mesmo com o app fechado, defina a bateria do aplicativo como 'Sem restrições' nas configurações do sistema.",
+                    text = "Segundo plano no Android: Diferentes fabricantes (Xiaomi, Samsung, Motorola, Realme e outros) aplicam otimizações rígidas de bateria. Para garantir os avisos pontuais mesmo com o app fechado, defina a bateria do aplicativo como 'Sem restrições' nas configurações do sistema.",
                     style = NotionTypography.bodySmall.copy(fontSize = 11.5.sp, lineHeight = 16.sp),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.padding(12.dp)

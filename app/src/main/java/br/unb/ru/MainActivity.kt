@@ -56,10 +56,6 @@ class MainActivity : ComponentActivity() {
                     onSyncCardFromSigaa = { mat, pass -> viewModel.syncCardFromSigaa(mat, pass) },
                     onRefreshStatement = { viewModel.refreshStatement() },
                     onDisconnectCard = { viewModel.disconnectStudentCard() },
-                    onTestNotification = {
-                        requestNotificationPermission()
-                        viewModel.sendTestNotification()
-                    },
                     onCheckForUpdate = { viewModel.checkForUpdate(force = true) },
                     onConfirmUpdate = { viewModel.downloadAndInstallUpdate() },
                     onDismissUpdate = { viewModel.dismissUpdateDialog() },

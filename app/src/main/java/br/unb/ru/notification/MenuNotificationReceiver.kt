@@ -163,13 +163,13 @@ class MenuNotificationReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val (title, iconPrefix) = if (isTest) {
-            Pair("Teste de Notificação (RU UnB)", "🔔")
+        val title = if (isTest) {
+            "Teste de Notificação (RU UnB)"
         } else {
             when (mealType) {
-                MealType.CAFE -> Pair("Café da Manhã (7h às 9h30)", "☕")
-                MealType.ALMOCO -> Pair("Almoço do RU (11h às 14h30)", "🍽️")
-                MealType.JANTAR -> Pair("Jantar do RU (17h às 19h30)", "🥣")
+                MealType.CAFE -> "Café da Manhã"
+                MealType.ALMOCO -> "Almoço do RU"
+                MealType.JANTAR -> "Jantar do RU"
             }
         }
 
@@ -180,9 +180,9 @@ class MenuNotificationReceiver : BroadcastReceiver() {
         }
 
         val body = if (isTest) {
-            "$iconPrefix As notificações do RU estão prontas e ativas no seu aparelho!"
+            "As notificações do RU estão prontas e ativas no seu aparelho."
         } else {
-            "$iconPrefix Hoje: $dishText$dietLabel • Toque para ver"
+            "Hoje: $dishText$dietLabel • Toque para ver"
         }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
