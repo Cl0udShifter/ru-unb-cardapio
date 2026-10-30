@@ -43,8 +43,15 @@ fun RUUnBTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            val insetsController = WindowCompat.getInsetsController(window, view)
+
+            // Status bar
             window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            insetsController.isAppearanceLightStatusBars = !darkTheme
+
+            // Navigation bar (Xiaomi/POCO & standard Android)
+            window.navigationBarColor = colorScheme.background.toArgb()
+            insetsController.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 

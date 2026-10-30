@@ -6,10 +6,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import br.unb.ru.data.model.DailyMenu
 import br.unb.ru.data.model.MealType
+import br.unb.ru.data.model.StudentCard
 import br.unb.ru.data.model.WeeklyMenu
 import br.unb.ru.data.repository.MenuRepository
 import br.unb.ru.data.repository.NotificationConfig
 import br.unb.ru.data.repository.NotificationPreferences
+import br.unb.ru.data.repository.StudentCardRepository
 import br.unb.ru.notification.NotificationScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +28,10 @@ data class MenuUiState(
     val todayIndex: Int = -1,
     val isDarkTheme: Boolean = false,
     val isSettingsOpen: Boolean = false,
+    val isCardOpen: Boolean = false,
+    val studentCard: StudentCard = StudentCard(),
+    val isSyncingCard: Boolean = false,
+    val cardSyncError: String? = null,
     val notificationConfig: NotificationConfig = NotificationConfig(),
     val errorMessage: String? = null
 ) {
@@ -36,6 +42,7 @@ data class MenuUiState(
 class MenuViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = MenuRepository(application)
     private val notificationPrefs = NotificationPreferences(application)
+    private val cardRepository = StudentCardRepository(application)
 
     private val _uiState = MutableStateFlow(MenuUiState())
     val uiState: StateFlow<MenuUiState> = _uiState.asStateFlow()
@@ -54,10 +61,14 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
         val notifConfig = notificationPrefs.getConfig()
         NotificationScheduler.scheduleAll(application)
 
+        // 3. Carregar dados da carteirinha discente
+        val savedCard = cardRepository.getStudentCard()
+
         _uiState.update {
             it.copy(
                 isDarkTheme = initialDark,
-                notificationConfig = notifConfig
+                notificationConfig = notifConfig,
+                studentCard = savedCard
             )
         }
 
@@ -130,6 +141,35 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSettingsOpen(isOpen: Boolean) {
         _uiState.update { it.copy(isSettingsOpen = isOpen) }
+    }
+
+    fun setCardOpen(isOpen: Boolean) {
+        _uiState.update { it.copy(isCardOpen = isOpen, cardSyncError = null) }
+    }
+
+    fun updateStudentCard(card: StudentCard) {
+        _uiState.update { it.copy(studentCard = card) }
+        cardRepository.saveStudentCard(card)
+    }
+
+    fun syncCardFromSigaa(matricula: String, pass: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSyncingCard = true, cardSyncError = null) }
+            val result = cardRepository.syncFromSigaa(matricula, pass)
+            result.fold(
+                onSuccess = { card ->
+                    _uiState.update { it.copy(isSyncingCard = false, studentCard = card, cardSyncError = null) }
+                },
+                onFailure = { err ->
+                    _uiState.update {
+                        it.copy(
+                            isSyncingCard = false,
+                            cardSyncError = err.message ?: "Erro ao sincronizar com o SIGAA"
+                        )
+                    }
+                }
+            )
+        }
     }
 
     fun updateNotificationConfig(config: NotificationConfig) {

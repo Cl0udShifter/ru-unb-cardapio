@@ -35,21 +35,26 @@ class MenuNotificationReceiver : BroadcastReceiver() {
 
         val config = NotificationPreferences(context).getConfig()
 
-        // Check if meal notification is enabled
-        val isEnabled = when (mealType) {
-            MealType.CAFE -> config.cafeEnabled
-            MealType.ALMOCO -> config.almocoEnabled
-            MealType.JANTAR -> config.jantarEnabled
-        }
-        if (!isEnabled) return
-
-        // Check if weekend notification is allowed
         val calendar = Calendar.getInstance()
-        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-        val isWeekend = dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY
-        if (isWeekend && !config.weekendEnabled) return
+        val currentDayOfWeek = when (calendar.get(Calendar.DAY_OF_WEEK)) {
+            Calendar.MONDAY -> 1
+            Calendar.TUESDAY -> 2
+            Calendar.WEDNESDAY -> 3
+            Calendar.THURSDAY -> 4
+            Calendar.FRIDAY -> 5
+            Calendar.SATURDAY -> 6
+            Calendar.SUNDAY -> 7
+            else -> 1
+        }
 
-        // Fetch today's menu from cache asynchronously
+        // Verifica se a refeição está ativa para o dia de hoje
+        val isEnabledForToday = when (mealType) {
+            MealType.CAFE -> config.cafeEnabled && config.cafeDays.contains(currentDayOfWeek)
+            MealType.ALMOCO -> config.almocoEnabled && config.almocoDays.contains(currentDayOfWeek)
+            MealType.JANTAR -> config.jantarEnabled && config.jantarDays.contains(currentDayOfWeek)
+        }
+        if (!isEnabledForToday) return
+
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -57,21 +62,19 @@ class MenuNotificationReceiver : BroadcastReceiver() {
                 val menuResult = repo.getMenu()
                 val weeklyMenu = menuResult.getOrNull()
 
-                // Calculate today index (0=Segunda, ..., 6=Domingo)
-                val todayIdx = when (dayOfWeek) {
-                    Calendar.MONDAY -> 0
-                    Calendar.TUESDAY -> 1
-                    Calendar.WEDNESDAY -> 2
-                    Calendar.THURSDAY -> 3
-                    Calendar.FRIDAY -> 4
-                    Calendar.SATURDAY -> 5
-                    Calendar.SUNDAY -> 6
+                val todayIdx = when (currentDayOfWeek) {
+                    1 -> 0 // Segunda
+                    2 -> 1
+                    3 -> 2
+                    4 -> 3
+                    5 -> 4
+                    6 -> 5
+                    7 -> 6 // Domingo
                     else -> 0
                 }
 
                 val dailyMenu = weeklyMenu?.dias?.getOrNull(todayIdx)
 
-                // Determine dish text according to diet preference
                 val dishText = when (mealType) {
                     MealType.CAFE -> {
                         when (config.dietPreference) {
@@ -111,7 +114,6 @@ class MenuNotificationReceiver : BroadcastReceiver() {
     ) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Create Channel on Android 8+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
@@ -124,7 +126,6 @@ class MenuNotificationReceiver : BroadcastReceiver() {
             manager.createNotificationChannel(channel)
         }
 
-        // Tap Intent: opens app directly to the meal tab
         val openIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(EXTRA_MEAL_TYPE, mealType.name)

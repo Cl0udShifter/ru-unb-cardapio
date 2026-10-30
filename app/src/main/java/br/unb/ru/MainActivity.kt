@@ -48,7 +48,11 @@ class MainActivity : ComponentActivity() {
                         viewModel.setSettingsOpen(true)
                     },
                     onCloseSettings = { viewModel.setSettingsOpen(false) },
-                    onUpdateNotificationConfig = { viewModel.updateNotificationConfig(it) }
+                    onUpdateNotificationConfig = { viewModel.updateNotificationConfig(it) },
+                    onOpenCard = { viewModel.setCardOpen(true) },
+                    onCloseCard = { viewModel.setCardOpen(false) },
+                    onSaveCard = { viewModel.updateStudentCard(it) },
+                    onSyncCardFromSigaa = { mat, pass -> viewModel.syncCardFromSigaa(mat, pass) }
                 )
             }
         }

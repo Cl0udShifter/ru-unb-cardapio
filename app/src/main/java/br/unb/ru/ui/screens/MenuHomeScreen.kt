@@ -22,12 +22,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.unb.ru.data.model.MealType
+import br.unb.ru.data.model.StudentCard
 import br.unb.ru.data.repository.NotificationConfig
 import br.unb.ru.ui.components.BreakfastCard
 import br.unb.ru.ui.components.DaySelectorRail
 import br.unb.ru.ui.components.LunchDinnerCard
 import br.unb.ru.ui.components.MealBottomControl
 import br.unb.ru.ui.components.NotificationSettingsBottomSheet
+import br.unb.ru.ui.components.StudentCardBottomSheet
 import br.unb.ru.ui.theme.NotionTypography
 import br.unb.ru.ui.viewmodel.MenuUiState
 
@@ -43,6 +45,10 @@ fun MenuHomeScreen(
     onOpenSettings: () -> Unit,
     onCloseSettings: () -> Unit,
     onUpdateNotificationConfig: (NotificationConfig) -> Unit,
+    onOpenCard: () -> Unit,
+    onCloseCard: () -> Unit,
+    onSaveCard: (StudentCard) -> Unit,
+    onSyncCardFromSigaa: (matricula: String, pass: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -84,6 +90,15 @@ fun MenuHomeScreen(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Botão Carteirinha Discente / QR Catraca
+                    IconButton(onClick = onOpenCard) {
+                        Icon(
+                            imageVector = Icons.Outlined.Badge,
+                            contentDescription = "Carteirinha do Estudante",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+
                     // Botão Notificações / Configurações
                     IconButton(onClick = onOpenSettings) {
                         val hasActiveAlerts = state.notificationConfig.cafeEnabled ||
@@ -301,6 +316,18 @@ fun MenuHomeScreen(
                 config = state.notificationConfig,
                 onConfigChange = onUpdateNotificationConfig,
                 onDismissRequest = onCloseSettings
+            )
+        }
+
+        // BottomSheet da Carteirinha Digital UnB
+        if (state.isCardOpen) {
+            StudentCardBottomSheet(
+                card = state.studentCard,
+                onSaveCard = onSaveCard,
+                onSyncFromSigaa = onSyncCardFromSigaa,
+                isSyncing = state.isSyncingCard,
+                syncError = state.cardSyncError,
+                onDismissRequest = onCloseCard
             )
         }
     }
