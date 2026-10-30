@@ -54,7 +54,11 @@ class MainActivity : ComponentActivity() {
                     onSaveCard = { viewModel.updateStudentCard(it) },
                     onSyncCardFromSigaa = { mat, pass -> viewModel.syncCardFromSigaa(mat, pass) },
                     onRefreshStatement = { viewModel.refreshStatement() },
-                    onDisconnectCard = { viewModel.disconnectStudentCard() }
+                    onDisconnectCard = { viewModel.disconnectStudentCard() },
+                    onCheckForUpdate = { viewModel.checkForUpdate(force = true) },
+                    onConfirmUpdate = { viewModel.downloadAndInstallUpdate() },
+                    onDismissUpdate = { viewModel.dismissUpdateDialog() },
+                    onClearUpdateMessage = { viewModel.clearUpdateMessage() }
                 )
             }
         }

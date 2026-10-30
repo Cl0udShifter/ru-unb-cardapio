@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import br.unb.ru.data.model.MealType
 import br.unb.ru.data.model.StudentCard
 import br.unb.ru.data.repository.NotificationConfig
+import br.unb.ru.ui.components.AppUpdateDialog
 import br.unb.ru.ui.components.BreakfastCard
 import br.unb.ru.ui.components.DaySelectorRail
 import br.unb.ru.ui.components.LunchDinnerCard
@@ -54,9 +55,22 @@ fun MenuHomeScreen(
     onSyncCardFromSigaa: (matricula: String, pass: String) -> Unit,
     onRefreshStatement: () -> Unit,
     onDisconnectCard: () -> Unit,
+    onCheckForUpdate: () -> Unit = {},
+    onConfirmUpdate: () -> Unit = {},
+    onDismissUpdate: () -> Unit = {},
+    onClearUpdateMessage: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val pullRefreshState = rememberPullToRefreshState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.updateMessage) {
+        state.updateMessage?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            onClearUpdateMessage()
+        }
+    }
+
     if (pullRefreshState.isRefreshing) {
         LaunchedEffect(true) {
             onRefresh()
@@ -71,6 +85,7 @@ fun MenuHomeScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             MealBottomControl(
                 selectedMeal = state.selectedMeal,
@@ -365,7 +380,21 @@ fun MenuHomeScreen(
             onSyncFromSigaa = onSyncCardFromSigaa,
             onRefreshStatement = onRefreshStatement,
             onDisconnect = onDisconnectCard,
-            onClose = onCloseCard
+            onClose = onCloseCard,
+            onCheckForUpdate = onCheckForUpdate,
+            isCheckingUpdate = state.isCheckingUpdate
+        )
+    }
+
+    // Modal de Atualização do App
+    state.availableUpdate?.let { updateInfo ->
+        AppUpdateDialog(
+            updateInfo = updateInfo,
+            downloadProgress = state.updateDownloadProgress,
+            isDownloading = state.isDownloadingUpdate,
+            downloadedFileReady = state.downloadedApkFile != null && state.downloadedApkFile.exists(),
+            onConfirmUpdate = onConfirmUpdate,
+            onDismiss = onDismissUpdate
         )
     }
 }

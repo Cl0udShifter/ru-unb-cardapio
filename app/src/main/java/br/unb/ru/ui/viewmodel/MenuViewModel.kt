@@ -4,11 +4,13 @@ import android.app.Application
 import android.content.res.Configuration
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import br.unb.ru.data.model.AppUpdateInfo
 import br.unb.ru.data.model.DailyMenu
 import br.unb.ru.data.model.MealType
 import br.unb.ru.data.model.RestaurantStatement
 import br.unb.ru.data.model.StudentCard
 import br.unb.ru.data.model.WeeklyMenu
+import br.unb.ru.data.repository.AppUpdateRepository
 import br.unb.ru.data.repository.MenuRepository
 import br.unb.ru.data.repository.NotificationConfig
 import br.unb.ru.data.repository.NotificationPreferences
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.Calendar
 
 data class MenuUiState(
@@ -37,7 +40,13 @@ data class MenuUiState(
     val syncProgressMessage: String? = null,
     val cardSyncError: String? = null,
     val notificationConfig: NotificationConfig = NotificationConfig(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val availableUpdate: AppUpdateInfo? = null,
+    val isCheckingUpdate: Boolean = false,
+    val isDownloadingUpdate: Boolean = false,
+    val updateDownloadProgress: Float = 0f,
+    val downloadedApkFile: File? = null,
+    val updateMessage: String? = null
 ) {
     val currentDay: DailyMenu?
         get() = menu?.dias?.getOrNull(selectedDayIndex)
@@ -47,6 +56,7 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = MenuRepository(application)
     private val notificationPrefs = NotificationPreferences(application)
     private val cardRepository = StudentCardRepository(application)
+    private val updateRepository = AppUpdateRepository(application)
 
     private val _uiState = MutableStateFlow(MenuUiState())
     val uiState: StateFlow<MenuUiState> = _uiState.asStateFlow()
@@ -85,6 +95,7 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
         // 3. Determinar dia e refeição conforme horário exato do RU
         determineTodayAndMeal()
         loadMenu()
+        checkForUpdate(force = false)
     }
 
     private fun determineTodayAndMeal() {
@@ -257,5 +268,80 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
         if (today in 0..6) {
             selectDay(today)
         }
+    }
+
+    fun checkForUpdate(force: Boolean = false) {
+        viewModelScope.launch {
+            if (force) {
+                _uiState.update { it.copy(isCheckingUpdate = true, updateMessage = null) }
+            }
+            val info = updateRepository.checkForUpdate(force = force)
+            if (info != null && info.isUpdateAvailable) {
+                _uiState.update {
+                    it.copy(
+                        availableUpdate = info,
+                        isCheckingUpdate = false,
+                        updateMessage = null
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isCheckingUpdate = false,
+                        updateMessage = if (force) "Você já está na versão mais recente (v${br.unb.ru.BuildConfig.VERSION_NAME})." else null
+                    )
+                }
+            }
+        }
+    }
+
+    fun downloadAndInstallUpdate() {
+        val update = _uiState.value.availableUpdate ?: return
+        val downloaded = _uiState.value.downloadedApkFile
+        if (downloaded != null && downloaded.exists()) {
+            installDownloadedApk()
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isDownloadingUpdate = true, updateDownloadProgress = 0f) }
+            val file = updateRepository.downloadApk(update.downloadUrl) { progress ->
+                _uiState.update { it.copy(updateDownloadProgress = progress) }
+            }
+
+            if (file != null && file.exists()) {
+                _uiState.update {
+                    it.copy(
+                        isDownloadingUpdate = false,
+                        downloadedApkFile = file
+                    )
+                }
+                installDownloadedApk()
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isDownloadingUpdate = false,
+                        updateMessage = "Falha ao baixar atualização. Tente novamente."
+                    )
+                }
+            }
+        }
+    }
+
+    fun installDownloadedApk() {
+        val file = _uiState.value.downloadedApkFile ?: return
+        if (updateRepository.canInstallApk()) {
+            updateRepository.launchPackageInstaller(file)
+        } else {
+            updateRepository.openInstallPermissionSettings()
+        }
+    }
+
+    fun dismissUpdateDialog() {
+        _uiState.update { it.copy(availableUpdate = null) }
+    }
+
+    fun clearUpdateMessage() {
+        _uiState.update { it.copy(updateMessage = null) }
     }
 }

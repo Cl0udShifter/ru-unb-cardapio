@@ -52,7 +52,9 @@ fun StudentCardScreen(
     onSyncFromSigaa: (matricula: String, pass: String) -> Unit,
     onRefreshStatement: () -> Unit,
     onDisconnect: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onCheckForUpdate: () -> Unit = {},
+    isCheckingUpdate: Boolean = false
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -452,6 +454,53 @@ fun StudentCardScreen(
                                 color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
                                 maxLines = 1,
                                 softWrap = false
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Sobre o App e Atualizações
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                            .clickable { onCheckForUpdate() }
+                            .padding(horizontal = 14.dp, vertical = 11.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.SystemUpdate,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = "Versão v${br.unb.ru.BuildConfig.VERSION_NAME}",
+                                style = NotionTypography.bodyMedium.copy(fontSize = 12.5.sp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                            )
+                        }
+
+                        if (isCheckingUpdate) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 1.5.dp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        } else {
+                            Text(
+                                text = "Buscar atualização",
+                                style = NotionTypography.labelSmall.copy(fontSize = 11.5.sp),
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
