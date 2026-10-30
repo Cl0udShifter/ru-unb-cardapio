@@ -1,4 +1,4 @@
-# RU UnB - Cardápio & Carteirinha Digital (Campus Darcy Ribeiro)
+# RU UnB - Cardápio & Carteirinha Digital
 
 [![Latest Release](https://img.shields.io/github/v/release/Cl0udShifter/ru-unb-cardapio?label=Download%20APK&color=success)](https://github.com/Cl0udShifter/ru-unb-cardapio/releases/latest)
 [![Platform](https://img.shields.io/badge/Platform-Android-green.svg)](https://www.android.com/)
@@ -13,11 +13,11 @@ Projetado sob a filosofia visual **Notion Editorial (Warm Paper)**: estética li
 
 ---
 
-## 📥 Instalação Recomendada (.APK Pronto)
+## Instalação .apk (Recomendado)
 
 > **Não é necessário compilar o código fonte.** Você pode baixar diretamente a versão estável pronta para instalar no seu celular Android:
 
-### 👉 **[Baixar RU-UnB.apk (Última Versão Oficial)](https://github.com/Cl0udShifter/ru-unb-cardapio/releases/latest/download/RU-UnB.apk)**
+### **[Baixar RU-UnB.apk (Última Versão Oficial)](https://github.com/Cl0udShifter/ru-unb-cardapio/releases/latest/download/RU-UnB.apk)**
 
 Você também pode acompanhar todas as versões, notas de lançamento e histórico de mudanças na página oficial de **[Releases no GitHub](https://github.com/Cl0udShifter/ru-unb-cardapio/releases)**.
 
@@ -27,7 +27,7 @@ Você também pode acompanhar todas as versões, notas de lançamento e históri
 3. Se o Android exibir o aviso *"Para sua segurança, seu smartphone não tem permissão para instalar apps desconhecidos desta fonte"*, toque em **Configurações** e ative a opção **Permitir desta fonte**.
 4. Toque em **Instalar** e abra o app!
 
-### 🔄 Sistema de Atualização Integrado (In-App Updates):
+###  Sistema de Atualização Integrado (In-App Updates):
 O aplicativo conta com checagem de atualizações automática e manual conectada diretamente aos lançamentos do GitHub:
 - **Verificação Automática:** Ao abrir, o app verifica silenciosamente se há uma versão mais nova disponível. Caso haja, uma janela intuitiva exibe as novidades e o botão **"Atualizar Agora"**.
 - **Verificação Manual:** Na tela da Carteirinha Digital, acesse o botão **Buscar atualização** para checar sob demanda.
@@ -35,7 +35,7 @@ O aplicativo conta com checagem de atualizações automática e manual conectada
 
 ---
 
-## 🍽️ Principais Funcionalidades
+## Principais Funcionalidades
 
 ### 1. Cardápio Semanal Sem Fricção
 - **Zero PDFs:** Elimina a necessidade de abrir PDFs semanais e dar zoom para ler os pratos.
@@ -80,15 +80,14 @@ O aplicativo conta com checagem de atualizações automática e manual conectada
 
 ---
 
-## 🎨 Design System: Notion Editorial
+## Privacidade
 
-- **Modo Claro (Warm Paper):** Fundo off-white acolhedor (`#F9F9F7` / `#FBFBFA`), superfície pura (`#FFFFFF`) e tipografia de alto contraste (`#2E2E2E`).
-- **Modo Escuro:** Tons profundos suaves (`#191918` e `#242424`) com integração contínua até a barra de navegação do sistema (edge-to-edge).
-- **Tipografia:** Hierarquia refinada com títulos em serif editorial e corpos de texto em sans-serif geométrica limpa.
+- As credenciais de acesso ao SIGAA são utilizadas unicamente para autenticação direta com os servidores oficiais da Universidade de Brasília (`sigaa.unb.br`).
+- Nenhum dado pessoal, senha, matrícula ou histórico é transmitido para servidores de terceiros ou serviços externos. Todo o armazenamento é local no dispositivo do usuário.
 
 ---
 
-## 🛠️ Arquitetura e Tecnologias
+## Arquitetura e Tecnologias
 
 O projeto segue padrões modernos de desenvolvimento Android:
 
@@ -137,7 +136,7 @@ app/src/main/java/br/unb/ru/
 
 ---
 
-## 💻 Para Desenvolvedores: Como Compilar
+## Instalação Manual
 
 Caso deseje compilar o projeto a partir do código fonte:
 
@@ -166,12 +165,7 @@ Caso deseje compilar o projeto a partir do código fonte:
 
 ---
 
-## 🔒 Privacidade
 
-- As credenciais de acesso ao SIGAA são utilizadas unicamente para autenticação direta com os servidores oficiais da Universidade de Brasília (`sigaa.unb.br`).
-- Nenhum dado pessoal, senha, matrícula ou histórico é transmitido para servidores de terceiros ou serviços externos. Todo o armazenamento é local no dispositivo do usuário.
-
----
 
 ## 📄 Licença
 
