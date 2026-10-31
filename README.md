@@ -1,15 +1,29 @@
-# RU UnB - Cardápio & Carteirinha Digital
+<p align="center">
+  <img src="docs/screenshots/icon.png" width="128" alt="RU UnB Ícone" />
+</p>
 
-[![Latest Release](https://img.shields.io/github/v/release/Cl0udShifter/ru-unb-cardapio?label=Download%20APK&color=success)](https://github.com/Cl0udShifter/ru-unb-cardapio/releases/latest)
-[![Platform](https://img.shields.io/badge/Platform-Android-green.svg)](https://www.android.com/)
-[![Kotlin](https://img.shields.io/badge/Kotlin-1.9.22-purple.svg)](https://kotlinlang.org/)
-[![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-2024.02.00-blue.svg)](https://developer.android.com/jetpack/compose)
-[![Material 3](https://img.shields.io/badge/Material%203-Enabled-teal.svg)](https://m3.material.io/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<h1 align="center">RU UnB - Cardápio & Carteirinha Digital</h1>
+
+<p align="center">
+  <a href="https://github.com/Cl0udShifter/ru-unb-cardapio/releases/latest"><img src="https://img.shields.io/github/v/release/Cl0udShifter/ru-unb-cardapio?label=Download%20APK&color=success" alt="Latest Release" /></a>
+  <a href="https://www.android.com/"><img src="https://img.shields.io/badge/Platform-Android-green.svg" alt="Platform" /></a>
+  <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/Kotlin-1.9.22-purple.svg" alt="Kotlin" /></a>
+  <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Jetpack%20Compose-2024.02.00-blue.svg" alt="Jetpack Compose" /></a>
+  <a href="https://m3.material.io/"><img src="https://img.shields.io/badge/Material%203-Enabled-teal.svg" alt="Material 3" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
+</p>
 
 Aplicativo Android nativo para consulta rápida, moderna e offline do cardápio semanal, emissão de carteirinha digital com QR Code para as catracas e acompanhamento de saldo do Restaurante Universitário da Universidade de Brasília.
 
 Projetado sob a filosofia visual **Notion Editorial (Warm Paper)**: estética limpa, tipografia acolhedora, espaçamento generoso, tema claro/escuro integrado com edge-to-edge e ergonomia pensada para uso diário com apenas uma mão.
+
+---
+
+## 📱 Telas do Aplicativo
+
+| Cardápio & Dieta | Seleção de Campus | Alertas & Dieta | Carteirinha & Saldo | Conexão SIGAA |
+|:---:|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/menu.jpg" width="180" alt="Cardápio & Dieta" /> | <img src="docs/screenshots/campus.jpg" width="180" alt="Seleção de Campus" /> | <img src="docs/screenshots/notificacoes.jpg" width="180" alt="Alertas & Dieta" /> | <img src="docs/screenshots/carteirinha.jpg" width="180" alt="Carteirinha & Saldo" /> | <img src="docs/screenshots/sincronizacao.jpg" width="180" alt="Conexão SIGAA" /> |
 
 ---
 
