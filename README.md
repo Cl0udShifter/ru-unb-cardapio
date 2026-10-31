@@ -23,7 +23,7 @@ Projetado sob a filosofia visual **Notion Editorial (Warm Paper)**: estética li
 
 | Cardápio & Dieta | Seleção de Campus | Alertas & Dieta | Carteirinha & Saldo | Conexão SIGAA |
 |:---:|:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/menu.jpg" width="180" alt="Cardápio & Dieta" /> | <img src="docs/screenshots/campus.jpg" width="180" alt="Seleção de Campus" /> | <img src="docs/screenshots/notificacoes.jpg" width="180" alt="Alertas & Dieta" /> | <img src="docs/screenshots/carteirinha.jpg" width="180" alt="Carteirinha & Saldo" /> | <img src="docs/screenshots/sincronizacao.jpg" width="180" alt="Conexão SIGAA" /> |
+| <img src="docs/screenshots/menu.jpg" width="180" alt="Cardápio & Dieta" /> | <img src="docs/screenshots/campus.jpg" width="180" alt="Seleção de Campus" /> | <img src="docs/screenshots/notificacoes.jpg" width="180" alt="Alertas & Dieta" /> | <img src="docs/screenshots/carteirinha_digital.jpg" width="180" alt="Carteirinha & Saldo" /> | <img src="docs/screenshots/sincronizacao.jpg" width="180" alt="Conexão SIGAA" /> |
 
 ---
 
