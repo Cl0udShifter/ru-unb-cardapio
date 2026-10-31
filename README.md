@@ -7,7 +7,7 @@
 [![Material 3](https://img.shields.io/badge/Material%203-Enabled-teal.svg)](https://m3.material.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Aplicativo Android nativo para consulta rápida, moderna e offline do cardápio semanal, emissão de carteirinha digital com QR Code para as catracas e acompanhamento de saldo do Restaurante Universitário (RU) da Universidade de Brasília (**UnB - Campus Darcy Ribeiro**).
+Aplicativo Android nativo para consulta rápida, moderna e offline do cardápio semanal, emissão de carteirinha digital com QR Code para as catracas e acompanhamento de saldo do Restaurante Universitário da Universidade de Brasília.
 
 Projetado sob a filosofia visual **Notion Editorial (Warm Paper)**: estética limpa, tipografia acolhedora, espaçamento generoso, tema claro/escuro integrado com edge-to-edge e ergonomia pensada para uso diário com apenas uma mão.
 
