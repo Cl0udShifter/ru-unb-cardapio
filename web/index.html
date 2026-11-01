@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>RU UnB - Cardápio Semanal & Carteirinha</title>
+  
+  <!-- PWA & Apple Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#191919">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="RU UnB">
+  
+  <link rel="icon" type="image/png" href="icons/favicon.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <h1 class="brand-title">Cardápio RU</h1>
+        <button id="campusDropdownBtn" class="campus-pill-btn" aria-label="Selecionar campus">
+          <span>UnB • <strong id="currentCampusLabel">Darcy Ribeiro</strong></span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+      </div>
+
+      <div class="header-actions">
+        <button id="openCarteirinhaBtn" class="icon-btn" title="Carteirinha Digital" aria-label="Carteirinha Digital">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="13" y2="12"/><circle cx="16" cy="14" r="2"/></svg>
+        </button>
+        <button id="themeToggleBtn" class="icon-btn" title="Alternar tema" aria-label="Alternar tema">
+          <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+        <button id="refreshBtn" class="icon-btn" title="Atualizar cardápio" aria-label="Atualizar cardápio">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Platform Banner (iOS / Android guide) -->
+    <div id="platformBanner" class="platform-banner" style="display: none;">
+      <div class="banner-text" id="bannerText"></div>
+      <button id="bannerActionBtn" class="banner-btn" style="display: none;"></button>
+      <button id="closeBannerBtn" class="close-banner" aria-label="Fechar">✕</button>
+    </div>
+
+    <!-- Day Rail -->
+    <div class="day-rail-container">
+      <div id="dayRail" class="day-rail">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Diet Segmented Bar -->
+    <div class="diet-bar" id="dietBar">
+      <button class="diet-tab active" data-diet="padrao">Padrão</button>
+      <button class="diet-tab" data-diet="ovolacto">Ovolacto</button>
+      <button class="diet-tab" data-diet="vegano">Vegano</button>
+    </div>
+
+    <!-- Main Content -->
+    <main class="meal-content">
+      <div class="meal-header-row">
+        <h2 id="currentDayTitle" class="current-date-title">Segunda-feira</h2>
+        <span id="mealTimeBadge" class="meal-badge">Almoço • 11h às 14h30</span>
+      </div>
+
+      <!-- Meal Card Container -->
+      <div id="mealCard" class="meal-card">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Callout: Mesa de apoio -->
+      <div class="callout-card">
+        <span class="callout-icon">💡</span>
+        <span><strong>Mesa de apoio:</strong> Azeite, vinagre, sal e pimenta disponíveis no balcão de distribuição.</span>
+      </div>
+    </main>
+
+    <!-- Bottom Floating Bar -->
+    <nav class="bottom-floating-bar" aria-label="Seleção de refeição">
+      <button class="meal-tab-btn" data-meal="cafe">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+        <span>Café</span>
+      </button>
+      <button class="meal-tab-btn active" data-meal="almoco">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2v20"/><path d="M2 2v6a4 4 0 0 0 4 4v10"/><path d="M6 2v6"/><path d="M10 2v6"/></svg>
+        <span>Almoço</span>
+      </button>
+      <button class="meal-tab-btn" data-meal="jantar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21a9 9 0 0 0 9-9H3a9 9 0 0 0 9 9Z"/><path d="M7 6v3"/><path d="M12 4v5"/><path d="M17 6v3"/></svg>
+        <span>Jantar</span>
+      </button>
+    </nav>
+
+    <!-- Modal: Campus Selector -->
+    <div id="campusModal" class="modal-overlay">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <h3 class="sheet-title">Selecionar Campus</h3>
+        <p class="sheet-subtitle">Escolha qual refeitório da UnB você deseja consultar</p>
+        
+        <div class="campus-option" data-campus="darcy">
+          <div>
+            <div class="campus-name">Darcy Ribeiro</div>
+            <div class="campus-sub">Plano Piloto</div>
+          </div>
+          <span class="check-icon">✓</span>
+        </div>
+
+        <div class="campus-option" data-campus="gama">
+          <div>
+            <div class="campus-name">FGA (Gama)</div>
+            <div class="campus-sub">Faculdade do Gama</div>
+          </div>
+          <span class="check-icon" style="display:none;">✓</span>
+        </div>
+
+        <div class="campus-option" data-campus="ceilandia">
+          <div>
+            <div class="campus-name">FCE (Ceilândia)</div>
+            <div class="campus-sub">Faculdade de Ceilândia</div>
+          </div>
+          <span class="check-icon" style="display:none;">✓</span>
+        </div>
+
+        <div class="campus-option" data-campus="planaltina">
+          <div>
+            <div class="campus-name">FUP (Planaltina)</div>
+            <div class="campus-sub">Faculdade de Planaltina</div>
+          </div>
+          <span class="check-icon" style="display:none;">✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Carteirinha Digital -->
+    <div id="carteirinhaModal" class="modal-overlay">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <h3 class="sheet-title">Carteirinha Digital</h3>
+        <p class="sheet-subtitle">UnB • Restaurante Universitário</p>
+
+        <div class="carteirinha-card">
+          <div class="carteirinha-header">UNIVERSIDADE DE BRASÍLIA</div>
+          <div id="qrCodeContainer" class="qr-box" title="Toque para tela cheia e brilho máximo">
+            <!-- QR Code renders here -->
+          </div>
+          <div class="qr-hint">Toque no QR para tela cheia e brilho máximo</div>
+          <div class="student-meta">
+            <div class="meta-field">
+              <div class="meta-label">Nome</div>
+              <div class="meta-val" id="metaNome">Estudante UnB</div>
+            </div>
+            <div class="meta-field">
+              <div class="meta-label">Validade</div>
+              <div class="meta-val" id="metaValidade">Março / 2027</div>
+            </div>
+            <div class="meta-field">
+              <div class="meta-label">Matrícula</div>
+              <div class="meta-val" id="metaMatricula">190000000</div>
+            </div>
+            <div class="meta-field">
+              <div class="meta-label">Curso</div>
+              <div class="meta-val" id="metaCurso">Graduação</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Saldo e Extrato -->
+        <div class="carteirinha-card" style="text-align: left;">
+          <div class="carteirinha-header">EXTRATO NO RU</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">SALDO ATUAL</div>
+          <div style="font-size: 22px; font-weight: 700; color: var(--text-main); margin-bottom: 12px;" id="saldoDisplay">R$ 16,65</div>
+          <button id="editStudentBtn" class="btn-primary" style="background-color: var(--surface-color); color: var(--text-main); border: 1px solid var(--border-color);">Editar Dados da Carteirinha</button>
+        </div>
+
+        <!-- Form Edit Student (hidden by default) -->
+        <div id="editStudentForm" style="display: none; padding-top: 10px;">
+          <h4 style="margin-bottom: 8px; font-size: 14px;">Editar Informações</h4>
+          <input type="text" id="inputNome" class="form-input" placeholder="Nome Completo">
+          <input type="text" id="inputMatricula" class="form-input" placeholder="Matrícula (ex: 190026308)">
+          <input type="text" id="inputCurso" class="form-input" placeholder="Curso (ex: Engenharia de Software)">
+          <input type="text" id="inputValidade" class="form-input" placeholder="Validade (ex: Março / 2027)">
+          <input type="text" id="inputQrData" class="form-input" placeholder="Código QR das Catracas (16 dígitos)">
+          <button id="saveStudentBtn" class="btn-primary">Salvar Dados</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fullscreen QR Modal for Turnstiles -->
+    <div id="qrFullscreenModal" class="qr-fullscreen">
+      <div id="qrFullscreenCode" class="qr-fullscreen-code"></div>
+      <div style="font-weight: 700; font-size: 16px; color: #111; margin-bottom: 4px;">Aproxime do leitor da catraca</div>
+      <div style="font-size: 13px; color: #666; margin-bottom: 24px;" id="qrFullscreenMatricula">190000000</div>
+      <button id="closeQrFullscreenBtn" class="qr-fullscreen-close">Fechar</button>
+    </div>
+  </div>
+
+  <script src="qrcode.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -10,6 +10,8 @@
   <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/Kotlin-1.9.22-purple.svg" alt="Kotlin" /></a>
   <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Jetpack%20Compose-2024.02.00-blue.svg" alt="Jetpack Compose" /></a>
   <a href="https://m3.material.io/"><img src="https://img.shields.io/badge/Material%203-Enabled-teal.svg" alt="Material 3" /></a>
+  <a href="https://cl0udshifter.github.io/ru-unb-cardapio/"><img src="https://img.shields.io/badge/Web%20%2F%20iOS%20PWA-Online-success.svg" alt="Web / iOS PWA" /></a>
+  <a href="obtainium://add/https://github.com/Cl0udShifter/ru-unb-cardapio"><img src="https://img.shields.io/badge/Obtainium-Add%20App-blue.svg" alt="Obtainium" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
 </p>
 
@@ -41,7 +43,28 @@ Você também pode acompanhar todas as versões, notas de lançamento e históri
 3. Se o Android exibir o aviso *"Para sua segurança, seu smartphone não tem permissão para instalar apps desconhecidos desta fonte"*, toque em **Configurações** e ative a opção **Permitir desta fonte**.
 4. Toque em **Instalar** e abra o app!
 
-###  Sistema de Atualização Integrado (In-App Updates):
+### ⚡ Instalação em 1 Toque via Obtainium:
+Se você utiliza o aplicativo aberto **[Obtainium](https://github.com/ImranR98/Obtainium)** (gerenciador de apps direto do GitHub para Android):
+- **[Adicionar RU UnB no Obtainium](obtainium://add/https://github.com/Cl0udShifter/ru-unb-cardapio)**
+- O Obtainium busca novas releases e atualiza o aplicativo automaticamente em segundo plano.
+
+---
+
+## 🍎 Versão Web & iOS (iPhone / iPad)
+
+Para estudantes que utilizam iPhone ou preferem acessar diretamente pelo navegador sem instalar APK:
+
+### **[Acessar App Web (PWA): cl0udshifter.github.io/ru-unb-cardapio](https://cl0udshifter.github.io/ru-unb-cardapio/)**
+
+- **Como usar no iPhone como App Nativo:**
+  1. Abra o link acima no navegador **Safari** do iPhone.
+  2. Toque no botão de **Compartilhar** (ícone de quadrado com seta para cima).
+  3. Role para baixo e toque em **"Adicionar à Tela de Início"**.
+  4. O ícone oficial do RU UnB será fixado na sua tela inicial, abrindo em tela cheia (standalone) com suporte a tema escuro, carteirinha e acesso offline.
+
+---
+
+### Sistema de Atualização Integrado (In-App Updates):
 O aplicativo conta com checagem de atualizações automática e manual conectada diretamente aos lançamentos do GitHub:
 - **Verificação Automática:** Ao abrir, o app verifica silenciosamente se há uma versão mais nova disponível. Caso haja, uma janela intuitiva exibe as novidades e o botão **"Atualizar Agora"**.
 - **Verificação Manual:** Na tela da Carteirinha Digital, acesse o botão **Buscar atualização** para checar sob demanda.

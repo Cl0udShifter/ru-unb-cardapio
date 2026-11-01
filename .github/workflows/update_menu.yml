@@ -30,10 +30,12 @@ jobs:
         run: |
           python parser/scrape_unb_ru.py
           cp parser/menu_*.json app/src/main/assets/ || true
+          mkdir -p web/data
+          cp parser/menu_*.json web/data/ || true
 
       - name: Commit e Push se houver alterações
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add parser/menu_*.json app/src/main/assets/menu_*.json
+          git add parser/menu_*.json app/src/main/assets/menu_*.json web/data/menu_*.json
           git diff --quiet && git diff --staged --quiet || (git commit -m "chore(cardapio): atualizar cardapio semanal [skip ci]" && git push)

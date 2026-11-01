@@ -1,0 +1,13 @@
+Aplicativo para consulta rápida, moderna e offline do cardápio semanal, emissão de carteirinha digital com QR Code para as catracas e acompanhamento de saldo do Restaurante Universitário da Universidade de Brasília (UnB).
+
+Principais funcionalidades:
+- Cardápio semanal dos 4 campi: Darcy Ribeiro (Plano Piloto), Gama (FGA), Ceilândia (FCE) e Planaltina (FUP)
+- Detecção temporal automática da refeição do momento (café da manhã, almoço ou jantar)
+- Reorganização automática do cardápio conforme dieta configurada (Padrão, Ovolactovegetariano ou Vegano)
+- Carteirinha digital com QR Code permanente de 16 dígitos aceito pelas catracas ópticas
+- Modo tela cheia com brilho máximo para leitura rápida nas catracas
+- Sincronização direta com o SIGAA UnB para extração de dados e saldo
+- Consulta e histórico de saldo e extrato no RU
+- Notificações diárias configuráveis com aviso prévio de 1 hora antes de cada refeição
+- 100% offline-first com cache local inteligente e fallback garantido
+- Design Notion Editorial (Warm Paper) com suporte a tema claro e escuro
