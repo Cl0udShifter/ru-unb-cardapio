@@ -1,23 +1,23 @@
-const CACHE_NAME = 'ru-unb-v6';
+const CACHE_NAME = 'ru-unb-v8';
 
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './style.css',
-  './app.js',
-  './qrcode.min.js',
+  './style.css?v=3.0',
+  './app.js?v=3.0',
+  './qrcode.min.js?v=3.0',
   './manifest.json',
-  './icons/favicon.png',
+  './icons/favicon.png?v=3.0',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/apple-touch-icon.png'
+  './icons/apple-touch-icon.png?v=3.0'
 ];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
+      return cache.addAll(STATIC_ASSETS).catch(() => {});
     })
   );
 });
@@ -37,13 +37,12 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-first for ALL requests with fallback to cache (guarantees immediate updates!)
+// Network-First for ALL requests with offline fallback
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-cache' })
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
@@ -54,7 +53,6 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        // Fallback to cache when offline
         return caches.match(event.request).then((cachedResponse) => {
           if (cachedResponse) return cachedResponse;
           if (event.request.headers.get('accept')?.includes('text/html')) {

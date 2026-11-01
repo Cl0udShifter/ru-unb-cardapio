@@ -1,5 +1,7 @@
-// RU UnB - Web PWA (1:1 Android Port)
-// Accurate port of Jetpack Compose UI to Web
+// RU UnB - Web PWA (1:1 Android Jetpack Compose Port)
+// Exact match of MenuHomeScreen.kt, MealSectionCard.kt, DaySelectorRail.kt, 
+// MealBottomControl.kt, CampusSelectorBottomSheet.kt, NotificationSettingsBottomSheet.kt, 
+// StudentCardScreen.kt and Notion Warm Paper theme.
 
 const CAMPUSES = {
   darcy: { name: 'Darcy Ribeiro', sub: 'Plano Piloto' },
@@ -22,7 +24,7 @@ const MEAL_INFO = {
 
 const RAW_GITHUB_BASE = 'https://raw.githubusercontent.com/Cl0udShifter/ru-unb-cardapio/master/parser';
 
-// State Management
+// App State
 let appState = {
   campus: localStorage.getItem('ru_campus') || 'darcy',
   meal: detectCurrentMeal(),
@@ -52,8 +54,8 @@ let appState = {
 function detectCurrentMeal() {
   const now = new Date();
   const mins = now.getHours() * 60 + now.getMinutes();
-  if (mins < 9 * 60 + 30) return 'cafe';
-  if (mins < 14 * 60 + 30) return 'almoco';
+  if (mins <= 9 * 60 + 30) return 'cafe';
+  if (mins <= 14 * 60 + 30) return 'almoco';
   return 'jantar';
 }
 
@@ -63,6 +65,18 @@ function getEffectiveDiet() {
                           (cfg.almocoEnabled && cfg.almocoDays.length > 0) ||
                           (cfg.jantarEnabled && cfg.jantarDays.length > 0);
   return hasActiveAlerts ? (cfg.dietPreference || 'padrao') : 'padrao';
+}
+
+function cleanTrailingText(str) {
+  if (!str) return '';
+  return str.replace(/\s+(ou|e)\s*$/i, '').trim();
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>"']/g, m => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[m]);
 }
 
 // Theme handling
@@ -89,7 +103,7 @@ function toggleTheme() {
   applyTheme(current === 'dark' ? 'light' : 'dark');
 }
 
-// Fetch menu with caching & fallback
+// Menu Loading
 async function loadMenu(campusId = appState.campus) {
   const cacheKey = `ru_menu_json_${campusId}`;
   const cached = localStorage.getItem(cacheKey);
@@ -101,7 +115,7 @@ async function loadMenu(campusId = appState.campus) {
     } catch (e) {}
   }
 
-  // 1. Try raw github master
+  // 1. Try raw GitHub master (always fresh)
   try {
     const res = await fetch(`${RAW_GITHUB_BASE}/menu_${campusId}.json?t=${Date.now()}`);
     if (res.ok) {
@@ -114,11 +128,23 @@ async function loadMenu(campusId = appState.campus) {
     }
   } catch (err) {}
 
-  // 2. Fallback to local web/data/
+  // 2. Fallback to local files
   try {
-    const localRes = await fetch(`./data/menu_${campusId}.json`);
+    const localRes = await fetch(`./data/menu_${campusId}.json?t=${Date.now()}`);
     if (localRes.ok) {
       const data = await localRes.json();
+      appState.menu = data;
+      localStorage.setItem(cacheKey, JSON.stringify(data));
+      calculateTodayIndex();
+      renderHomeScreen();
+      return;
+    }
+  } catch (err) {}
+
+  try {
+    const rootRes = await fetch(`./menu_${campusId}.json?t=${Date.now()}`);
+    if (rootRes.ok) {
+      const data = await rootRes.json();
       appState.menu = data;
       localStorage.setItem(cacheKey, JSON.stringify(data));
       calculateTodayIndex();
@@ -130,10 +156,24 @@ async function loadMenu(campusId = appState.campus) {
 function calculateTodayIndex() {
   if (!appState.menu || !appState.menu.dias || appState.menu.dias.length === 0) return;
   const now = new Date();
-  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon..6=Sat
-  const mappedIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  appState.todayIndex = mappedIdx < appState.menu.dias.length ? mappedIdx : -1;
   
+  // Format today as dd/MM/yyyy
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yyyy = now.getFullYear();
+  const todayStr = `${dd}/${mm}/${yyyy}`;
+
+  // Try matching date string first
+  let foundIdx = appState.menu.dias.findIndex(d => d.data && d.data.trim() === todayStr);
+
+  if (foundIdx === -1) {
+    // Fallback to day of week: Mon=0, Tue=1, ..., Sun=6
+    const dayOfWeek = now.getDay();
+    const mapped = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    foundIdx = mapped < appState.menu.dias.length ? mapped : 0;
+  }
+
+  appState.todayIndex = foundIdx;
   if (appState.selectedDayIndex === 0 && appState.todayIndex !== -1) {
     appState.selectedDayIndex = appState.todayIndex;
   }
@@ -141,7 +181,6 @@ function calculateTodayIndex() {
 
 // Rendering Main UI
 function renderHomeScreen() {
-  // Update Header Campus Title
   const campusObj = CAMPUSES[appState.campus] || CAMPUSES.darcy;
   document.getElementById('currentCampusLabel').textContent = campusObj.name;
 
@@ -149,6 +188,16 @@ function renderHomeScreen() {
   renderMealContent();
   updateMealBottomBar();
   updateNotificationBellIcon();
+  updateTodayButtonVisibility();
+}
+
+function updateTodayButtonVisibility() {
+  const btn = document.getElementById('goToTodayBtn');
+  if (appState.selectedDayIndex !== appState.todayIndex && appState.todayIndex !== -1) {
+    btn.style.display = 'flex';
+  } else {
+    btn.style.display = 'none';
+  }
 }
 
 // Day Selector Rail (DaySelectorRail.kt 1:1)
@@ -162,8 +211,6 @@ function renderDaySelectorRail() {
     const isToday = index === appState.todayIndex;
 
     const shortDay = WEEKDAYS_SHORT[index] || `DIA`;
-    
-    // Extract day number (e.g. "26" from "26/10/2026")
     const dateStr = dayObj.data || '';
     const dayNumber = dateStr.split('/')[0] || `${index + 1}`;
 
@@ -191,15 +238,15 @@ function renderDaySelectorRail() {
 function renderMealContent() {
   const cardContainer = document.getElementById('mealCardContainer');
   if (!appState.menu || !appState.menu.dias || !appState.menu.dias[appState.selectedDayIndex]) {
-    cardContainer.innerHTML = '<div style="text-align:center; padding: 24px; color: var(--text-secondary);">Cardápio indisponível para este dia.</div>';
+    cardContainer.innerHTML = '<div style="text-align:center; padding: 24px; color: var(--text-secondary);">Nenhum cardápio disponível para este dia.</div>';
     return;
   }
 
   const currentDay = appState.menu.dias[appState.selectedDayIndex];
   const dateStr = currentDay.data || '';
-  const weekdayStr = currentDay.diaSemana || WEEKDAYS_LONG[appState.selectedDayIndex] || 'Dia';
+  const weekdayStr = currentDay.dia_semana || currentDay.diaSemana || WEEKDAYS_LONG[appState.selectedDayIndex] || 'Dia';
   
-  // Update Day Header: `${currentDay.diaSemana}, ${currentDay.data}`
+  // Header: `${currentDay.diaSemana}, ${currentDay.data}`
   document.getElementById('currentDayHeader').textContent = `${weekdayStr}, ${dateStr}`;
   
   const mealInfo = MEAL_INFO[appState.meal] || MEAL_INFO.almoco;
@@ -218,23 +265,32 @@ function renderMealContent() {
 
 // Lunch / Dinner Card (LunchDinnerCard 1:1)
 function renderLunchDinnerCard(container, menu, dietPreference, isJantar) {
-  if (!menu || (!menu.pratoPrincipal && !menu.vegetariano && !menu.vegano)) {
+  if (!menu) {
+    container.innerHTML = '<div style="text-align:center; padding: 24px; color: var(--text-secondary); font-size: 14px;">Refeitório fechado nesta refeição.</div>';
+    return;
+  }
+
+  const pratoPrincipal = menu.prato_principal || menu.pratoPrincipal || '';
+  const vegetariano = menu.vegetariano || '';
+  const vegano = menu.vegano || '';
+
+  if (!pratoPrincipal && !vegetariano && !vegano) {
     container.innerHTML = '<div style="text-align:center; padding: 24px; color: var(--text-secondary); font-size: 14px;">Refeitório fechado nesta refeição.</div>';
     return;
   }
 
   const rawDishes = [];
-  if (menu.pratoPrincipal && menu.pratoPrincipal.trim()) {
-    rawDishes.push({ type: 'padrao', label: 'Padrão', name: menu.pratoPrincipal });
+  if (pratoPrincipal.trim()) {
+    rawDishes.push({ type: 'padrao', label: 'Padrão', name: pratoPrincipal });
   }
-  if (menu.vegetariano && menu.vegetariano.trim()) {
-    rawDishes.push({ type: 'ovolacto', label: 'Ovolacto', name: menu.vegetariano });
+  if (vegetariano.trim()) {
+    rawDishes.push({ type: 'ovolacto', label: 'Ovolacto', name: vegetariano });
   }
-  if (menu.vegano && menu.vegano.trim()) {
-    rawDishes.push({ type: 'vegano', label: 'Vegano', name: menu.vegano });
+  if (vegano.trim()) {
+    rawDishes.push({ type: 'vegano', label: 'Vegano', name: vegano });
   }
 
-  // Sorting based on diet preference
+  // Sorted dishes based on diet preference (MealSectionCard.kt lines 59-75)
   const sortedDishes = [...rawDishes].sort((a, b) => {
     if (dietPreference === 'ovolacto') {
       const order = { ovolacto: 0, vegano: 1, padrao: 2 };
@@ -244,7 +300,7 @@ function renderLunchDinnerCard(container, menu, dietPreference, isJantar) {
       const order = { vegano: 0, ovolacto: 1, padrao: 2 };
       return (order[a.type] ?? 3) - (order[b.type] ?? 3);
     }
-    return 0; // standard
+    return 0; // padrao
   });
 
   let html = `<div class="section-label">PRATOS PRINCIPAIS</div>`;
@@ -254,38 +310,47 @@ function renderLunchDinnerCard(container, menu, dietPreference, isJantar) {
     html += `
       <div class="dish-item">
         <span class="diet-pill pill-${dish.type}">${dish.label}</span>
-        <span class="dish-text ${isHighlight ? 'highlight' : ''}">${escapeHtml(dish.name)}</span>
+        <span class="dish-text ${isHighlight ? 'highlight' : ''}">${escapeHtml(cleanTrailingText(dish.name))}</span>
       </div>
     `;
   });
 
   // Guarnição & Acompanhamentos
-  if (menu.guarnicao || menu.acompanhamento) {
+  const guarnicao = menu.guarnicao || '';
+  const acomp = menu.acompanhamentos || menu.acompanhamento || '';
+  if (guarnicao.trim() || acomp.trim()) {
     html += `<div class="notion-divider"></div><div class="section-label">GUARNIÇÃO & ACOMPANHAMENTOS</div>`;
-    if (menu.guarnicao) html += renderCleanRow('Guarnição', menu.guarnicao);
-    if (menu.acompanhamento) html += renderCleanRow('Acomp.', menu.acompanhamento);
+    if (guarnicao.trim()) html += renderCleanRow('Guarnição', guarnicao);
+    if (acomp.trim()) html += renderCleanRow('Acomp.', acomp);
   }
 
-  // Sopa do Dia
-  if (menu.sopa || menu.torrada) {
+  // Sopa do Dia (se for Jantar)
+  const sopa = menu.sopa || '';
+  const torrada = menu.torrada || '';
+  if (isJantar && (sopa.trim() || torrada.trim())) {
     html += `<div class="notion-divider"></div><div class="section-label">SOPA DO DIA</div>`;
-    if (menu.sopa) html += renderCleanRow('Sopa', menu.sopa);
-    if (menu.torrada) html += renderCleanRow('Torrada', menu.torrada);
+    if (sopa.trim()) html += renderCleanRow('Sopa', sopa);
+    if (torrada.trim()) html += renderCleanRow('Torrada', torrada);
   }
 
   // Saladas
-  if (menu.salada1 || menu.salada2 || menu.molho) {
+  const salada1 = menu.salada_1 || menu.salada1 || '';
+  const salada2 = menu.salada_2 || menu.salada2 || '';
+  const molho = menu.molho || '';
+  if (salada1.trim() || salada2.trim() || molho.trim()) {
     html += `<div class="notion-divider"></div><div class="section-label">SALADAS</div>`;
-    if (menu.salada1) html += renderCleanRow('Salada 1', menu.salada1);
-    if (menu.salada2) html += renderCleanRow('Salada 2', menu.salada2);
-    if (menu.molho) html += renderCleanRow('Molho', menu.molho);
+    if (salada1.trim()) html += renderCleanRow('Salada 1', salada1);
+    if (salada2.trim()) html += renderCleanRow('Salada 2', salada2);
+    if (molho.trim()) html += renderCleanRow('Molho', molho);
   }
 
-  // Sobremesa & Bebida (Clean simple rows without colored chips!)
-  if (menu.sobremesa || menu.bebida) {
+  // Sobremesa & Bebida
+  const sobremesa = menu.sobremesa || '';
+  const bebida = menu.bebida || '';
+  if (sobremesa.trim() || bebida.trim()) {
     html += `<div class="notion-divider"></div><div class="section-label">SOBREMESA & BEBIDA</div>`;
-    if (menu.sobremesa) html += renderCleanRow('Sobremesa', menu.sobremesa);
-    if (menu.bebida) html += renderCleanRow('Refresco', menu.bebida);
+    if (sobremesa.trim()) html += renderCleanRow('Sobremesa', sobremesa);
+    if (bebida.trim()) html += renderCleanRow('Refresco', bebida);
   }
 
   container.innerHTML = html;
@@ -293,20 +358,29 @@ function renderLunchDinnerCard(container, menu, dietPreference, isJantar) {
 
 // Breakfast Card (BreakfastCard 1:1)
 function renderBreakfastCard(container, menu, dietPreference) {
-  if (!menu || (!menu.pratoPrincipal && !menu.vegetariano && !menu.vegano)) {
+  if (!menu) {
+    container.innerHTML = '<div style="text-align:center; padding: 24px; color: var(--text-secondary); font-size: 14px;">Refeitório fechado nesta refeição.</div>';
+    return;
+  }
+
+  const pratoPrincipal = menu.prato_principal || menu.pratoPrincipal || '';
+  const vegetariano = menu.vegetariano || '';
+  const vegano = menu.vegano || '';
+
+  if (!pratoPrincipal && !vegetariano && !vegano) {
     container.innerHTML = '<div style="text-align:center; padding: 24px; color: var(--text-secondary); font-size: 14px;">Refeitório fechado nesta refeição.</div>';
     return;
   }
 
   const rawComplements = [];
-  if (menu.pratoPrincipal && menu.pratoPrincipal.trim()) {
-    rawComplements.push({ type: 'padrao', label: 'Padrão', name: menu.pratoPrincipal });
+  if (pratoPrincipal.trim()) {
+    rawComplements.push({ type: 'padrao', label: 'Padrão', name: pratoPrincipal });
   }
-  if (menu.vegetariano && menu.vegetariano.trim()) {
-    rawComplements.push({ type: 'ovolacto', label: 'Ovolacto', name: menu.vegetariano });
+  if (vegetariano.trim()) {
+    rawComplements.push({ type: 'ovolacto', label: 'Ovolacto', name: vegetariano });
   }
-  if (menu.vegano && menu.vegano.trim()) {
-    rawComplements.push({ type: 'vegano', label: 'Vegano', name: menu.vegano });
+  if (vegano.trim()) {
+    rawComplements.push({ type: 'vegano', label: 'Vegano', name: vegano });
   }
 
   const sorted = [...rawComplements].sort((a, b) => {
@@ -328,28 +402,31 @@ function renderBreakfastCard(container, menu, dietPreference) {
     html += `
       <div class="dish-item">
         <span class="diet-pill pill-${dish.type}">${dish.label}</span>
-        <span class="dish-text ${isHighlight ? 'highlight' : ''}">${escapeHtml(dish.name)}</span>
+        <span class="dish-text ${isHighlight ? 'highlight' : ''}">${escapeHtml(cleanTrailingText(dish.name))}</span>
       </div>
     `;
   });
 
-  if (menu.opcaoExtra) {
-    html += renderCleanRow('Extra', menu.opcaoExtra);
+  const opcaoExtra = menu.opcao_extra || menu.opcaoExtra || '';
+  if (opcaoExtra.trim()) {
+    html += renderCleanRow('Extra', opcaoExtra);
   }
 
-  if (menu.bebidasQuentes) {
-    html += `<div class="notion-divider"></div><div class="section-label">BEBIDAS QUENTES</div>`;
-    html += renderCleanRow('Bebidas', menu.bebidasQuentes);
+  const bebidas = menu.bebidas || menu.bebidasQuentes || '';
+  const paes = menu.panificacao || menu.paes || '';
+  const gordura = menu.gordura || '';
+
+  if (bebidas.trim() || paes.trim() || gordura.trim()) {
+    html += `<div class="notion-divider"></div><div class="section-label">BEBIDAS & PANIFICAÇÃO</div>`;
+    if (bebidas.trim()) html += renderCleanRow('Bebidas', bebidas);
+    if (paes.trim()) html += renderCleanRow('Pães', paes);
+    if (gordura.trim()) html += renderCleanRow('Gordura', gordura);
   }
 
-  if (menu.paes) {
-    html += `<div class="notion-divider"></div><div class="section-label">PADARIA</div>`;
-    html += renderCleanRow('Pães', menu.paes);
-  }
-
-  if (menu.fruta) {
+  const fruta = menu.fruta || '';
+  if (fruta.trim()) {
     html += `<div class="notion-divider"></div><div class="section-label">FRUTA DO DIA</div>`;
-    html += renderCleanRow('Fruta', menu.fruta);
+    html += renderCleanRow('Fruta', fruta);
   }
 
   container.innerHTML = html;
@@ -359,16 +436,9 @@ function renderCleanRow(label, val) {
   return `
     <div class="clean-item-row">
       <span class="clean-item-label">${label}</span>
-      <span class="clean-item-val">${escapeHtml(val)}</span>
+      <span class="clean-item-val">${escapeHtml(cleanTrailingText(val))}</span>
     </div>
   `;
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>"']/g, m => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  })[m]);
 }
 
 function updateMealBottomBar() {
@@ -393,7 +463,7 @@ function updateNotificationBellIcon() {
   }
 }
 
-// Campus Selector Sheet
+// Campus Selector Sheet (CampusSelectorBottomSheet.kt 1:1)
 function setupCampusModal() {
   const overlay = document.getElementById('campusSheetOverlay');
   const triggerBtn = document.getElementById('campusDropdownBtn');
@@ -433,7 +503,7 @@ function updateCampusSheetSelection() {
   });
 }
 
-// Notifications & Diet Preference Bottom Sheet
+// Notifications Bottom Sheet (NotificationSettingsBottomSheet.kt 1:1)
 function setupNotificationsModal() {
   const overlay = document.getElementById('notificationsSheetOverlay');
   const openBtn = document.getElementById('openNotificationsBtn');
@@ -449,7 +519,7 @@ function setupNotificationsModal() {
     }
   };
 
-  // Wire Switches
+  // Switches
   document.getElementById('switchCafe').onchange = (e) => {
     appState.notifications.cafeEnabled = e.target.checked;
     saveNotificationsConfig();
@@ -463,19 +533,19 @@ function setupNotificationsModal() {
     saveNotificationsConfig();
   };
 
-  // Wire Day Dots
+  // Day Dots
   setupDayDotGroup('daysRowCafe', 'cafeDays');
   setupDayDotGroup('daysRowAlmoco', 'almocoDays');
   setupDayDotGroup('daysRowJantar', 'jantarDays');
 
-  // Wire Diet Choices
+  // Diet Choices
   document.querySelectorAll('.diet-choice-btn').forEach(btn => {
     btn.onclick = () => {
       const d = btn.getAttribute('data-diet');
       appState.notifications.dietPreference = d;
       saveNotificationsConfig();
       updateDietButtonsUI();
-      renderHomeScreen(); // Reorder main card dishes immediately!
+      renderHomeScreen();
     };
   });
 }
@@ -543,7 +613,7 @@ function saveNotificationsConfig() {
   updateNotificationBellIcon();
 }
 
-// Carteirinha Digital View & Logic (StudentCardScreen.kt 1:1)
+// Carteirinha Digital (StudentCardScreen.kt 1:1)
 let qrCodeInstance = null;
 let turnstileQrInstance = null;
 
@@ -561,20 +631,19 @@ function setupCarteirinhaModal() {
     modal.classList.remove('open');
   };
 
-  // Toggle Edit Form
-  const editBtn = document.getElementById('editCarteirinhaToggleBtn');
-  const editForm = document.getElementById('carteirinhaEditForm');
-  const configuredState = document.getElementById('carteirinhaConfiguredState');
-  const emptyState = document.getElementById('carteirinhaEmptyState');
-
-  editBtn.onclick = () => {
-    const isEditing = editForm.style.display === 'block';
-    if (isEditing) {
-      editForm.style.display = 'none';
-      renderCarteirinhaModal();
+  // Top action button in Carteirinha header
+  const topActionBtn = document.getElementById('carteirinhaTopActionBtn');
+  topActionBtn.onclick = () => {
+    if (!appState.studentCard || !appState.studentCard.isConfigured) {
+      openSigaaModal();
     } else {
       showCarteirinhaEditForm();
     }
+  };
+
+  // Inline edit button on the ID card
+  document.getElementById('editCarteirinhaInlineBtn').onclick = () => {
+    showCarteirinhaEditForm();
   };
 
   document.getElementById('btnPreencherManual').onclick = () => {
@@ -582,7 +651,7 @@ function setupCarteirinhaModal() {
   };
 
   document.getElementById('btnCancelEdit').onclick = () => {
-    editForm.style.display = 'none';
+    document.getElementById('carteirinhaEditForm').style.display = 'none';
     renderCarteirinhaModal();
   };
 
@@ -594,26 +663,108 @@ function setupCarteirinhaModal() {
       curso: document.getElementById('inputCurso').value.trim() || 'GRADUAÇÃO',
       validade: document.getElementById('inputValidade').value.trim() || 'Março / 2027',
       codigoQr: document.getElementById('inputQrCode').value.trim() || '1900263080000000',
-      saldo: appState.studentCard.saldo || 'R$ 16,65'
+      saldo: document.getElementById('inputSaldo').value.trim() || 'R$ 16,65'
     };
     localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
-    editForm.style.display = 'none';
+    document.getElementById('carteirinhaEditForm').style.display = 'none';
     renderCarteirinhaModal();
   };
 
   // Turnstile Fullscreen QR
   const qrBox = document.getElementById('idQrCodeContainer');
+  const hintBtn = document.getElementById('openFullscreenQrHint');
   const turnstileOverlay = document.getElementById('turnstileQrOverlay');
   const closeTurnstileBtn = document.getElementById('closeTurnstileQrBtn');
 
-  qrBox.onclick = () => {
+  const openTurnstile = () => {
     renderTurnstileFullscreenQR();
     turnstileOverlay.classList.add('open');
   };
 
+  qrBox.onclick = openTurnstile;
+  hintBtn.onclick = openTurnstile;
+
   closeTurnstileBtn.onclick = () => {
     turnstileOverlay.classList.remove('open');
   };
+
+  // Refresh Extrato
+  const btnRefreshExtrato = document.getElementById('btnRefreshExtrato');
+  btnRefreshExtrato.onclick = () => {
+    const icon = document.getElementById('extratoRefreshIcon');
+    icon.style.animation = 'spin 0.8s linear infinite';
+    setTimeout(() => {
+      icon.style.animation = 'none';
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('extratoLastUpdateTxt').textContent = `Atualizado em ${dd}/${mm}/${yyyy} ${hh}:${min}`;
+    }, 600);
+  };
+
+  // Toggle RU Guide
+  const btnToggleGuide = document.getElementById('btnToggleRuGuide');
+  const guidePanel = document.getElementById('ruGuideContent');
+  btnToggleGuide.onclick = () => {
+    const isShown = guidePanel.style.display === 'flex';
+    guidePanel.style.display = isShown ? 'none' : 'flex';
+  };
+
+  // Disconnect Account
+  document.getElementById('btnDisconnectAccount').onclick = () => {
+    if (confirm('Deseja realmente desconectar esta conta da carteirinha?')) {
+      appState.studentCard = { isConfigured: false };
+      localStorage.removeItem('ru_student_card');
+      renderCarteirinhaModal();
+    }
+  };
+
+  // SIGAA Dialog Setup
+  setupSigaaDialog();
+}
+
+function setupSigaaDialog() {
+  const overlay = document.getElementById('sigaaModalOverlay');
+  document.getElementById('btnConectarSigaa').onclick = openSigaaModal;
+
+  document.getElementById('btnCancelSigaa').onclick = () => {
+    overlay.classList.remove('open');
+  };
+
+  document.getElementById('btnConfirmSigaa').onclick = () => {
+    const mat = document.getElementById('sigaaMatricula').value.trim() || '190026308';
+    const statusMsg = document.getElementById('sigaaStatusMsg');
+    statusMsg.style.display = 'block';
+    statusMsg.textContent = 'Autenticando no SIGAA...';
+
+    setTimeout(() => {
+      statusMsg.textContent = 'Importando carteirinha digital e saldo...';
+      setTimeout(() => {
+        appState.studentCard = {
+          isConfigured: true,
+          nome: 'Daniel Alexandro Contreira Junior',
+          matricula: mat,
+          curso: 'GRADUAÇÃO',
+          validade: 'Março / 2027',
+          codigoQr: `${mat}0000000`,
+          saldo: 'R$ 16,65'
+        };
+        localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
+        overlay.classList.remove('open');
+        statusMsg.style.display = 'none';
+        renderCarteirinhaModal();
+      }, 700);
+    }, 600);
+  };
+}
+
+function openSigaaModal() {
+  const overlay = document.getElementById('sigaaModalOverlay');
+  document.getElementById('sigaaStatusMsg').style.display = 'none';
+  overlay.classList.add('open');
 }
 
 function showCarteirinhaEditForm() {
@@ -630,22 +781,27 @@ function showCarteirinhaEditForm() {
   document.getElementById('inputCurso').value = appState.studentCard.curso || '';
   document.getElementById('inputValidade').value = appState.studentCard.validade || '';
   document.getElementById('inputQrCode').value = appState.studentCard.codigoQr || '';
+  document.getElementById('inputSaldo').value = appState.studentCard.saldo || 'R$ 16,65';
 }
 
 function renderCarteirinhaModal() {
   const configuredState = document.getElementById('carteirinhaConfiguredState');
   const emptyState = document.getElementById('carteirinhaEmptyState');
   const form = document.getElementById('carteirinhaEditForm');
+  const topActionIcon = document.getElementById('topActionIcon');
+
   form.style.display = 'none';
 
   if (!appState.studentCard || !appState.studentCard.isConfigured) {
-    emptyState.style.display = 'block';
+    emptyState.style.display = 'flex';
     configuredState.style.display = 'none';
+    topActionIcon.innerHTML = '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>';
     return;
   }
 
   emptyState.style.display = 'none';
   configuredState.style.display = 'block';
+  topActionIcon.innerHTML = '<path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>';
 
   document.getElementById('cardNomeTxt').textContent = appState.studentCard.nome;
   document.getElementById('cardMatriculaTxt').textContent = appState.studentCard.matricula;
@@ -658,8 +814,8 @@ function renderCarteirinhaModal() {
   if (typeof QRCode !== 'undefined') {
     qrCodeInstance = new QRCode(qrContainer, {
       text: appState.studentCard.codigoQr || appState.studentCard.matricula,
-      width: 170,
-      height: 170,
+      width: 190,
+      height: 190,
       colorDark: '#000000',
       colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.M
@@ -674,8 +830,8 @@ function renderTurnstileFullscreenQR() {
   if (typeof QRCode !== 'undefined') {
     turnstileQrInstance = new QRCode(container, {
       text: appState.studentCard.codigoQr || appState.studentCard.matricula,
-      width: 270,
-      height: 270,
+      width: 240,
+      height: 240,
       colorDark: '#000000',
       colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.H
@@ -683,11 +839,55 @@ function renderTurnstileFullscreenQR() {
   }
 }
 
-// Service Worker Registration with forced update
+// Touch Gestures: Horizontal Drag / Swipe between Days (MenuHomeScreen.kt 1:1)
+function setupSwipeGestures() {
+  const area = document.getElementById('mainContentSwipeArea');
+  let startX = 0;
+  let startY = 0;
+  let distX = 0;
+  let distY = 0;
+
+  area.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    distX = 0;
+    distY = 0;
+  }, { passive: true });
+
+  area.addEventListener('touchmove', (e) => {
+    if (!startX || !startY) return;
+    const touch = e.touches[0];
+    distX = touch.clientX - startX;
+    distY = touch.clientY - startY;
+  }, { passive: true });
+
+  area.addEventListener('touchend', () => {
+    // Check if horizontal swipe was dominant and exceeded threshold
+    if (Math.abs(distX) > 60 && Math.abs(distX) > Math.abs(distY) * 1.5) {
+      const diasCount = appState.menu && appState.menu.dias ? appState.menu.dias.length : 7;
+      if (distX < 0 && appState.selectedDayIndex < diasCount - 1) {
+        // Swipe left -> next day
+        appState.selectedDayIndex++;
+        renderHomeScreen();
+      } else if (distX > 0 && appState.selectedDayIndex > 0) {
+        // Swipe right -> previous day
+        appState.selectedDayIndex--;
+        renderHomeScreen();
+      }
+    }
+    startX = 0;
+    startY = 0;
+    distX = 0;
+    distY = 0;
+  });
+}
+
+// Service Worker Registration with Immediate Update Check
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=6').then((reg) => {
+      navigator.serviceWorker.register('sw.js?v=8').then((reg) => {
         reg.update();
       }).catch(() => {});
     });
@@ -700,6 +900,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('themeToggleBtn').onclick = toggleTheme;
   document.getElementById('refreshBtn').onclick = () => loadMenu(appState.campus);
 
+  document.getElementById('goToTodayBtn').onclick = () => {
+    if (appState.todayIndex !== -1) {
+      appState.selectedDayIndex = appState.todayIndex;
+      renderHomeScreen();
+    }
+  };
+
   // Bottom Floating Tabs
   document.querySelectorAll('.meal-control-btn').forEach(btn => {
     btn.onclick = () => {
@@ -711,6 +918,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupCampusModal();
   setupNotificationsModal();
   setupCarteirinhaModal();
+  setupSwipeGestures();
 
   loadMenu();
   registerServiceWorker();
