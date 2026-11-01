@@ -24,15 +24,16 @@ jobs:
 
       - name: Instalar dependências
         run: |
-          pip install pdfplumber requests
+          pip install -r requirements.txt
 
       - name: Executar scraper do RU UnB
         run: |
           python parser/scrape_unb_ru.py
+          cp parser/menu_*.json app/src/main/assets/ || true
 
       - name: Commit e Push se houver alterações
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add parser/menu_darcy.json app/src/main/assets/sample_menu.json
+          git add parser/menu_*.json app/src/main/assets/menu_*.json
           git diff --quiet && git diff --staged --quiet || (git commit -m "chore(cardapio): atualizar cardapio semanal [skip ci]" && git push)
