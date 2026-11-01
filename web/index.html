@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>RU UnB - Cardápio Semanal & Carteirinha</title>
+  <title>Cardápio RU UnB</title>
   
   <!-- PWA & Apple Meta Tags -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#191919">
+  <meta name="theme-color" content="#191918">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RU UnB">
@@ -19,186 +19,385 @@
 </head>
 <body>
   <div id="app">
-    <!-- Header -->
+    <!-- Top Bar (MenuHomeScreen.kt 1:1) -->
     <header class="app-header">
-      <div class="brand">
+      <div class="brand-col">
         <h1 class="brand-title">Cardápio RU</h1>
-        <button id="campusDropdownBtn" class="campus-pill-btn" aria-label="Selecionar campus">
+        <button id="campusDropdownBtn" class="campus-row" aria-label="Trocar campus">
           <span>UnB • <strong id="currentCampusLabel">Darcy Ribeiro</strong></span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
       </div>
 
-      <div class="header-actions">
-        <button id="openCarteirinhaBtn" class="icon-btn" title="Carteirinha Digital" aria-label="Carteirinha Digital">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="13" y2="12"/><circle cx="16" cy="14" r="2"/></svg>
+      <div class="header-icons">
+        <!-- Carteirinha / QR Catraca (Icons.Outlined.Badge) -->
+        <button id="openCarteirinhaBtn" class="header-icon-btn" title="Carteirinha do Estudante" aria-label="Carteirinha do Estudante">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <circle cx="12" cy="11" r="3"></circle>
+            <path d="M16 18a4 4 0 0 0-8 0"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
         </button>
-        <button id="themeToggleBtn" class="icon-btn" title="Alternar tema" aria-label="Alternar tema">
-          <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+
+        <!-- Notificações (Icons.Outlined.NotificationsActive) -->
+        <button id="openNotificationsBtn" class="header-icon-btn" title="Configurar Notificações" aria-label="Configurar Notificações">
+          <svg id="notifBellIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
         </button>
-        <button id="refreshBtn" class="icon-btn" title="Atualizar cardápio" aria-label="Atualizar cardápio">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+
+        <!-- Tema Claro/Escuro (Icons.Outlined.LightMode / DarkMode) -->
+        <button id="themeToggleBtn" class="header-icon-btn" title="Alternar tema" aria-label="Alternar tema">
+          <svg id="themeIcon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+
+        <!-- Atualizar (Icons.Outlined.Refresh) -->
+        <button id="refreshBtn" class="header-icon-btn" title="Atualizar" aria-label="Atualizar">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+          </svg>
         </button>
       </div>
     </header>
 
-    <!-- Platform Banner (iOS / Android guide) -->
-    <div id="platformBanner" class="platform-banner" style="display: none;">
-      <div class="banner-text" id="bannerText"></div>
-      <button id="bannerActionBtn" class="banner-btn" style="display: none;"></button>
-      <button id="closeBannerBtn" class="close-banner" aria-label="Fechar">✕</button>
-    </div>
-
-    <!-- Day Rail -->
-    <div class="day-rail-container">
+    <!-- Day Selector Rail (DaySelectorRail.kt 1:1) -->
+    <div class="day-rail-wrapper">
       <div id="dayRail" class="day-rail">
-        <!-- Rendered dynamically -->
+        <!-- Rendered dynamically: SEG, TER, QUA, QUI, SEX, SÁB, DOM + dayNumber + green dot -->
       </div>
     </div>
 
-    <!-- Diet Segmented Bar -->
-    <div class="diet-bar" id="dietBar">
-      <button class="diet-tab active" data-diet="padrao">Padrão</button>
-      <button class="diet-tab" data-diet="ovolacto">Ovolacto</button>
-      <button class="diet-tab" data-diet="vegano">Vegano</button>
-    </div>
-
-    <!-- Main Content -->
-    <main class="meal-content">
-      <div class="meal-header-row">
-        <h2 id="currentDayTitle" class="current-date-title">Segunda-feira</h2>
-        <span id="mealTimeBadge" class="meal-badge">Almoço • 11h às 14h30</span>
+    <!-- Main Meal Card Content (MenuHomeScreen.kt 1:1) -->
+    <main class="main-content">
+      <!-- Day Header (e.g. Sexta-feira, 30/10/2026 | Jantar 17h às 19h30) -->
+      <div class="meal-day-row">
+        <div id="currentDayHeader" class="meal-date-title">Sexta-feira, 30/10/2026</div>
+        <div class="meal-status-col">
+          <div id="mealTitleLabel" class="meal-type-title">Jantar</div>
+          <div id="mealHoursLabel" class="meal-hours">17h às 19h30</div>
+        </div>
       </div>
 
       <!-- Meal Card Container -->
-      <div id="mealCard" class="meal-card">
+      <div id="mealCardContainer" class="notion-meal-card">
         <!-- Rendered dynamically -->
       </div>
 
-      <!-- Callout: Mesa de apoio -->
-      <div class="callout-card">
-        <span class="callout-icon">💡</span>
-        <span><strong>Mesa de apoio:</strong> Azeite, vinagre, sal e pimenta disponíveis no balcão de distribuição.</span>
+      <!-- Callout: Mesa de apoio (MenuHomeScreen.kt 1:1) -->
+      <div class="mesa-apoio-card">
+        <div class="mesa-apoio-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+        </div>
+        <div>
+          <div class="mesa-apoio-title">Mesa de apoio</div>
+          <div class="mesa-apoio-desc">Água, café, açúcar, adoçante e temperos disponíveis no salão.</div>
+        </div>
       </div>
     </main>
 
-    <!-- Bottom Floating Bar -->
-    <nav class="bottom-floating-bar" aria-label="Seleção de refeição">
-      <button class="meal-tab-btn" data-meal="cafe">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+    <!-- Bottom Floating Bar (MealBottomControl.kt 1:1) -->
+    <nav class="bottom-floating-control" aria-label="Seleção de refeição">
+      <button class="meal-control-btn" data-meal="cafe">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
         <span>Café</span>
       </button>
-      <button class="meal-tab-btn active" data-meal="almoco">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2v20"/><path d="M2 2v6a4 4 0 0 0 4 4v10"/><path d="M6 2v6"/><path d="M10 2v6"/></svg>
+      <button class="meal-control-btn active" data-meal="almoco">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2v20"></path><path d="M2 2v6a4 4 0 0 0 4 4v10"></path><path d="M6 2v6"></path><path d="M10 2v6"></path></svg>
         <span>Almoço</span>
       </button>
-      <button class="meal-tab-btn" data-meal="jantar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21a9 9 0 0 0 9-9H3a9 9 0 0 0 9 9Z"/><path d="M7 6v3"/><path d="M12 4v5"/><path d="M17 6v3"/></svg>
+      <button class="meal-control-btn" data-meal="jantar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 0 0 9-9H3a9 9 0 0 0 9 9Z"></path><path d="M7 6v3"></path><path d="M12 4v5"></path><path d="M17 6v3"></path></svg>
         <span>Jantar</span>
       </button>
     </nav>
 
-    <!-- Modal: Campus Selector -->
-    <div id="campusModal" class="modal-overlay">
-      <div class="bottom-sheet">
-        <div class="sheet-handle"></div>
-        <h3 class="sheet-title">Selecionar Campus</h3>
-        <p class="sheet-subtitle">Escolha qual refeitório da UnB você deseja consultar</p>
+    <!-- Bottom Sheet: Campus Selector (CampusSelectorBottomSheet.kt 1:1) -->
+    <div id="campusSheetOverlay" class="sheet-overlay">
+      <div class="sheet-container">
+        <div class="sheet-drag-handle"></div>
+        <h2 class="sheet-headline">Selecionar Campus</h2>
+        <p class="sheet-subhead">Escolha qual refeitório da UnB você deseja consultar</p>
+
+        <div class="campus-card-item selected" data-campus="darcy">
+          <div class="campus-item-left">
+            <div class="campus-pin-circle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            </div>
+            <div>
+              <div class="campus-title-txt">Darcy Ribeiro</div>
+              <div class="campus-sub-txt">Plano Piloto</div>
+            </div>
+          </div>
+          <div class="campus-check-circle">✓</div>
+        </div>
+
+        <div class="campus-card-item" data-campus="gama">
+          <div class="campus-item-left">
+            <div class="campus-pin-circle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            </div>
+            <div>
+              <div class="campus-title-txt">FGA (Gama)</div>
+              <div class="campus-sub-txt">Faculdade do Gama</div>
+            </div>
+          </div>
+          <div class="campus-check-circle">✓</div>
+        </div>
+
+        <div class="campus-card-item" data-campus="ceilandia">
+          <div class="campus-item-left">
+            <div class="campus-pin-circle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            </div>
+            <div>
+              <div class="campus-title-txt">FCE (Ceilândia)</div>
+              <div class="campus-sub-txt">Faculdade de Ceilândia</div>
+            </div>
+          </div>
+          <div class="campus-check-circle">✓</div>
+        </div>
+
+        <div class="campus-card-item" data-campus="planaltina">
+          <div class="campus-item-left">
+            <div class="campus-pin-circle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            </div>
+            <div>
+              <div class="campus-title-txt">FUP (Planaltina)</div>
+              <div class="campus-sub-txt">Faculdade de Planaltina</div>
+            </div>
+          </div>
+          <div class="campus-check-circle">✓</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Sheet: Notificações do RU (NotificationSettingsBottomSheet.kt 1:1) -->
+    <div id="notificationsSheetOverlay" class="sheet-overlay">
+      <div class="sheet-container">
+        <div class="sheet-drag-handle"></div>
+        <h2 class="sheet-headline">Notificações do RU</h2>
+        <p class="sheet-subhead">Escolha quais refeições e em quais dias da semana deseja receber alertas (1h antes)</p>
+
+        <!-- Café da Manhã -->
+        <div class="notif-section">
+          <div class="notif-section-header">
+            <div>
+              <div class="notif-title">☕ Café da Manhã</div>
+              <div class="notif-time-sub">Alerta às 06h00 (refeição das 7h às 9h30)</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="switchCafe" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="notif-days-row" id="daysRowCafe">
+            <div class="notif-day-dot active" data-day="1">SEG</div>
+            <div class="notif-day-dot active" data-day="2">TER</div>
+            <div class="notif-day-dot active" data-day="3">QUA</div>
+            <div class="notif-day-dot active" data-day="4">QUI</div>
+            <div class="notif-day-dot active" data-day="5">SEX</div>
+            <div class="notif-day-dot" data-day="6">SÁB</div>
+            <div class="notif-day-dot" data-day="0">DOM</div>
+          </div>
+        </div>
+
+        <div class="notion-divider" style="margin: 14px 0;"></div>
+
+        <!-- Almoço -->
+        <div class="notif-section">
+          <div class="notif-section-header">
+            <div>
+              <div class="notif-title">🍽️ Almoço</div>
+              <div class="notif-time-sub">Alerta às 10h00 (refeição das 11h às 14h30)</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="switchAlmoco" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="notif-days-row" id="daysRowAlmoco">
+            <div class="notif-day-dot active" data-day="1">SEG</div>
+            <div class="notif-day-dot active" data-day="2">TER</div>
+            <div class="notif-day-dot active" data-day="3">QUA</div>
+            <div class="notif-day-dot active" data-day="4">QUI</div>
+            <div class="notif-day-dot active" data-day="5">SEX</div>
+            <div class="notif-day-dot" data-day="6">SÁB</div>
+            <div class="notif-day-dot" data-day="0">DOM</div>
+          </div>
+        </div>
+
+        <div class="notion-divider" style="margin: 14px 0;"></div>
+
+        <!-- Jantar -->
+        <div class="notif-section">
+          <div class="notif-section-header">
+            <div>
+              <div class="notif-title">🥣 Jantar</div>
+              <div class="notif-time-sub">Alerta às 16h00 (refeição das 17h às 19h30)</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="switchJantar" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="notif-days-row" id="daysRowJantar">
+            <div class="notif-day-dot active" data-day="1">SEG</div>
+            <div class="notif-day-dot active" data-day="2">TER</div>
+            <div class="notif-day-dot active" data-day="3">QUA</div>
+            <div class="notif-day-dot active" data-day="4">QUI</div>
+            <div class="notif-day-dot active" data-day="5">SEX</div>
+            <div class="notif-day-dot" data-day="6">SÁB</div>
+            <div class="notif-day-dot" data-day="0">DOM</div>
+          </div>
+        </div>
+
+        <div class="notion-divider" style="margin: 14px 0;"></div>
+
+        <!-- DIETA PREFERIDA (NotificationSettingsBottomSheet.kt 1:1) -->
+        <div class="section-label" style="font-size: 11px;">DIETA PREFERIDA</div>
+        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Destaca seu prato no cardápio e no texto das notificações</p>
         
-        <div class="campus-option" data-campus="darcy">
-          <div>
-            <div class="campus-name">Darcy Ribeiro</div>
-            <div class="campus-sub">Plano Piloto</div>
-          </div>
-          <span class="check-icon">✓</span>
+        <div class="diet-choice-row" id="dietChoiceRow">
+          <button class="diet-choice-btn selected" data-diet="padrao">Padrão</button>
+          <button class="diet-choice-btn" data-diet="ovolacto">Ovolacto</button>
+          <button class="diet-choice-btn" data-diet="vegano">Vegano</button>
         </div>
 
-        <div class="campus-option" data-campus="gama">
-          <div>
-            <div class="campus-name">FGA (Gama)</div>
-            <div class="campus-sub">Faculdade do Gama</div>
-          </div>
-          <span class="check-icon" style="display:none;">✓</span>
-        </div>
-
-        <div class="campus-option" data-campus="ceilandia">
-          <div>
-            <div class="campus-name">FCE (Ceilândia)</div>
-            <div class="campus-sub">Faculdade de Ceilândia</div>
-          </div>
-          <span class="check-icon" style="display:none;">✓</span>
-        </div>
-
-        <div class="campus-option" data-campus="planaltina">
-          <div>
-            <div class="campus-name">FUP (Planaltina)</div>
-            <div class="campus-sub">Faculdade de Planaltina</div>
-          </div>
-          <span class="check-icon" style="display:none;">✓</span>
+        <div style="background-color: var(--surface-variant); padding: 12px; border-radius: 8px; font-size: 11.5px; color: var(--text-secondary); margin-top: 16px; line-height: 1.4;">
+          <strong>No iPhone (iOS):</strong> Para receber avisos pontuais com o app fechado, adicione o site à tela de início via Safari e autorize notificações quando solicitado.
         </div>
       </div>
     </div>
 
-    <!-- Modal: Carteirinha Digital -->
-    <div id="carteirinhaModal" class="modal-overlay">
-      <div class="bottom-sheet">
-        <div class="sheet-handle"></div>
-        <h3 class="sheet-title">Carteirinha Digital</h3>
-        <p class="sheet-subtitle">UnB • Restaurante Universitário</p>
+    <!-- Fullscreen Modal: Carteirinha Digital (StudentCardScreen.kt 1:1) -->
+    <div id="carteirinhaModal" class="carteirinha-fullscreen-view">
+      <div class="carteirinha-topbar">
+        <button id="closeCarteirinhaBtn" class="header-icon-btn" aria-label="Voltar">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <div class="carteirinha-topbar-center">
+          <div class="carteirinha-topbar-title">Carteirinha Digital</div>
+          <div class="carteirinha-topbar-sub">UnB • Restaurante Universitário</div>
+        </div>
+        <button id="editCarteirinhaToggleBtn" class="header-icon-btn" title="Editar" aria-label="Editar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        </button>
+      </div>
 
-        <div class="carteirinha-card">
-          <div class="carteirinha-header">UNIVERSIDADE DE BRASÍLIA</div>
-          <div id="qrCodeContainer" class="qr-box" title="Toque para tela cheia e brilho máximo">
-            <!-- QR Code renders here -->
+      <div class="carteirinha-body">
+        <!-- State: If NOT Configured (EmptyCardState in Android) -->
+        <div id="carteirinhaEmptyState" class="empty-card-container" style="display: none;">
+          <div class="empty-card-badge-circle">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="12" cy="10" r="3"></circle><path d="M7 20v-1a5 5 0 0 1 10 0v1"></path></svg>
           </div>
-          <div class="qr-hint">Toque no QR para tela cheia e brilho máximo</div>
-          <div class="student-meta">
-            <div class="meta-field">
-              <div class="meta-label">Nome</div>
-              <div class="meta-val" id="metaNome">Estudante UnB</div>
+          <h2 class="empty-card-title">Conecte sua Conta UnB</h2>
+          <p class="empty-card-desc">Sincronize ou preencha seus dados para gerar o seu QR Code permanente para as catracas do RU e acompanhar seu saldo e extrato acumulado.</p>
+          <button id="btnPreencherManual" class="btn-pill-fill">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+            Preencher Manualmente
+          </button>
+        </div>
+
+        <!-- State: If Configured (StudentCard in Android) -->
+        <div id="carteirinhaConfiguredState">
+          <div class="id-card-container">
+            <div class="id-card-unb-header">UNIVERSIDADE DE BRASÍLIA</div>
+            <div id="idQrCodeContainer" class="id-qr-box" title="Toque para tela cheia e brilho máximo">
+              <!-- QR Code -->
             </div>
-            <div class="meta-field">
-              <div class="meta-label">Validade</div>
-              <div class="meta-val" id="metaValidade">Março / 2027</div>
+            <div class="id-qr-hint">Toque no QR para tela cheia e brilho máximo</div>
+
+            <div class="id-meta-grid">
+              <div>
+                <div class="id-meta-label">Nome</div>
+                <div id="cardNomeTxt" class="id-meta-val">Estudante UnB</div>
+              </div>
+              <div>
+                <div class="id-meta-label">Validade</div>
+                <div id="cardValidadeTxt" class="id-meta-val">Março / 2027</div>
+              </div>
+              <div>
+                <div class="id-meta-label">Matrícula</div>
+                <div id="cardMatriculaTxt" class="id-meta-val">190000000</div>
+              </div>
+              <div>
+                <div class="id-meta-label">Curso</div>
+                <div id="cardCursoTxt" class="id-meta-val">GRADUAÇÃO</div>
+              </div>
             </div>
-            <div class="meta-field">
-              <div class="meta-label">Matrícula</div>
-              <div class="meta-val" id="metaMatricula">190000000</div>
+          </div>
+
+          <!-- Extrato no RU -->
+          <div class="extrato-card" style="margin-top: 14px;">
+            <div class="extrato-header-row">
+              <span class="extrato-label">EXTRATO NO RU</span>
+              <span style="font-size: 11px; color: var(--text-secondary);">Atualizado hoje</span>
             </div>
-            <div class="meta-field">
-              <div class="meta-label">Curso</div>
-              <div class="meta-val" id="metaCurso">Graduação</div>
+            <div style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 2px;">Saldo Atual</div>
+            <div class="extrato-saldo-txt" id="cardSaldoTxt">R$ 16,65</div>
+
+            <div class="extrato-history-row">
+              <div>
+                <div style="font-weight: 500;">Grupo 4 Café</div>
+                <div style="font-size: 11px; color: var(--text-secondary);">Refeição no RU</div>
+              </div>
+              <div style="font-weight: 600; color: #E57373;">-R$ 1,50</div>
             </div>
           </div>
         </div>
 
-        <!-- Saldo e Extrato -->
-        <div class="carteirinha-card" style="text-align: left;">
-          <div class="carteirinha-header">EXTRATO NO RU</div>
-          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">SALDO ATUAL</div>
-          <div style="font-size: 22px; font-weight: 700; color: var(--text-main); margin-bottom: 12px;" id="saldoDisplay">R$ 16,65</div>
-          <button id="editStudentBtn" class="btn-primary" style="background-color: var(--surface-color); color: var(--text-main); border: 1px solid var(--border-color);">Editar Dados da Carteirinha</button>
-        </div>
-
-        <!-- Form Edit Student (hidden by default) -->
-        <div id="editStudentForm" style="display: none; padding-top: 10px;">
-          <h4 style="margin-bottom: 8px; font-size: 14px;">Editar Informações</h4>
-          <input type="text" id="inputNome" class="form-input" placeholder="Nome Completo">
-          <input type="text" id="inputMatricula" class="form-input" placeholder="Matrícula (ex: 190026308)">
-          <input type="text" id="inputCurso" class="form-input" placeholder="Curso (ex: Engenharia de Software)">
-          <input type="text" id="inputValidade" class="form-input" placeholder="Validade (ex: Março / 2027)">
-          <input type="text" id="inputQrData" class="form-input" placeholder="Código QR das Catracas (16 dígitos)">
-          <button id="saveStudentBtn" class="btn-primary">Salvar Dados</button>
+        <!-- Form Edit Student Info -->
+        <div id="carteirinhaEditForm" style="display: none; background-color: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px;">
+          <h3 style="font-size: 16px; margin-bottom: 12px; font-weight: 600;">Editar Dados da Carteirinha</h3>
+          <div style="margin-bottom: 10px;">
+            <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600;">Nome Completo</label>
+            <input type="text" id="inputNome" style="width: 100%; padding: 10px; margin-top: 4px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--surface-variant); color: var(--text-primary); font-size: 13px;">
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600;">Matrícula (ex: 190026308)</label>
+            <input type="text" id="inputMatricula" style="width: 100%; padding: 10px; margin-top: 4px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--surface-variant); color: var(--text-primary); font-size: 13px;">
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600;">Curso</label>
+            <input type="text" id="inputCurso" style="width: 100%; padding: 10px; margin-top: 4px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--surface-variant); color: var(--text-primary); font-size: 13px;">
+          </div>
+          <div style="margin-bottom: 10px;">
+            <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600;">Validade (ex: Março / 2027)</label>
+            <input type="text" id="inputValidade" style="width: 100%; padding: 10px; margin-top: 4px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--surface-variant); color: var(--text-primary); font-size: 13px;">
+          </div>
+          <div style="margin-bottom: 14px;">
+            <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600;">Código das Catracas (16 dígitos ou matrícula)</label>
+            <input type="text" id="inputQrCode" style="width: 100%; padding: 10px; margin-top: 4px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--surface-variant); color: var(--text-primary); font-size: 13px;">
+          </div>
+          <button id="btnSaveCard" class="btn-pill-fill" style="margin-bottom: 8px;">Salvar Carteirinha</button>
+          <button id="btnCancelEdit" class="btn-pill-outline">Cancelar</button>
         </div>
       </div>
     </div>
 
-    <!-- Fullscreen QR Modal for Turnstiles -->
-    <div id="qrFullscreenModal" class="qr-fullscreen">
-      <div id="qrFullscreenCode" class="qr-fullscreen-code"></div>
-      <div style="font-weight: 700; font-size: 16px; color: #111; margin-bottom: 4px;">Aproxime do leitor da catraca</div>
-      <div style="font-size: 13px; color: #666; margin-bottom: 24px;" id="qrFullscreenMatricula">190000000</div>
-      <button id="closeQrFullscreenBtn" class="qr-fullscreen-close">Fechar</button>
+    <!-- Fullscreen Turnstile QR Overlay (for turnstiles) -->
+    <div id="turnstileQrOverlay" class="turnstile-qr-overlay">
+      <div id="turnstileQrCode"></div>
+      <div style="margin-top: 24px; font-weight: 700; font-size: 18px; color: #111;">Aproxime do leitor da catraca</div>
+      <div id="turnstileMatriculaTxt" style="font-size: 14px; color: #666; margin-top: 4px;">190000000</div>
+      <button id="closeTurnstileQrBtn" class="turnstile-close-btn">Fechar</button>
     </div>
   </div>
 

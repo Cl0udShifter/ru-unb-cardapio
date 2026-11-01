@@ -1,44 +1,68 @@
-// RU UnB - Progressive Web App (PWA)
-// Client-side application logic
+// RU UnB - Web PWA (1:1 Android Port)
+// Accurate port of Jetpack Compose UI to Web
 
-const CAMPUS_NAMES = {
-  darcy: 'Darcy Ribeiro',
-  gama: 'FGA (Gama)',
-  ceilandia: 'FCE (Ceilândia)',
-  planaltina: 'FUP (Planaltina)'
+const CAMPUSES = {
+  darcy: { name: 'Darcy Ribeiro', sub: 'Plano Piloto' },
+  gama: { name: 'FGA (Gama)', sub: 'Faculdade do Gama' },
+  ceilandia: { name: 'FCE (Ceilândia)', sub: 'Faculdade de Ceilândia' },
+  planaltina: { name: 'FUP (Planaltina)', sub: 'Faculdade de Planaltina' }
 };
 
-const MEAL_TIMES = {
-  cafe: 'Café da Manhã • 07h às 09h30',
-  almoco: 'Almoço • 11h às 14h30',
-  jantar: 'Jantar • 17h às 19h30'
+const WEEKDAYS_SHORT = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+const WEEKDAYS_LONG = [
+  'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira',
+  'Sexta-feira', 'Sábado', 'Domingo'
+];
+
+const MEAL_INFO = {
+  cafe: { title: 'Café da Manhã', hours: '07h às 09h30' },
+  almoco: { title: 'Almoço', hours: '11h às 14h30' },
+  jantar: { title: 'Jantar', hours: '17h às 19h30' }
 };
 
 const RAW_GITHUB_BASE = 'https://raw.githubusercontent.com/Cl0udShifter/ru-unb-cardapio/master/parser';
 
-// State
-let state = {
+// State Management
+let appState = {
   campus: localStorage.getItem('ru_campus') || 'darcy',
-  diet: localStorage.getItem('ru_diet') || 'padrao',
-  meal: detectInitialMeal(),
-  dayIndex: 0,
+  meal: detectCurrentMeal(),
+  selectedDayIndex: 0,
+  todayIndex: -1,
   menu: null,
-  student: JSON.parse(localStorage.getItem('ru_student')) || {
-    nome: 'Estudante UnB',
-    matricula: '190000000',
-    curso: 'Graduação',
+  notifications: JSON.parse(localStorage.getItem('ru_notifications_config')) || {
+    cafeEnabled: true,
+    cafeDays: [1, 2, 3, 4, 5],
+    almocoEnabled: true,
+    almocoDays: [1, 2, 3, 4, 5],
+    jantarEnabled: true,
+    jantarDays: [1, 2, 3, 4, 5],
+    dietPreference: 'padrao'
+  },
+  studentCard: JSON.parse(localStorage.getItem('ru_student_card')) || {
+    isConfigured: true,
+    nome: 'Daniel Alexandro Contreira Junior',
+    matricula: '190026308',
+    curso: 'GRADUAÇÃO',
     validade: 'Março / 2027',
-    qrData: '1900000000000000',
+    codigoQr: '1900263080000000',
     saldo: 'R$ 16,65'
   }
 };
 
-function detectInitialMeal() {
+function detectCurrentMeal() {
   const now = new Date();
-  const minutes = now.getHours() * 60 + now.getMinutes();
-  if (minutes < 9 * 60 + 30) return 'cafe';
-  if (minutes < 14 * 60 + 30) return 'almoco';
+  const mins = now.getHours() * 60 + now.getMinutes();
+  if (mins < 9 * 60 + 30) return 'cafe';
+  if (mins < 14 * 60 + 30) return 'almoco';
   return 'jantar';
+}
+
+function getEffectiveDiet() {
+  const cfg = appState.notifications;
+  const hasActiveAlerts = (cfg.cafeEnabled && cfg.cafeDays.length > 0) ||
+                          (cfg.almocoEnabled && cfg.almocoDays.length > 0) ||
+                          (cfg.jantarEnabled && cfg.jantarDays.length > 0);
+  return hasActiveAlerts ? (cfg.dietPreference || 'padrao') : 'padrao';
 }
 
 // Theme handling
@@ -46,320 +70,296 @@ function initTheme() {
   const saved = localStorage.getItem('ru_theme');
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const theme = saved || (prefersDark ? 'dark' : 'light');
-  document.documentElement.setAttribute('data-theme', theme);
-  updateThemeIcon(theme);
+  applyTheme(theme);
 }
 
-function updateThemeIcon(theme) {
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('ru_theme', theme);
   const icon = document.getElementById('themeIcon');
   if (theme === 'dark') {
     icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
   } else {
-    icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+    icon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
   }
 }
 
 function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme') || 'light';
-  const next = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('ru_theme', next);
-  updateThemeIcon(next);
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
 }
 
-// Platform detection banner
-function initPlatformBanner() {
-  const dismissed = localStorage.getItem('ru_banner_dismissed');
-  if (dismissed) return;
-
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-  const banner = document.getElementById('platformBanner');
-  const bannerText = document.getElementById('bannerText');
-  const actionBtn = document.getElementById('bannerActionBtn');
-
-  if (isStandalone) return;
-
-  if (isIOS) {
-    banner.style.display = 'flex';
-    bannerText.innerHTML = '📲 <strong>Instale no iPhone:</strong> Toque em <strong>Compartilhar</strong> e selecione <strong>Adicionar à Tela de Início</strong>.';
-    actionBtn.style.display = 'none';
-  } else if (/Android/.test(navigator.userAgent)) {
-    banner.style.display = 'flex';
-    bannerText.innerHTML = '🤖 <strong>App Nativo Android:</strong> Instale o APK com notificações diárias de refeição.';
-    actionBtn.style.display = 'block';
-    actionBtn.textContent = 'Baixar APK';
-    actionBtn.onclick = () => {
-      window.location.href = 'https://github.com/Cl0udShifter/ru-unb-cardapio/releases/latest/download/RU-UnB.apk';
-    };
-  }
-}
-
-// Fetch menu
-async function fetchMenu(campus = state.campus) {
-  const cacheKey = `ru_menu_cache_${campus}`;
+// Fetch menu with caching & fallback
+async function loadMenu(campusId = appState.campus) {
+  const cacheKey = `ru_menu_json_${campusId}`;
   const cached = localStorage.getItem(cacheKey);
   if (cached) {
     try {
-      state.menu = JSON.parse(cached);
-      determineInitialDayIndex();
-      renderAll();
+      appState.menu = JSON.parse(cached);
+      calculateTodayIndex();
+      renderHomeScreen();
     } catch (e) {}
   }
 
+  // 1. Try raw github master
   try {
-    const res = await fetch(`${RAW_GITHUB_BASE}/menu_${campus}.json?t=${Date.now()}`);
+    const res = await fetch(`${RAW_GITHUB_BASE}/menu_${campusId}.json?t=${Date.now()}`);
     if (res.ok) {
       const data = await res.json();
-      state.menu = data;
+      appState.menu = data;
       localStorage.setItem(cacheKey, JSON.stringify(data));
-      determineInitialDayIndex();
-      renderAll();
+      calculateTodayIndex();
+      renderHomeScreen();
       return;
     }
-  } catch (err) {
-    console.warn('Raw GitHub fetch failed, trying local data:', err);
-  }
+  } catch (err) {}
 
-  // Fallback to local data
+  // 2. Fallback to local web/data/
   try {
-    const localRes = await fetch(`./data/menu_${campus}.json`);
+    const localRes = await fetch(`./data/menu_${campusId}.json`);
     if (localRes.ok) {
       const data = await localRes.json();
-      state.menu = data;
+      appState.menu = data;
       localStorage.setItem(cacheKey, JSON.stringify(data));
-      determineInitialDayIndex();
-      renderAll();
+      calculateTodayIndex();
+      renderHomeScreen();
     }
   } catch (err) {}
 }
 
-function determineInitialDayIndex() {
-  if (!state.menu || !state.menu.dias || state.menu.dias.length === 0) return;
+function calculateTodayIndex() {
+  if (!appState.menu || !appState.menu.dias || appState.menu.dias.length === 0) return;
   const now = new Date();
-  const dayOfWeek = now.getDay(); // 0 = Sun, 1 = Mon ... 6 = Sat
-  // Map JS day to menu index (0=Seg..6=Dom)
-  const menuIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  state.dayIndex = Math.min(menuIndex, state.menu.dias.length - 1);
+  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon..6=Sat
+  const mappedIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  appState.todayIndex = mappedIdx < appState.menu.dias.length ? mappedIdx : -1;
+  
+  if (appState.selectedDayIndex === 0 && appState.todayIndex !== -1) {
+    appState.selectedDayIndex = appState.todayIndex;
+  }
 }
 
-// Render Functions
-function renderAll() {
-  document.getElementById('currentCampusLabel').textContent = CAMPUS_NAMES[state.campus] || 'Darcy Ribeiro';
-  renderDayRail();
-  renderMealCard();
-  updateBottomNav();
-  updateDietBar();
+// Rendering Main UI
+function renderHomeScreen() {
+  // Update Header Campus Title
+  const campusObj = CAMPUSES[appState.campus] || CAMPUSES.darcy;
+  document.getElementById('currentCampusLabel').textContent = campusObj.name;
+
+  renderDaySelectorRail();
+  renderMealContent();
+  updateMealBottomBar();
+  updateNotificationBellIcon();
 }
 
-function renderDayRail() {
-  const container = document.getElementById('dayRail');
-  container.innerHTML = '';
-  if (!state.menu || !state.menu.dias) return;
+// Day Selector Rail (DaySelectorRail.kt 1:1)
+function renderDaySelectorRail() {
+  const rail = document.getElementById('dayRail');
+  rail.innerHTML = '';
+  if (!appState.menu || !appState.menu.dias) return;
 
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const todayIdx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  appState.menu.dias.forEach((dayObj, index) => {
+    const isSelected = index === appState.selectedDayIndex;
+    const isToday = index === appState.todayIndex;
 
-  state.menu.dias.forEach((day, idx) => {
-    const chip = document.createElement('div');
-    const isToday = idx === todayIdx;
-    const isActive = idx === state.dayIndex;
+    const shortDay = WEEKDAYS_SHORT[index] || `DIA`;
     
-    chip.className = `day-chip ${isActive ? 'active' : ''} ${isToday ? 'today' : ''}`;
-    
-    // Parse short weekday and day number
-    const parts = (day.dia || '').split(' ');
-    const shortWd = parts[0] ? parts[0].substring(0, 3) : `D${idx+1}`;
-    const dayNum = parts[1] || `${idx+1}`;
+    // Extract day number (e.g. "26" from "26/10/2026")
+    const dateStr = dayObj.data || '';
+    const dayNumber = dateStr.split('/')[0] || `${index + 1}`;
 
-    chip.innerHTML = `
-      <span class="weekday">${shortWd}</span>
-      <span class="day-num">${dayNum}</span>
+    const item = document.createElement('div');
+    item.className = `day-item ${isSelected ? 'active' : ''}`;
+    
+    item.innerHTML = `
+      <div class="day-item-header">
+        <span class="day-short">${shortDay}</span>
+        ${isToday ? '<span class="day-today-dot"></span>' : ''}
+      </div>
+      <div class="day-number">${dayNumber}</div>
     `;
 
-    chip.onclick = () => {
-      state.dayIndex = idx;
-      renderAll();
+    item.onclick = () => {
+      appState.selectedDayIndex = index;
+      renderHomeScreen();
     };
 
-    container.appendChild(chip);
+    rail.appendChild(item);
   });
 }
 
-function updateDietBar() {
-  const tabs = document.querySelectorAll('.diet-tab');
-  tabs.forEach(tab => {
-    const diet = tab.getAttribute('data-diet');
-    if (diet === state.diet) {
-      tab.classList.add('active');
-    } else {
-      tab.classList.remove('active');
-    }
-  });
-}
-
-function updateBottomNav() {
-  const btns = document.querySelectorAll('.meal-tab-btn');
-  btns.forEach(btn => {
-    if (btn.getAttribute('data-meal') === state.meal) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-  document.getElementById('mealTimeBadge').textContent = MEAL_TIMES[state.meal];
-}
-
-function renderMealCard() {
-  const card = document.getElementById('mealCard');
-  if (!state.menu || !state.menu.dias || !state.menu.dias[state.dayIndex]) {
-    card.innerHTML = '<div style="text-align:center; padding: 24px; color: var(--text-muted);">Cardápio indisponível para este dia.</div>';
+// Render Meal Content (MenuHomeScreen.kt & MealSectionCard.kt 1:1)
+function renderMealContent() {
+  const cardContainer = document.getElementById('mealCardContainer');
+  if (!appState.menu || !appState.menu.dias || !appState.menu.dias[appState.selectedDayIndex]) {
+    cardContainer.innerHTML = '<div style="text-align:center; padding: 24px; color: var(--text-secondary);">Cardápio indisponível para este dia.</div>';
     return;
   }
 
-  const currentDay = state.menu.dias[state.dayIndex];
-  document.getElementByIdCurrentDayTitle = document.getElementById('currentDayTitle');
-  if (document.getElementByIdCurrentDayTitle) {
-    document.getElementByIdCurrentDayTitle.textContent = currentDay.dia || 'Cardápio do Dia';
-  }
+  const currentDay = appState.menu.dias[appState.selectedDayIndex];
+  const dateStr = currentDay.data || '';
+  const weekdayStr = currentDay.diaSemana || WEEKDAYS_LONG[appState.selectedDayIndex] || 'Dia';
+  
+  // Update Day Header: `${currentDay.diaSemana}, ${currentDay.data}`
+  document.getElementById('currentDayHeader').textContent = `${weekdayStr}, ${dateStr}`;
+  
+  const mealInfo = MEAL_INFO[appState.meal] || MEAL_INFO.almoco;
+  document.getElementById('mealTitleLabel').textContent = mealInfo.title;
+  document.getElementById('mealHoursLabel').textContent = mealInfo.hours;
 
-  if (state.meal === 'cafe') {
-    renderBreakfast(card, currentDay.cafe);
+  const effectiveDiet = getEffectiveDiet();
+
+  if (appState.meal === 'cafe') {
+    renderBreakfastCard(cardContainer, currentDay.cafe, effectiveDiet);
   } else {
-    const menuData = state.meal === 'almoco' ? currentDay.almoco : currentDay.jantar;
-    renderLunchDinner(card, menuData);
+    const mealData = appState.meal === 'almoco' ? currentDay.almoco : currentDay.jantar;
+    renderLunchDinnerCard(cardContainer, mealData, effectiveDiet, appState.meal === 'jantar');
   }
 }
 
-function renderLunchDinner(container, menu) {
+// Lunch / Dinner Card (LunchDinnerCard 1:1)
+function renderLunchDinnerCard(container, menu, dietPreference, isJantar) {
   if (!menu || (!menu.pratoPrincipal && !menu.vegetariano && !menu.vegano)) {
-    container.innerHTML = '<div style="text-align:center; padding: 24px; color: var(--text-muted);">Refeitório fechado nesta refeição.</div>';
+    container.innerHTML = '<div style="text-align:center; padding: 24px; color: var(--text-secondary); font-size: 14px;">Refeitório fechado nesta refeição.</div>';
     return;
   }
 
-  // Dishes reordered by diet preference
   const rawDishes = [];
-  if (menu.pratoPrincipal) rawDishes.push({ type: 'padrao', label: 'Padrão', name: menu.pratoPrincipal });
-  if (menu.vegetariano) rawDishes.push({ type: 'ovolacto', label: 'Ovolacto', name: menu.vegetariano });
-  if (menu.vegano) rawDishes.push({ type: 'vegano', label: 'Vegano', name: menu.vegano });
+  if (menu.pratoPrincipal && menu.pratoPrincipal.trim()) {
+    rawDishes.push({ type: 'padrao', label: 'Padrão', name: menu.pratoPrincipal });
+  }
+  if (menu.vegetariano && menu.vegetariano.trim()) {
+    rawDishes.push({ type: 'ovolacto', label: 'Ovolacto', name: menu.vegetariano });
+  }
+  if (menu.vegano && menu.vegano.trim()) {
+    rawDishes.push({ type: 'vegano', label: 'Vegano', name: menu.vegano });
+  }
 
+  // Sorting based on diet preference
   const sortedDishes = [...rawDishes].sort((a, b) => {
-    if (state.diet === 'ovolacto') {
+    if (dietPreference === 'ovolacto') {
       const order = { ovolacto: 0, vegano: 1, padrao: 2 };
       return (order[a.type] ?? 3) - (order[b.type] ?? 3);
     }
-    if (state.diet === 'vegano') {
+    if (dietPreference === 'vegano') {
       const order = { vegano: 0, ovolacto: 1, padrao: 2 };
       return (order[a.type] ?? 3) - (order[b.type] ?? 3);
     }
     return 0; // standard
   });
 
-  let html = `<div class="section-title">PRATOS PRINCIPAIS</div>`;
+  let html = `<div class="section-label">PRATOS PRINCIPAIS</div>`;
   sortedDishes.forEach((dish, idx) => {
-    const isHighlight = (idx === 0 && dish.type === state.diet) || (state.diet === 'padrao' && dish.type === 'padrao');
+    const isHighlight = (idx === 0 && dish.type === dietPreference) ||
+                        (dietPreference === 'padrao' && dish.type === 'padrao');
     html += `
-      <div class="dish-row">
-        <span class="diet-chip chip-${dish.type}">${dish.label}</span>
-        <span class="dish-name ${isHighlight ? 'highlight' : ''}">${escapeHtml(dish.name)}</span>
+      <div class="dish-item">
+        <span class="diet-pill pill-${dish.type}">${dish.label}</span>
+        <span class="dish-text ${isHighlight ? 'highlight' : ''}">${escapeHtml(dish.name)}</span>
       </div>
     `;
   });
 
-  // Guarnição
+  // Guarnição & Acompanhamentos
   if (menu.guarnicao || menu.acompanhamento) {
-    html += `<div class="card-divider"></div><div class="section-title">GUARNIÇÃO & ACOMPANHAMENTOS</div>`;
-    if (menu.guarnicao) html += renderSimpleRow('Guarnição', menu.guarnicao);
-    if (menu.acompanhamento) html += renderSimpleRow('Acomp.', menu.acompanhamento);
+    html += `<div class="notion-divider"></div><div class="section-label">GUARNIÇÃO & ACOMPANHAMENTOS</div>`;
+    if (menu.guarnicao) html += renderCleanRow('Guarnição', menu.guarnicao);
+    if (menu.acompanhamento) html += renderCleanRow('Acomp.', menu.acompanhamento);
   }
 
-  // Sopa
+  // Sopa do Dia
   if (menu.sopa || menu.torrada) {
-    html += `<div class="card-divider"></div><div class="section-title">SOPA DO DIA</div>`;
-    if (menu.sopa) html += renderSimpleRow('Sopa', menu.sopa);
-    if (menu.torrada) html += renderSimpleRow('Torrada', menu.torrada);
+    html += `<div class="notion-divider"></div><div class="section-label">SOPA DO DIA</div>`;
+    if (menu.sopa) html += renderCleanRow('Sopa', menu.sopa);
+    if (menu.torrada) html += renderCleanRow('Torrada', menu.torrada);
   }
 
   // Saladas
   if (menu.salada1 || menu.salada2 || menu.molho) {
-    html += `<div class="card-divider"></div><div class="section-title">SALADAS</div>`;
-    if (menu.salada1) html += renderSimpleRow('Salada 1', menu.salada1);
-    if (menu.salada2) html += renderSimpleRow('Salada 2', menu.salada2);
-    if (menu.molho) html += renderSimpleRow('Molho', menu.molho);
+    html += `<div class="notion-divider"></div><div class="section-label">SALADAS</div>`;
+    if (menu.salada1) html += renderCleanRow('Salada 1', menu.salada1);
+    if (menu.salada2) html += renderCleanRow('Salada 2', menu.salada2);
+    if (menu.molho) html += renderCleanRow('Molho', menu.molho);
   }
 
-  // Sobremesa & Bebida (clean rows without colored pills)
+  // Sobremesa & Bebida (Clean simple rows without colored chips!)
   if (menu.sobremesa || menu.bebida) {
-    html += `<div class="card-divider"></div><div class="section-title">SOBREMESA & BEBIDA</div>`;
-    if (menu.sobremesa) html += renderSimpleRow('Sobremesa', menu.sobremesa);
-    if (menu.bebida) html += renderSimpleRow('Refresco', menu.bebida);
+    html += `<div class="notion-divider"></div><div class="section-label">SOBREMESA & BEBIDA</div>`;
+    if (menu.sobremesa) html += renderCleanRow('Sobremesa', menu.sobremesa);
+    if (menu.bebida) html += renderCleanRow('Refresco', menu.bebida);
   }
 
   container.innerHTML = html;
 }
 
-function renderBreakfast(container, menu) {
+// Breakfast Card (BreakfastCard 1:1)
+function renderBreakfastCard(container, menu, dietPreference) {
   if (!menu || (!menu.pratoPrincipal && !menu.vegetariano && !menu.vegano)) {
-    container.innerHTML = '<div style="text-align:center; padding: 24px; color: var(--text-muted);">Refeitório fechado nesta refeição.</div>';
+    container.innerHTML = '<div style="text-align:center; padding: 24px; color: var(--text-secondary); font-size: 14px;">Refeitório fechado nesta refeição.</div>';
     return;
   }
 
   const rawComplements = [];
-  if (menu.pratoPrincipal) rawComplements.push({ type: 'padrao', label: 'Padrão', name: menu.pratoPrincipal });
-  if (menu.vegetariano) rawComplements.push({ type: 'ovolacto', label: 'Ovolacto', name: menu.vegetariano });
-  if (menu.vegano) rawComplements.push({ type: 'vegano', label: 'Vegano', name: menu.vegano });
+  if (menu.pratoPrincipal && menu.pratoPrincipal.trim()) {
+    rawComplements.push({ type: 'padrao', label: 'Padrão', name: menu.pratoPrincipal });
+  }
+  if (menu.vegetariano && menu.vegetariano.trim()) {
+    rawComplements.push({ type: 'ovolacto', label: 'Ovolacto', name: menu.vegetariano });
+  }
+  if (menu.vegano && menu.vegano.trim()) {
+    rawComplements.push({ type: 'vegano', label: 'Vegano', name: menu.vegano });
+  }
 
   const sorted = [...rawComplements].sort((a, b) => {
-    if (state.diet === 'ovolacto') {
+    if (dietPreference === 'ovolacto') {
       const order = { ovolacto: 0, vegano: 1, padrao: 2 };
       return (order[a.type] ?? 3) - (order[b.type] ?? 3);
     }
-    if (state.diet === 'vegano') {
+    if (dietPreference === 'vegano') {
       const order = { vegano: 0, ovolacto: 1, padrao: 2 };
       return (order[a.type] ?? 3) - (order[b.type] ?? 3);
     }
     return 0;
   });
 
-  let html = `<div class="section-title">COMPLEMENTOS</div>`;
+  let html = `<div class="section-label">COMPLEMENTOS</div>`;
   sorted.forEach((dish, idx) => {
-    const isHighlight = (idx === 0 && dish.type === state.diet) || (state.diet === 'padrao' && dish.type === 'padrao');
+    const isHighlight = (idx === 0 && dish.type === dietPreference) ||
+                        (dietPreference === 'padrao' && dish.type === 'padrao');
     html += `
-      <div class="dish-row">
-        <span class="diet-chip chip-${dish.type}">${dish.label}</span>
-        <span class="dish-name ${isHighlight ? 'highlight' : ''}">${escapeHtml(dish.name)}</span>
+      <div class="dish-item">
+        <span class="diet-pill pill-${dish.type}">${dish.label}</span>
+        <span class="dish-text ${isHighlight ? 'highlight' : ''}">${escapeHtml(dish.name)}</span>
       </div>
     `;
   });
 
   if (menu.opcaoExtra) {
-    html += renderSimpleRow('Extra', menu.opcaoExtra);
+    html += renderCleanRow('Extra', menu.opcaoExtra);
   }
 
   if (menu.bebidasQuentes) {
-    html += `<div class="card-divider"></div><div class="section-title">BEBIDAS QUENTES</div>`;
-    html += renderSimpleRow('Bebidas', menu.bebidasQuentes);
+    html += `<div class="notion-divider"></div><div class="section-label">BEBIDAS QUENTES</div>`;
+    html += renderCleanRow('Bebidas', menu.bebidasQuentes);
   }
 
   if (menu.paes) {
-    html += `<div class="card-divider"></div><div class="section-title">PADARIA</div>`;
-    html += renderSimpleRow('Pães', menu.paes);
+    html += `<div class="notion-divider"></div><div class="section-label">PADARIA</div>`;
+    html += renderCleanRow('Pães', menu.paes);
   }
 
   if (menu.fruta) {
-    html += `<div class="card-divider"></div><div class="section-title">FRUTA DO DIA</div>`;
-    html += renderSimpleRow('Fruta', menu.fruta);
+    html += `<div class="notion-divider"></div><div class="section-label">FRUTA DO DIA</div>`;
+    html += renderCleanRow('Fruta', menu.fruta);
   }
 
   container.innerHTML = html;
 }
 
-function renderSimpleRow(label, value) {
+function renderCleanRow(label, val) {
   return `
-    <div class="simple-row">
-      <span class="simple-label">${label}</span>
-      <span class="simple-val">${escapeHtml(value)}</span>
+    <div class="clean-item-row">
+      <span class="clean-item-label">${label}</span>
+      <span class="clean-item-val">${escapeHtml(val)}</span>
     </div>
   `;
 }
@@ -367,34 +367,299 @@ function renderSimpleRow(label, value) {
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/[&<>"']/g, m => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[m]);
 }
 
-// Carteirinha QR Code
-let qrCodeObj = null;
-let qrFullscreenObj = null;
+function updateMealBottomBar() {
+  document.querySelectorAll('.meal-control-btn').forEach(btn => {
+    const m = btn.getAttribute('data-meal');
+    if (m === appState.meal) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
 
-function renderCarteirinha() {
-  document.getElementById('metaNome').textContent = state.student.nome;
-  document.getElementById('metaMatricula').textContent = state.student.matricula;
-  document.getElementById('metaCurso').textContent = state.student.curso;
-  document.getElementById('metaValidade').textContent = state.student.validade;
-  document.getElementById('saldoDisplay').textContent = state.student.saldo || 'R$ 16,65';
-  document.getElementById('qrFullscreenMatricula').textContent = state.student.matricula;
+function updateNotificationBellIcon() {
+  const cfg = appState.notifications;
+  const hasActiveAlerts = cfg.cafeEnabled || cfg.almocoEnabled || cfg.jantarEnabled;
+  const bell = document.getElementById('notifBellIcon');
+  if (hasActiveAlerts) {
+    bell.style.opacity = '1';
+  } else {
+    bell.style.opacity = '0.45';
+  }
+}
 
-  const container = document.getElementById('qrCodeContainer');
-  container.innerHTML = '';
-  
+// Campus Selector Sheet
+function setupCampusModal() {
+  const overlay = document.getElementById('campusSheetOverlay');
+  const triggerBtn = document.getElementById('campusDropdownBtn');
+
+  triggerBtn.onclick = () => {
+    updateCampusSheetSelection();
+    overlay.classList.add('open');
+  };
+
+  overlay.onclick = (e) => {
+    if (e.target === overlay || e.target.classList.contains('sheet-drag-handle')) {
+      overlay.classList.remove('open');
+    }
+  };
+
+  document.querySelectorAll('.campus-card-item').forEach(item => {
+    item.onclick = () => {
+      const c = item.getAttribute('data-campus');
+      if (c && c !== appState.campus) {
+        appState.campus = c;
+        localStorage.setItem('ru_campus', c);
+        loadMenu(c);
+      }
+      overlay.classList.remove('open');
+    };
+  });
+}
+
+function updateCampusSheetSelection() {
+  document.querySelectorAll('.campus-card-item').forEach(item => {
+    const c = item.getAttribute('data-campus');
+    if (c === appState.campus) {
+      item.classList.add('selected');
+    } else {
+      item.classList.remove('selected');
+    }
+  });
+}
+
+// Notifications & Diet Preference Bottom Sheet
+function setupNotificationsModal() {
+  const overlay = document.getElementById('notificationsSheetOverlay');
+  const openBtn = document.getElementById('openNotificationsBtn');
+
+  openBtn.onclick = () => {
+    populateNotificationSettingsUI();
+    overlay.classList.add('open');
+  };
+
+  overlay.onclick = (e) => {
+    if (e.target === overlay || e.target.classList.contains('sheet-drag-handle')) {
+      overlay.classList.remove('open');
+    }
+  };
+
+  // Wire Switches
+  document.getElementById('switchCafe').onchange = (e) => {
+    appState.notifications.cafeEnabled = e.target.checked;
+    saveNotificationsConfig();
+  };
+  document.getElementById('switchAlmoco').onchange = (e) => {
+    appState.notifications.almocoEnabled = e.target.checked;
+    saveNotificationsConfig();
+  };
+  document.getElementById('switchJantar').onchange = (e) => {
+    appState.notifications.jantarEnabled = e.target.checked;
+    saveNotificationsConfig();
+  };
+
+  // Wire Day Dots
+  setupDayDotGroup('daysRowCafe', 'cafeDays');
+  setupDayDotGroup('daysRowAlmoco', 'almocoDays');
+  setupDayDotGroup('daysRowJantar', 'jantarDays');
+
+  // Wire Diet Choices
+  document.querySelectorAll('.diet-choice-btn').forEach(btn => {
+    btn.onclick = () => {
+      const d = btn.getAttribute('data-diet');
+      appState.notifications.dietPreference = d;
+      saveNotificationsConfig();
+      updateDietButtonsUI();
+      renderHomeScreen(); // Reorder main card dishes immediately!
+    };
+  });
+}
+
+function setupDayDotGroup(containerId, stateKey) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.querySelectorAll('.notif-day-dot').forEach(dot => {
+    dot.onclick = () => {
+      const dayNum = parseInt(dot.getAttribute('data-day'), 10);
+      const arr = appState.notifications[stateKey];
+      const exists = arr.includes(dayNum);
+      if (exists) {
+        appState.notifications[stateKey] = arr.filter(d => d !== dayNum);
+        dot.classList.remove('active');
+      } else {
+        appState.notifications[stateKey].push(dayNum);
+        dot.classList.add('active');
+      }
+      saveNotificationsConfig();
+      renderHomeScreen();
+    };
+  });
+}
+
+function populateNotificationSettingsUI() {
+  const cfg = appState.notifications;
+  document.getElementById('switchCafe').checked = cfg.cafeEnabled;
+  document.getElementById('switchAlmoco').checked = cfg.almocoEnabled;
+  document.getElementById('switchJantar').checked = cfg.jantarEnabled;
+
+  syncDayDots('daysRowCafe', cfg.cafeDays);
+  syncDayDots('daysRowAlmoco', cfg.almocoDays);
+  syncDayDots('daysRowJantar', cfg.jantarDays);
+
+  updateDietButtonsUI();
+}
+
+function syncDayDots(containerId, activeDays) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.querySelectorAll('.notif-day-dot').forEach(dot => {
+    const dayNum = parseInt(dot.getAttribute('data-day'), 10);
+    if (activeDays.includes(dayNum)) {
+      dot.classList.add('active');
+    } else {
+      dot.classList.remove('active');
+    }
+  });
+}
+
+function updateDietButtonsUI() {
+  const currentDiet = appState.notifications.dietPreference || 'padrao';
+  document.querySelectorAll('.diet-choice-btn').forEach(btn => {
+    if (btn.getAttribute('data-diet') === currentDiet) {
+      btn.classList.add('selected');
+    } else {
+      btn.classList.remove('selected');
+    }
+  });
+}
+
+function saveNotificationsConfig() {
+  localStorage.setItem('ru_notifications_config', JSON.stringify(appState.notifications));
+  updateNotificationBellIcon();
+}
+
+// Carteirinha Digital View & Logic (StudentCardScreen.kt 1:1)
+let qrCodeInstance = null;
+let turnstileQrInstance = null;
+
+function setupCarteirinhaModal() {
+  const modal = document.getElementById('carteirinhaModal');
+  const openBtn = document.getElementById('openCarteirinhaBtn');
+  const closeBtn = document.getElementById('closeCarteirinhaBtn');
+
+  openBtn.onclick = () => {
+    renderCarteirinhaModal();
+    modal.classList.add('open');
+  };
+
+  closeBtn.onclick = () => {
+    modal.classList.remove('open');
+  };
+
+  // Toggle Edit Form
+  const editBtn = document.getElementById('editCarteirinhaToggleBtn');
+  const editForm = document.getElementById('carteirinhaEditForm');
+  const configuredState = document.getElementById('carteirinhaConfiguredState');
+  const emptyState = document.getElementById('carteirinhaEmptyState');
+
+  editBtn.onclick = () => {
+    const isEditing = editForm.style.display === 'block';
+    if (isEditing) {
+      editForm.style.display = 'none';
+      renderCarteirinhaModal();
+    } else {
+      showCarteirinhaEditForm();
+    }
+  };
+
+  document.getElementById('btnPreencherManual').onclick = () => {
+    showCarteirinhaEditForm();
+  };
+
+  document.getElementById('btnCancelEdit').onclick = () => {
+    editForm.style.display = 'none';
+    renderCarteirinhaModal();
+  };
+
+  document.getElementById('btnSaveCard').onclick = () => {
+    appState.studentCard = {
+      isConfigured: true,
+      nome: document.getElementById('inputNome').value.trim() || 'Estudante UnB',
+      matricula: document.getElementById('inputMatricula').value.trim() || '190026308',
+      curso: document.getElementById('inputCurso').value.trim() || 'GRADUAÇÃO',
+      validade: document.getElementById('inputValidade').value.trim() || 'Março / 2027',
+      codigoQr: document.getElementById('inputQrCode').value.trim() || '1900263080000000',
+      saldo: appState.studentCard.saldo || 'R$ 16,65'
+    };
+    localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
+    editForm.style.display = 'none';
+    renderCarteirinhaModal();
+  };
+
+  // Turnstile Fullscreen QR
+  const qrBox = document.getElementById('idQrCodeContainer');
+  const turnstileOverlay = document.getElementById('turnstileQrOverlay');
+  const closeTurnstileBtn = document.getElementById('closeTurnstileQrBtn');
+
+  qrBox.onclick = () => {
+    renderTurnstileFullscreenQR();
+    turnstileOverlay.classList.add('open');
+  };
+
+  closeTurnstileBtn.onclick = () => {
+    turnstileOverlay.classList.remove('open');
+  };
+}
+
+function showCarteirinhaEditForm() {
+  const form = document.getElementById('carteirinhaEditForm');
+  const configuredState = document.getElementById('carteirinhaConfiguredState');
+  const emptyState = document.getElementById('carteirinhaEmptyState');
+
+  configuredState.style.display = 'none';
+  emptyState.style.display = 'none';
+  form.style.display = 'block';
+
+  document.getElementById('inputNome').value = appState.studentCard.nome || '';
+  document.getElementById('inputMatricula').value = appState.studentCard.matricula || '';
+  document.getElementById('inputCurso').value = appState.studentCard.curso || '';
+  document.getElementById('inputValidade').value = appState.studentCard.validade || '';
+  document.getElementById('inputQrCode').value = appState.studentCard.codigoQr || '';
+}
+
+function renderCarteirinhaModal() {
+  const configuredState = document.getElementById('carteirinhaConfiguredState');
+  const emptyState = document.getElementById('carteirinhaEmptyState');
+  const form = document.getElementById('carteirinhaEditForm');
+  form.style.display = 'none';
+
+  if (!appState.studentCard || !appState.studentCard.isConfigured) {
+    emptyState.style.display = 'block';
+    configuredState.style.display = 'none';
+    return;
+  }
+
+  emptyState.style.display = 'none';
+  configuredState.style.display = 'block';
+
+  document.getElementById('cardNomeTxt').textContent = appState.studentCard.nome;
+  document.getElementById('cardMatriculaTxt').textContent = appState.studentCard.matricula;
+  document.getElementById('cardCursoTxt').textContent = appState.studentCard.curso;
+  document.getElementById('cardValidadeTxt').textContent = appState.studentCard.validade;
+  document.getElementById('cardSaldoTxt').textContent = appState.studentCard.saldo || 'R$ 16,65';
+
+  const qrContainer = document.getElementById('idQrCodeContainer');
+  qrContainer.innerHTML = '';
   if (typeof QRCode !== 'undefined') {
-    qrCodeObj = new QRCode(container, {
-      text: state.student.qrData || state.student.matricula,
-      width: 160,
-      height: 160,
+    qrCodeInstance = new QRCode(qrContainer, {
+      text: appState.studentCard.codigoQr || appState.studentCard.matricula,
+      width: 170,
+      height: 170,
       colorDark: '#000000',
       colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.M
@@ -402,14 +667,15 @@ function renderCarteirinha() {
   }
 }
 
-function renderFullscreenQR() {
-  const container = document.getElementById('qrFullscreenCode');
+function renderTurnstileFullscreenQR() {
+  const container = document.getElementById('turnstileQrCode');
   container.innerHTML = '';
+  document.getElementById('turnstileMatriculaTxt').textContent = appState.studentCard.matricula;
   if (typeof QRCode !== 'undefined') {
-    qrFullscreenObj = new QRCode(container, {
-      text: state.student.qrData || state.student.matricula,
-      width: 260,
-      height: 260,
+    turnstileQrInstance = new QRCode(container, {
+      text: appState.studentCard.codigoQr || appState.studentCard.matricula,
+      width: 270,
+      height: 270,
       colorDark: '#000000',
       colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.H
@@ -417,148 +683,33 @@ function renderFullscreenQR() {
   }
 }
 
-// Event Listeners setup
-function setupListeners() {
-  // Theme toggle
-  document.getElementById('themeToggleBtn').onclick = toggleTheme;
-
-  // Refresh
-  document.getElementById('refreshBtn').onclick = () => {
-    fetchMenu(state.campus);
-  };
-
-  // Close banner
-  document.getElementById('closeBannerBtn').onclick = () => {
-    document.getElementById('platformBanner').style.display = 'none';
-    localStorage.setItem('ru_banner_dismissed', 'true');
-  };
-
-  // Campus modal
-  const campusModal = document.getElementById('campusModal');
-  document.getElementById('campusDropdownBtn').onclick = () => {
-    updateCampusModalChecks();
-    campusModal.classList.add('open');
-  };
-
-  campusModal.onclick = (e) => {
-    if (e.target === campusModal || e.target.classList.contains('sheet-handle')) {
-      campusModal.classList.remove('open');
-    }
-  };
-
-  document.querySelectorAll('.campus-option').forEach(opt => {
-    opt.onclick = () => {
-      const c = opt.getAttribute('data-campus');
-      if (c && c !== state.campus) {
-        state.campus = c;
-        localStorage.setItem('ru_campus', c);
-        fetchMenu(c);
-      }
-      campusModal.classList.remove('open');
-    };
-  });
-
-  function updateCampusModalChecks() {
-    document.querySelectorAll('.campus-option').forEach(opt => {
-      const c = opt.getAttribute('data-campus');
-      const check = opt.querySelector('.check-icon');
-      if (c === state.campus) {
-        opt.classList.add('active');
-        if (check) check.style.display = 'block';
-      } else {
-        opt.classList.remove('active');
-        if (check) check.style.display = 'none';
-      }
-    });
-  }
-
-  // Diet tabs
-  document.querySelectorAll('.diet-tab').forEach(tab => {
-    tab.onclick = () => {
-      const d = tab.getAttribute('data-diet');
-      state.diet = d;
-      localStorage.setItem('ru_diet', d);
-      renderAll();
-    };
-  });
-
-  // Meal tabs
-  document.querySelectorAll('.meal-tab-btn').forEach(btn => {
-    btn.onclick = () => {
-      const m = btn.getAttribute('data-meal');
-      state.meal = m;
-      renderAll();
-    };
-  });
-
-  // Carteirinha Modal
-  const carteirinhaModal = document.getElementById('carteirinhaModal');
-  document.getElementById('openCarteirinhaBtn').onclick = () => {
-    renderCarteirinha();
-    carteirinhaModal.classList.add('open');
-  };
-
-  carteirinhaModal.onclick = (e) => {
-    if (e.target === carteirinhaModal || e.target.classList.contains('sheet-handle')) {
-      carteirinhaModal.classList.remove('open');
-    }
-  };
-
-  // Edit student form
-  const editBtn = document.getElementById('editStudentBtn');
-  const editForm = document.getElementById('editStudentForm');
-  editBtn.onclick = () => {
-    const isHidden = editForm.style.display === 'none';
-    editForm.style.display = isHidden ? 'block' : 'none';
-    if (isHidden) {
-      document.getElementById('inputNome').value = state.student.nome;
-      document.getElementById('inputMatricula').value = state.student.matricula;
-      document.getElementById('inputCurso').value = state.student.curso;
-      document.getElementById('inputValidade').value = state.student.validade;
-      document.getElementById('inputQrData').value = state.student.qrData;
-    }
-  };
-
-  document.getElementById('saveStudentBtn').onclick = () => {
-    state.student = {
-      nome: document.getElementById('inputNome').value.trim() || 'Estudante UnB',
-      matricula: document.getElementById('inputMatricula').value.trim() || '190000000',
-      curso: document.getElementById('inputCurso').value.trim() || 'Graduação',
-      validade: document.getElementById('inputValidade').value.trim() || 'Março / 2027',
-      qrData: document.getElementById('inputQrData').value.trim() || '1900000000000000',
-      saldo: state.student.saldo || 'R$ 16,65'
-    };
-    localStorage.setItem('ru_student', JSON.stringify(state.student));
-    editForm.style.display = 'none';
-    renderCarteirinha();
-  };
-
-  // QR Fullscreen
-  const qrFullModal = document.getElementById('qrFullscreenModal');
-  document.getElementById('qrCodeContainer').onclick = () => {
-    renderFullscreenQR();
-    qrFullModal.classList.add('open');
-  };
-
-  document.getElementById('closeQrFullscreenBtn').onclick = () => {
-    qrFullModal.classList.remove('open');
-  };
-}
-
-// Service worker registration
-function registerSW() {
+// Service Worker Registration
+function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(e => console.log('SW reg fail:', e));
+      navigator.serviceWorker.register('sw.js').catch(() => {});
     });
   }
 }
 
-// App Initialization
+// Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
-  setupListeners();
-  initPlatformBanner();
-  fetchMenu();
-  registerSW();
+  document.getElementById('themeToggleBtn').onclick = toggleTheme;
+  document.getElementById('refreshBtn').onclick = () => loadMenu(appState.campus);
+
+  // Bottom Floating Tabs
+  document.querySelectorAll('.meal-control-btn').forEach(btn => {
+    btn.onclick = () => {
+      appState.meal = btn.getAttribute('data-meal');
+      renderHomeScreen();
+    };
+  });
+
+  setupCampusModal();
+  setupNotificationsModal();
+  setupCarteirinhaModal();
+
+  loadMenu();
+  registerServiceWorker();
 });
