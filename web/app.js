@@ -71,11 +71,7 @@ function detectCurrentMeal() {
 }
 
 function getEffectiveDiet() {
-  const cfg = appState.notifications;
-  const hasActiveAlerts = (cfg.cafeEnabled && cfg.cafeDays.length > 0) ||
-                          (cfg.almocoEnabled && cfg.almocoDays.length > 0) ||
-                          (cfg.jantarEnabled && cfg.jantarDays.length > 0);
-  return hasActiveAlerts ? (cfg.dietPreference || 'padrao') : 'padrao';
+  return appState.notifications.dietPreference || 'padrao';
 }
 
 function cleanTrailingText(str) {
@@ -191,6 +187,9 @@ function calculateTodayIndex() {
 }
 
 // Rendering Main UI
+const SVG_ACTION_REFRESH = '<path d=\"M 17.65 6.35 C 16.2 4.9 14.21 4.0 12.0 4.0 c -4.42 0.0 -7.99 3.58 -7.99 8.0 s 3.57 8.0 7.99 8.0 c 3.73 0.0 6.84 -2.55 7.73 -6.0 h -2.08 c -0.82 2.33 -3.04 4.0 -5.65 4.0 c -3.31 0.0 -6.0 -2.69 -6.0 -6.0 s 2.69 -6.0 6.0 -6.0 c 1.66 0.0 3.14 0.69 4.22 1.78 L 13.0 11.0 h 7.0 V 4.0 l -2.35 2.35 Z\"/>';
+const SVG_ACTION_TODAY = '<path d=\"M 19.0 3.0 h -1.0 L 18.0 1.0 h -2.0 v 2.0 L 8.0 3.0 L 8.0 1.0 L 6.0 1.0 v 2.0 L 5.0 3.0 c -1.11 0.0 -2.0 0.9 -2.0 2.0 v 14.0 c 0.0 1.1 0.89 2.0 2.0 2.0 h 14.0 c 1.1 0.0 2.0 -0.9 2.0 -2.0 L 21.0 5.0 c 0.0 -1.1 -0.9 -2.0 -2.0 -2.0 Z M 19.0 19.0 L 5.0 19.0 L 5.0 9.0 h 14.0 v 10.0 Z M 19.0 7.0 L 5.0 7.0 L 5.0 5.0 h 14.0 v 2.0 Z M 7.0 11.0 h 5.0 v 5.0 L 7.0 16.0 Z\"/>';
+
 function renderHomeScreen() {
   const campusObj = CAMPUSES[appState.campus] || CAMPUSES.darcy;
   document.getElementById('currentCampusLabel').textContent = campusObj.name;
@@ -199,15 +198,22 @@ function renderHomeScreen() {
   renderMealContent();
   updateMealBottomBar();
   updateNotificationBellIcon();
-  updateTodayButtonVisibility();
+  updateHeaderActionButton();
 }
 
-function updateTodayButtonVisibility() {
-  const btn = document.getElementById('goToTodayBtn');
-  if (appState.selectedDayIndex !== appState.todayIndex && appState.todayIndex !== -1) {
-    btn.style.display = 'flex';
+function updateHeaderActionButton() {
+  const btn = document.getElementById('refreshBtn');
+  if (!btn) return;
+  const isNotToday = appState.selectedDayIndex !== appState.todayIndex && appState.todayIndex !== -1;
+  const svg = btn.querySelector('svg');
+  if (isNotToday) {
+    btn.title = 'Ir para Hoje';
+    btn.setAttribute('aria-label', 'Ir para Hoje');
+    if (svg) svg.innerHTML = SVG_ACTION_TODAY;
   } else {
-    btn.style.display = 'none';
+    btn.title = 'Atualizar';
+    btn.setAttribute('aria-label', 'Atualizar');
+    if (svg) svg.innerHTML = SVG_ACTION_REFRESH;
   }
 }
 
@@ -533,15 +539,21 @@ function setupNotificationsModal() {
   // Switches
   document.getElementById('switchCafe').onchange = (e) => {
     appState.notifications.cafeEnabled = e.target.checked;
+    updateNotifDaysVisibility();
     saveNotificationsConfig();
+    renderHomeScreen();
   };
   document.getElementById('switchAlmoco').onchange = (e) => {
     appState.notifications.almocoEnabled = e.target.checked;
+    updateNotifDaysVisibility();
     saveNotificationsConfig();
+    renderHomeScreen();
   };
   document.getElementById('switchJantar').onchange = (e) => {
     appState.notifications.jantarEnabled = e.target.checked;
+    updateNotifDaysVisibility();
     saveNotificationsConfig();
+    renderHomeScreen();
   };
 
   // Day Dots
@@ -559,6 +571,8 @@ function setupNotificationsModal() {
       renderHomeScreen();
     };
   });
+
+  updateNotifDaysVisibility();
 }
 
 function setupDayDotGroup(containerId, stateKey) {
@@ -582,6 +596,15 @@ function setupDayDotGroup(containerId, stateKey) {
   });
 }
 
+function updateNotifDaysVisibility() {
+  const cafeGroup = document.getElementById('daysGroupCafe');
+  const almocoGroup = document.getElementById('daysGroupAlmoco');
+  const jantarGroup = document.getElementById('daysGroupJantar');
+  if (cafeGroup) cafeGroup.classList.toggle('hidden', !appState.notifications.cafeEnabled);
+  if (almocoGroup) almocoGroup.classList.toggle('hidden', !appState.notifications.almocoEnabled);
+  if (jantarGroup) jantarGroup.classList.toggle('hidden', !appState.notifications.jantarEnabled);
+}
+
 function populateNotificationSettingsUI() {
   const cfg = appState.notifications;
   document.getElementById('switchCafe').checked = cfg.cafeEnabled;
@@ -592,6 +615,7 @@ function populateNotificationSettingsUI() {
   syncDayDots('daysRowAlmoco', cfg.almocoDays);
   syncDayDots('daysRowJantar', cfg.jantarDays);
 
+  updateNotifDaysVisibility();
   updateDietButtonsUI();
 }
 
@@ -916,7 +940,7 @@ function setupSwipeGestures() {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=11').then((reg) => {
+      navigator.serviceWorker.register('sw.js?v=12').then((reg) => {
         reg.update();
       }).catch(() => {});
     });
@@ -927,12 +951,13 @@ function registerServiceWorker() {
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   document.getElementById('themeToggleBtn').onclick = toggleTheme;
-  document.getElementById('refreshBtn').onclick = () => loadMenu(appState.campus);
-
-  document.getElementById('goToTodayBtn').onclick = () => {
-    if (appState.todayIndex !== -1) {
+  document.getElementById('refreshBtn').onclick = () => {
+    const isNotToday = appState.selectedDayIndex !== appState.todayIndex && appState.todayIndex !== -1;
+    if (isNotToday) {
       appState.selectedDayIndex = appState.todayIndex;
       renderHomeScreen();
+    } else {
+      loadMenu(appState.campus);
     }
   };
 

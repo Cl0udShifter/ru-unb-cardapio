@@ -57,7 +57,7 @@ fun NotificationSettingsBottomSheet(
 
             // Café
             MealNotificationSection(
-                title = "☕ Café da Manhã",
+                title = "Café da Manhã",
                 timeLabel = "Alerta às 06h00 (refeição das 7h às 9h30)",
                 isEnabled = config.cafeEnabled,
                 onEnabledChange = { onConfigChange(config.copy(cafeEnabled = it)) },
@@ -72,7 +72,7 @@ fun NotificationSettingsBottomSheet(
 
             // Almoço
             MealNotificationSection(
-                title = "🍽️ Almoço",
+                title = "Almoço",
                 timeLabel = "Alerta às 10h00 (refeição das 11h às 14h30)",
                 isEnabled = config.almocoEnabled,
                 onEnabledChange = { onConfigChange(config.copy(almocoEnabled = it)) },
@@ -87,7 +87,7 @@ fun NotificationSettingsBottomSheet(
 
             // Jantar
             MealNotificationSection(
-                title = "🥣 Jantar",
+                title = "Jantar",
                 timeLabel = "Alerta às 16h00 (refeição das 17h às 19h30)",
                 isEnabled = config.jantarEnabled,
                 onEnabledChange = { onConfigChange(config.copy(jantarEnabled = it)) },

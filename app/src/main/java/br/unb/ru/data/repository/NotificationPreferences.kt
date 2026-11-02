@@ -23,7 +23,7 @@ data class NotificationConfig(
                 (jantarEnabled && jantarDays.isNotEmpty())
 
     val effectiveDietPreference: DietPreference
-        get() = if (hasAnyNotificationActive) dietPreference else DietPreference.PADRAO
+        get() = dietPreference
 }
 
 class NotificationPreferences(context: Context) {

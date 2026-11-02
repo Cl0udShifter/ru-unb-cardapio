@@ -591,6 +591,25 @@ body {
   color: var(--text-secondary);
 }
 
+.notif-days-group {
+  margin-top: 6px;
+  transition: opacity 0.2s ease;
+}
+
+.notif-days-group.hidden {
+  display: none;
+}
+
+.notif-days-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
 .notif-days-row {
   display: flex;
   gap: 6px;
