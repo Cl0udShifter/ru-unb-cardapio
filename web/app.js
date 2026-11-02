@@ -751,6 +751,12 @@ function setupSigaaDialog() {
     overlay.classList.remove('open');
   };
 
+  overlay.onclick = (e) => {
+    if (e.target === overlay) {
+      overlay.classList.remove('open');
+    }
+  };
+
   document.getElementById('btnConfirmSigaa').onclick = () => {
     const mat = document.getElementById('sigaaMatricula').value.trim();
     if (!mat) {
@@ -910,7 +916,7 @@ function setupSwipeGestures() {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=9').then((reg) => {
+      navigator.serviceWorker.register('sw.js?v=10').then((reg) => {
         reg.update();
       }).catch(() => {});
     });

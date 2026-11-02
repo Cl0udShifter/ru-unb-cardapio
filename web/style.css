@@ -1149,8 +1149,19 @@ input:checked + .slider:before {
 }
 
 /* SIGAA Dialog (SigaaSyncDialog 1:1) */
-.sigaa-dialog-container {
+#sigaaModalOverlay {
+  z-index: 150;
+  align-items: center;
+}
+
+#sigaaModalOverlay .sigaa-dialog-container {
   padding: 24px;
+  border-radius: 20px;
+  max-width: 400px;
+  width: 90%;
+  margin: auto;
+  border: 1px solid var(--border-color);
+  animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .sigaa-dialog-title {
@@ -1261,4 +1272,9 @@ input:checked + .slider:before {
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }

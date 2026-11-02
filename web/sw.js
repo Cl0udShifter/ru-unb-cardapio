@@ -1,16 +1,16 @@
-const CACHE_NAME = 'ru-unb-v9';
+const CACHE_NAME = 'ru-unb-v10';
 
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './style.css?v=4.0',
-  './app.js?v=4.0',
-  './qrcode.min.js?v=4.0',
+  './style.css?v=4.1',
+  './app.js?v=4.1',
+  './qrcode.min.js?v=4.1',
   './manifest.json',
-  './icons/favicon.png?v=4.0',
+  './icons/favicon.png?v=4.1',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/apple-touch-icon.png?v=4.0'
+  './icons/apple-touch-icon.png?v=4.1'
 ];
 
 self.addEventListener('install', (event) => {
