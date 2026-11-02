@@ -110,58 +110,89 @@ function toggleTheme() {
   applyTheme(current === 'dark' ? 'light' : 'dark');
 }
 
+function isMenuExpired(menu) {
+  if (!menu || !menu.dias || menu.dias.length === 0) return true;
+  const lastDay = menu.dias[menu.dias.length - 1];
+  if (!lastDay || !lastDay.data) return true;
+  const parts = lastDay.data.trim().split('/');
+  if (parts.length !== 3) return false;
+  const lastDate = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10), 23, 59, 59);
+  return lastDate < new Date();
+}
+
 // Menu Loading
-async function loadMenu(campusId = appState.campus) {
+async function loadMenu(campusId = appState.campus, forceRefresh = false) {
   const cacheKey = `ru_menu_json_${campusId}`;
   const cached = localStorage.getItem(cacheKey);
+  let cachedMenu = null;
   if (cached) {
     try {
-      appState.menu = JSON.parse(cached);
-      calculateTodayIndex();
-      renderHomeScreen();
+      cachedMenu = JSON.parse(cached);
     } catch (e) {}
+  }
+
+  if (cachedMenu && !isMenuExpired(cachedMenu) && !forceRefresh) {
+    appState.menu = cachedMenu;
+    calculateTodayIndex();
+    renderHomeScreen();
   }
 
   // 1. Try raw GitHub master (always fresh)
   try {
-    const res = await fetch(`${RAW_GITHUB_BASE}/menu_${campusId}.json?t=${Date.now()}`);
+    const res = await fetch(`${RAW_GITHUB_BASE}/menu_${campusId}.json?t=${Date.now()}`, { cache: 'no-cache' });
     if (res.ok) {
       const data = await res.json();
-      appState.menu = data;
-      localStorage.setItem(cacheKey, JSON.stringify(data));
-      calculateTodayIndex();
-      renderHomeScreen();
-      return;
+      if (data && data.dias && data.dias.length > 0) {
+        appState.menu = data;
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+        calculateTodayIndex();
+        renderHomeScreen();
+        return;
+      }
     }
   } catch (err) {}
 
   // 2. Fallback to local files
   try {
-    const localRes = await fetch(`./data/menu_${campusId}.json?t=${Date.now()}`);
+    const localRes = await fetch(`./data/menu_${campusId}.json?t=${Date.now()}`, { cache: 'no-cache' });
     if (localRes.ok) {
       const data = await localRes.json();
-      appState.menu = data;
-      localStorage.setItem(cacheKey, JSON.stringify(data));
-      calculateTodayIndex();
-      renderHomeScreen();
-      return;
+      if (data && data.dias && data.dias.length > 0) {
+        appState.menu = data;
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+        calculateTodayIndex();
+        renderHomeScreen();
+        return;
+      }
     }
   } catch (err) {}
 
   try {
-    const rootRes = await fetch(`./menu_${campusId}.json?t=${Date.now()}`);
+    const rootRes = await fetch(`./menu_${campusId}.json?t=${Date.now()}`, { cache: 'no-cache' });
     if (rootRes.ok) {
       const data = await rootRes.json();
-      appState.menu = data;
-      localStorage.setItem(cacheKey, JSON.stringify(data));
-      calculateTodayIndex();
-      renderHomeScreen();
+      if (data && data.dias && data.dias.length > 0) {
+        appState.menu = data;
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+        calculateTodayIndex();
+        renderHomeScreen();
+        return;
+      }
     }
   } catch (err) {}
+
+  if (cachedMenu && !appState.menu) {
+    appState.menu = cachedMenu;
+    calculateTodayIndex();
+    renderHomeScreen();
+  }
 }
 
 function calculateTodayIndex() {
-  if (!appState.menu || !appState.menu.dias || appState.menu.dias.length === 0) return;
+  if (!appState.menu || !appState.menu.dias || appState.menu.dias.length === 0) {
+    appState.todayIndex = -1;
+    return;
+  }
   const now = new Date();
   
   // Format today as dd/MM/yyyy
@@ -170,19 +201,16 @@ function calculateTodayIndex() {
   const yyyy = now.getFullYear();
   const todayStr = `${dd}/${mm}/${yyyy}`;
 
-  // Try matching date string first
-  let foundIdx = appState.menu.dias.findIndex(d => d.data && d.data.trim() === todayStr);
-
-  if (foundIdx === -1) {
-    // Fallback to day of week: Mon=0, Tue=1, ..., Sun=6
-    const dayOfWeek = now.getDay();
-    const mapped = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    foundIdx = mapped < appState.menu.dias.length ? mapped : 0;
-  }
+  // Strict date string matching
+  const foundIdx = appState.menu.dias.findIndex(d => d.data && d.data.trim() === todayStr);
 
   appState.todayIndex = foundIdx;
-  if (appState.selectedDayIndex === 0 && appState.todayIndex !== -1) {
-    appState.selectedDayIndex = appState.todayIndex;
+  if (foundIdx !== -1) {
+    appState.selectedDayIndex = foundIdx;
+  } else {
+    if (appState.selectedDayIndex >= appState.menu.dias.length || appState.selectedDayIndex < 0) {
+      appState.selectedDayIndex = 0;
+    }
   }
 }
 

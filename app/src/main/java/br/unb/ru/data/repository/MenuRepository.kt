@@ -47,12 +47,15 @@ class MenuRepository(private val context: Context) {
     }
 
     suspend fun getMenu(campus: Campus = getSelectedCampus()): Result<WeeklyMenu> = withContext(Dispatchers.IO) {
-        val remoteUrl = "https://raw.githubusercontent.com/Cl0udShifter/ru-unb-cardapio/master/parser/${campus.remoteFileName}"
+        val remoteUrl = "https://raw.githubusercontent.com/Cl0udShifter/ru-unb-cardapio/master/parser/${campus.remoteFileName}?t=${System.currentTimeMillis()}"
         try {
             val url = URL(remoteUrl)
             val connection = url.openConnection() as HttpURLConnection
-            connection.connectTimeout = 3000
-            connection.readTimeout = 3000
+            connection.connectTimeout = 4000
+            connection.readTimeout = 4000
+            connection.useCaches = false
+            connection.setRequestProperty("Cache-Control", "no-cache, no-store")
+            connection.setRequestProperty("Pragma", "no-cache")
             connection.requestMethod = "GET"
 
             if (connection.responseCode == 200) {
@@ -66,35 +69,61 @@ class MenuRepository(private val context: Context) {
         } catch (_: Exception) {}
 
         val cachedMenu = loadFromCache(campus)
+        val assetMenu = loadFromAssets(campus)
+
         if (cachedMenu != null && cachedMenu.dias.isNotEmpty()) {
+            if (!isMenuExpired(cachedMenu)) {
+                return@withContext Result.success(cachedMenu)
+            }
+            if (assetMenu != null && !isMenuExpired(assetMenu)) {
+                return@withContext Result.success(assetMenu)
+            }
             return@withContext Result.success(cachedMenu)
         }
 
-        try {
+        if (assetMenu != null) {
+            return@withContext Result.success(assetMenu)
+        }
+
+        Result.failure(IllegalStateException("Não foi possível carregar o cardápio."))
+    }
+
+    private fun isMenuExpired(menu: WeeklyMenu?): Boolean {
+        if (menu == null || menu.dias.isEmpty()) return true
+        val lastDateStr = menu.dias.lastOrNull()?.data?.trim() ?: return true
+        return try {
+            val sdf = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+            val lastDate = sdf.parse(lastDateStr) ?: return true
+            val calToday = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, 0)
+                set(java.util.Calendar.MINUTE, 0)
+                set(java.util.Calendar.SECOND, 0)
+                set(java.util.Calendar.MILLISECOND, 0)
+            }
+            lastDate.before(calToday.time)
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun loadFromAssets(campus: Campus): WeeklyMenu? {
+        return try {
             context.assets.open(campus.assetFile).use { stream ->
                 InputStreamReader(stream).use { reader ->
-                    val assetMenu = gson.fromJson(reader, WeeklyMenu::class.java)
-                    if (assetMenu != null) {
-                        return@withContext Result.success(assetMenu)
-                    }
+                    gson.fromJson(reader, WeeklyMenu::class.java)
                 }
             }
         } catch (_: Exception) {
             try {
                 context.assets.open("sample_menu.json").use { stream ->
                     InputStreamReader(stream).use { reader ->
-                        val assetMenu = gson.fromJson(reader, WeeklyMenu::class.java)
-                        if (assetMenu != null) {
-                            return@withContext Result.success(assetMenu)
-                        }
+                        gson.fromJson(reader, WeeklyMenu::class.java)
                     }
                 }
-            } catch (e: Exception) {
-                return@withContext Result.failure(e)
+            } catch (_: Exception) {
+                null
             }
         }
-
-        Result.failure(IllegalStateException("Não foi possível carregar o cardápio."))
     }
 
     private fun getCacheFileName(campus: Campus) = "cached_menu_${campus.id}.json"

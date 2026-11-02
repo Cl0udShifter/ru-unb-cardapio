@@ -2,8 +2,12 @@ name: Atualizar Cardápio RU UnB
 
 on:
   schedule:
-    # Roda todos os dias às 09:00 UTC (06:00 horário de Brasília)
-    - cron: '0 9 * * *'
+    # Roda a cada 2 horas aos domingos e segundas (dias de virada do cardápio semanal no RU UnB)
+    # 09, 11, 13, 15, 17, 19, 21 UTC = 06, 08, 10, 12, 14, 16, 18 Horário de Brasília
+    - cron: '0 9,11,13,15,17,19,21 * * 0,1'
+    # Roda 2x ao dia de terça a sábado para capturar eventuais atualizações ou retificações
+    # 09 e 15 UTC = 06 e 12 Horário de Brasília
+    - cron: '0 9,15 * * 2-6'
   workflow_dispatch:
 
 permissions:
@@ -32,10 +36,11 @@ jobs:
           cp parser/menu_*.json app/src/main/assets/ || true
           mkdir -p web/data
           cp parser/menu_*.json web/data/ || true
+          cp parser/menu_*.json web/ || true
 
       - name: Commit e Push se houver alterações
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add parser/menu_*.json app/src/main/assets/menu_*.json web/data/menu_*.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore(cardapio): atualizar cardapio semanal [skip ci]" && git push)
+          git add parser/menu_*.json app/src/main/assets/menu_*.json web/data/menu_*.json web/menu_*.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore(cardapio): atualizar cardapio semanal" && git push)

@@ -23,7 +23,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 data class MenuUiState(
     val isLoading: Boolean = true,
@@ -107,18 +110,6 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun determineTodayAndMeal() {
         val calendar = Calendar.getInstance()
-        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-        val todayIdx = when (dayOfWeek) {
-            Calendar.MONDAY -> 0
-            Calendar.TUESDAY -> 1
-            Calendar.WEDNESDAY -> 2
-            Calendar.THURSDAY -> 3
-            Calendar.FRIDAY -> 4
-            Calendar.SATURDAY -> 5
-            Calendar.SUNDAY -> 6
-            else -> 0
-        }
-
         val hour = calendar.get(Calendar.HOUR_OF_DAY)
         val minute = calendar.get(Calendar.MINUTE)
         val timeInMinutes = hour * 60 + minute
@@ -131,9 +122,26 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
 
         _uiState.update {
             it.copy(
-                selectedDayIndex = todayIdx,
-                todayIndex = todayIdx,
                 selectedMeal = initialMeal
+            )
+        }
+    }
+
+    private fun syncDatesWithMenu(weeklyMenu: WeeklyMenu) {
+        val todayStr = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+        val matchedIdx = weeklyMenu.dias.indexOfFirst { it.data.trim() == todayStr }
+
+        _uiState.update { current ->
+            val newTodayIdx = matchedIdx
+            val newSelectedIdx = when {
+                matchedIdx != -1 -> matchedIdx
+                current.selectedDayIndex in weeklyMenu.dias.indices -> current.selectedDayIndex
+                weeklyMenu.dias.isNotEmpty() -> 0
+                else -> 0
+            }
+            current.copy(
+                todayIndex = newTodayIdx,
+                selectedDayIndex = newSelectedIdx
             )
         }
     }
@@ -150,6 +158,7 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
                         errorMessage = null
                     )
                 }
+                syncDatesWithMenu(weeklyMenu)
             }.onFailure { err ->
                 _uiState.update {
                     it.copy(
@@ -292,6 +301,8 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
         val today = _uiState.value.todayIndex
         if (today in 0..6) {
             selectDay(today)
+        } else {
+            loadMenu()
         }
     }
 
