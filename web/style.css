@@ -439,6 +439,7 @@ body {
 
 .meal-control-btn svg {
   color: inherit;
+  fill: currentColor;
 }
 
 .meal-control-btn.active {
