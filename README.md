@@ -2,208 +2,111 @@
   <img src="docs/screenshots/icon.png" width="128" alt="RU UnB Ícone" />
 </p>
 
-<h1 align="center">RU UnB - Cardápio & Carteirinha Digital</h1>
+<h1 align="center">RU UnB</h1>
 
 <p align="center">
   <a href="https://github.com/Cl0udShifter/ru-unb-cardapio/releases/latest"><img src="https://img.shields.io/github/v/release/Cl0udShifter/ru-unb-cardapio?label=Download%20APK&color=success" alt="Latest Release" /></a>
+  <a href="https://cl0udshifter.github.io/ru-unb-cardapio/"><img src="https://img.shields.io/badge/Web%20%2F%20iOS%20PWA-Online-success.svg" alt="Web / iOS PWA" /></a>
+  <a href="obtainium://add/https://github.com/Cl0udShifter/ru-unb-cardapio"><img src="https://img.shields.io/badge/Obtainium-Add%20App-blue.svg" alt="Obtainium" /></a>
   <a href="https://www.android.com/"><img src="https://img.shields.io/badge/Platform-Android-green.svg" alt="Platform" /></a>
   <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/Kotlin-1.9.22-purple.svg" alt="Kotlin" /></a>
   <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Jetpack%20Compose-2024.02.00-blue.svg" alt="Jetpack Compose" /></a>
-  <a href="https://m3.material.io/"><img src="https://img.shields.io/badge/Material%203-Enabled-teal.svg" alt="Material 3" /></a>
-  <a href="https://cl0udshifter.github.io/ru-unb-cardapio/"><img src="https://img.shields.io/badge/Web%20%2F%20iOS%20PWA-Online-success.svg" alt="Web / iOS PWA" /></a>
-  <a href="obtainium://add/https://github.com/Cl0udShifter/ru-unb-cardapio"><img src="https://img.shields.io/badge/Obtainium-Add%20App-blue.svg" alt="Obtainium" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
 </p>
 
-Aplicativo Android nativo para consulta rápida, moderna e offline do cardápio semanal, emissão de carteirinha digital com QR Code para as catracas e acompanhamento de saldo do Restaurante Universitário da Universidade de Brasília.
-
-Projetado sob a filosofia visual **Notion Editorial (Warm Paper)**: estética limpa, tipografia acolhedora, espaçamento generoso, tema claro/escuro integrado com edge-to-edge e ergonomia pensada para uso diário com apenas uma mão.
+Aplicativo para consulta do cardápio semanal dos Restaurantes Universitários da Universidade de Brasília, emissão de carteirinha digital com QR Code para catracas e acompanhamento de saldo. Disponível nativamente para Android e via Web PWA para iOS e navegadores.
 
 ---
 
-## 📱 Telas do Aplicativo
+## Telas do Aplicativo
 
-| Cardápio & Dieta | Seleção de Campus | Alertas & Dieta | Carteirinha & Saldo | Conexão SIGAA |
+| Cardápio & Dieta | Seleção de Campus | Notificações & Dieta | Carteirinha & Saldo | Conexão SIGAA |
 |:---:|:---:|:---:|:---:|:---:|
-| <img src="docs/screenshots/menu.jpg" width="180" alt="Cardápio & Dieta" /> | <img src="docs/screenshots/campus.jpg" width="180" alt="Seleção de Campus" /> | <img src="docs/screenshots/notificacoes.jpg" width="180" alt="Alertas & Dieta" /> | <img src="docs/screenshots/carteirinha_digital.jpg" width="180" alt="Carteirinha & Saldo" /> | <img src="docs/screenshots/sincronizacao.jpg" width="180" alt="Conexão SIGAA" /> |
+| <img src="docs/screenshots/menu.jpg" width="180" alt="Cardápio & Dieta" /> | <img src="docs/screenshots/campus.jpg" width="180" alt="Seleção de Campus" /> | <img src="docs/screenshots/notificacoes.jpg" width="180" alt="Notificações & Dieta" /> | <img src="docs/screenshots/carteirinha_digital.jpg" width="180" alt="Carteirinha & Saldo" /> | <img src="docs/screenshots/sincronizacao.jpg" width="180" alt="Conexão SIGAA" /> |
 
 ---
 
-## Instalação .apk (Recomendado)
+## Instalação e Acesso
 
-> **Não é necessário compilar o código fonte.** Você pode baixar diretamente a versão estável pronta para instalar no seu celular Android:
+### Android (.apk)
 
-### **[Baixar RU-UnB.apk (Última Versão Oficial)](https://github.com/Cl0udShifter/ru-unb-cardapio/releases/latest/download/RU-UnB.apk)**
+Baixe diretamente a versão estável pronta para instalar:
 
-Você também pode acompanhar todas as versões, notas de lançamento e histórico de mudanças na página oficial de **[Releases no GitHub](https://github.com/Cl0udShifter/ru-unb-cardapio/releases)**.
+**[Download RU-UnB.apk (Última Versão)](https://github.com/Cl0udShifter/ru-unb-cardapio/releases/latest/download/RU-UnB.apk)**
 
-### Passo a passo para instalar no Android:
-1. Toque no link acima para baixar o arquivo `RU-UnB.apk` no seu celular.
-2. Quando o download terminar, abra o arquivo através da barra de notificações ou pelo aplicativo de *Downloads / Gerenciador de Arquivos*.
-3. Se o Android exibir o aviso *"Para sua segurança, seu smartphone não tem permissão para instalar apps desconhecidos desta fonte"*, toque em **Configurações** e ative a opção **Permitir desta fonte**.
-4. Toque em **Instalar** e abra o app!
+1. Baixe o arquivo `RU-UnB.apk` no celular.
+2. Abra o arquivo baixado nas notificações ou no gerenciador de arquivos.
+3. Se solicitado pelo Android, autorize a instalação a partir da fonte.
+4. Conclua a instalação e abra o aplicativo.
 
-### ⚡ Instalação em 1 Toque via Obtainium:
-Se você utiliza o aplicativo aberto **[Obtainium](https://github.com/ImranR98/Obtainium)** (gerenciador de apps direto do GitHub para Android):
+Histórico de versões e notas de lançamento disponíveis na página de **[Releases](https://github.com/Cl0udShifter/ru-unb-cardapio/releases)**.
+
+### Obtainium (Atualizações automáticas no Android)
+
+Caso utilize o gerenciador open source **[Obtainium](https://github.com/ImranR98/Obtainium)**:
 - **[Adicionar RU UnB no Obtainium](obtainium://add/https://github.com/Cl0udShifter/ru-unb-cardapio)**
-- O Obtainium busca novas releases e atualiza o aplicativo automaticamente em segundo plano.
+
+### Web e iOS (iPhone / iPad)
+
+Acesso direto pelo navegador sem necessidade de instalar arquivos:
+
+**[Acessar Web PWA: cl0udshifter.github.io/ru-unb-cardapio](https://cl0udshifter.github.io/ru-unb-cardapio/)**
+
+Para instalar no iPhone como app na tela de início:
+1. Abra o link acima no **Safari**.
+2. Toque no botão **Compartilhar** (ícone de quadrado com seta para cima).
+3. Selecione **Adicionar à Tela de Início**.
 
 ---
 
-## 🍎 Versão Web & iOS (iPhone / iPad)
+## Funcionalidades
 
-Para estudantes que utilizam iPhone ou preferem acessar diretamente pelo navegador sem instalar APK:
-
-### **[Acessar App Web (PWA): cl0udshifter.github.io/ru-unb-cardapio](https://cl0udshifter.github.io/ru-unb-cardapio/)**
-
-- **Como usar no iPhone como App Nativo:**
-  1. Abra o link acima no navegador **Safari** do iPhone.
-  2. Toque no botão de **Compartilhar** (ícone de quadrado com seta para cima).
-  3. Role para baixo e toque em **"Adicionar à Tela de Início"**.
-  4. O ícone oficial do RU UnB será fixado na sua tela inicial, abrindo em tela cheia (standalone) com suporte a tema escuro, carteirinha e acesso offline.
-
----
-
-### Sistema de Atualização Integrado (In-App Updates):
-O aplicativo conta com checagem de atualizações automática e manual conectada diretamente aos lançamentos do GitHub:
-- **Verificação Automática:** Ao abrir, o app verifica silenciosamente se há uma versão mais nova disponível. Caso haja, uma janela intuitiva exibe as novidades e o botão **"Atualizar Agora"**.
-- **Verificação Manual:** Na tela da Carteirinha Digital, acesse o botão **Buscar atualização** para checar sob demanda.
-- **Instalação em 1 Toque:** O app faz o download em segundo plano com barra de progresso e abre automaticamente o instalador de pacotes do Android, sem necessidade de baixar arquivos manualmente pelo navegador.
+- **Cardápio Semanal:** Consulta organizada por dia e refeição (café, almoço e jantar) com seleção temporal automática pelo horário do dia e cache offline.
+- **Dietas:** Priorização e ordenação personalizada de pratos por preferência (Padrão, Ovolactovegetariano ou Vegano).
+- **Múltiplos Campi:** Suporte aos refeitórios Darcy Ribeiro (Plano Piloto), FGA (Gama), FCE (Ceilândia) e FUP (Planaltina).
+- **Carteirinha Digital:** Exibição do QR Code de 16 dígitos compatível com as catracas do RU, incluindo modo tela cheia e brilho máximo para leitura rápida.
+- **Sincronização com o SIGAA:** Importação automática de dados cadastrais (matrícula, curso, validade), saldo atual e extrato de consumo diretamente do portal discente da UnB.
+- **Notificações:** Alertas configuráveis 1 hora antes de cada refeição com escolha individual dos dias ativos da semana.
+- **Tema:** Suporte a tema claro e escuro.
+- **Atualizações Integradas:** Verificação automática e manual de novas versões com download e instalação direta pelo app.
 
 ---
 
-## Principais Funcionalidades
+## Privacidade e Segurança
 
-### 1. Cardápio Semanal Sem Fricção
-- **Zero PDFs:** Elimina a necessidade de abrir PDFs semanais e dar zoom para ler os pratos.
-- **Detecção Temporal Automática:** Ao abrir, o app identifica o horário do dispositivo e seleciona diretamente a refeição atual:
-  - **Café da Manhã:** das 07h00 às 09h30
-  - **Almoço:** das 11h00 às 14h30
-  - **Jantar:** das 17h00 às 19h30
-- **Navegação por Fita & Gesto:** Fita de dias da semana (Segunda a Domingo) no topo e controle inferior flutuante ao alcance do polegar (*thumb zone*), com suporte a gesto lateral (*swipe*).
-- **Classificação Dietética:** Destaque para opções Padrão, Ovolactovegetariana, Vegana e Sobremesa/Fruta.
-- **Pull to Refresh:** Puxe a tela para baixo a qualquer momento para atualizar o cardápio.
-- **Offline-First:** Guarda em cache o cardápio mais recente com fallback imediato para dados embutidos.
-
-### 2. Carteirinha Digital & Catraca do RU
-- **Acesso com 1 Toque:** Gere e visualize o QR Code oficial de 16 dígitos aceito pelos leitores ópticos das catracas do RU.
-- **Modo Tela Cheia & Brilho Máximo:** Toque no QR Code para expandir e maximizar o brilho da tela, acelerando a leitura nas catracas mesmo sob luz forte.
-- **Sincronização com o SIGAA:** Login integrado com o portal discente da UnB para extrair automaticamente o token da carteirinha, nome, matrícula, curso e validade.
-- **100% Offline:** Uma vez sincronizada, a carteirinha abre instantaneamente sem depender de conexão à internet.
-
-### 3. Saldo & Extrato de Consumo
-- **Saldo Atual:** Acompanhamento do saldo em conta no RU diretamente no app.
-- **Histórico de Transações:** Lista detalhada de débitos de refeições e recargas efetuadas.
-- **Atualização Silenciosa:** Atualize o saldo com um clique sem necessidade de redigitar credenciais.
-- **Privacidade & Segurança:** Credenciais armazenadas exclusivamente de forma local no dispositivo do estudante.
-
-### 4. Notificações Inteligentes & Granulares
-- **Avisos Prévios:** Notificações disparadas 1 hora antes de cada refeição (6h00 para café, 10h00 para almoço e 16h00 para jantar).
-- **Controle por Dia da Semana:** Configure individualmente quais dias e quais refeições deseja ser notificado.
-- **Deep Linking:** Tocar na notificação abre o app diretamente na aba da respectiva refeição.
-- **Segundo Plano & Economia de Bateria:** Diferentes fabricantes de smartphones Android (Xiaomi HyperOS/MIUI, Samsung OneUI, Motorola, Realme, Asus, etc.) possuem políticas agressivas de suspensão de processos em segundo plano. Para garantir o recebimento dos alertas diários com o app fechado ou em repouso:
-  - Abra as **Informações do App** nas configurações do Android;
-  - Defina o uso de bateria como **Sem restrições** (ou *Não otimizar*);
-  - Em aparelhos Xiaomi/Redmi/POCO, certifique-se também de habilitar a permissão de **Início Automático** (*Autostart*).
-
-### 5. Guia Oficial & Regulamento do RU
-- Consulta integrada às regras e valores do restaurante:
-  - **Grupo 1 (Isentos):** R\$ 0,00 (PNAES / CadÚnico)
-  - **Grupo 2 (Estudantes UnB):** R\$ 6,10 (Graduação e Pós-graduação)
-  - **Grupo 4 (Comunidade Universitária):** R\$ 14,35
-  - **Grupo 3 (Visitantes):** R\$ 17,90
-  - **4º Andar (Bufê Executivo):** R\$ 60,42/kg
-- Orientações de circulação, salão vegetariano e devolução de bandejas.
+- A sincronização com o SIGAA ocorre por comunicação direta entre o dispositivo e os servidores oficiais da Universidade de Brasília (`sigaa.unb.br`).
+- Nenhuma credencial, matrícula, senha ou dado pessoal é transmitido para servidores de terceiros. Todo o armazenamento é estritamente local no dispositivo.
 
 ---
 
-## Privacidade
+## Desenvolvimento e Compilação
 
-- As credenciais de acesso ao SIGAA são utilizadas unicamente para autenticação direta com os servidores oficiais da Universidade de Brasília (`sigaa.unb.br`).
-- Nenhum dado pessoal, senha, matrícula ou histórico é transmitido para servidores de terceiros ou serviços externos. Todo o armazenamento é local no dispositivo do usuário.
-
----
-
-## Arquitetura e Tecnologias
-
-O projeto segue padrões modernos de desenvolvimento Android:
-
-- **Linguagem:** Kotlin
-- **Toolkit de UI:** Jetpack Compose + Material 3
-- **Gerador de QR Code:** ZXing (`com.google.zxing:core`)
-- **Comunicação HTTP:** OkHttp 4 com suporte a cookies em sessão e redirecionamentos CAS/SSO
-- **Serialização:** Google Gson
-- **In-App Updater:** Integração nativa com GitHub Releases API, `FileProvider` e Package Installer do Android
-- **Manipulação de PDF:** Android PdfRenderer para processamento local de documentos
-- **Parser Automatizado:** Script Python (`pdfplumber` + `requests`) executado via GitHub Actions para converter os PDFs da UnB em JSON padronizado.
-
-### Estrutura de Pacotes
-
-```text
-app/src/main/java/br/unb/ru/
-├── data/
-│   ├── api/
-│   │   └── RuApiService.kt             # Cliente HTTP e sincronização remota
-│   ├── model/
-│   │   ├── AppUpdateInfo.kt            # Modelo de dados de atualizações remotas
-│   │   ├── MenuModels.kt               # Modelos de dados do cardápio semanal
-│   │   └── StudentCardModel.kt         # Modelos da carteirinha e extrato
-│   └── repository/
-│       ├── AppUpdateRepository.kt      # Download, checagem e instalação de APK
-│       ├── MenuRepository.kt           # Gerenciamento de cache e fallback
-│       └── StudentCardRepository.kt    # Integração SIGAA, parsing e persistência
-├── notifications/
-│   ├── MealNotificationReceiver.kt     # Disparo de notificações locais
-│   └── NotificationScheduler.kt        # Agendamento periódico inteligente
-└── ui/
-    ├── components/
-    │   ├── AppUpdateDialog.kt          # Diálogo de novidades e progresso de download
-    │   ├── DaySelectorRail.kt          # Seletor superior de dias da semana
-    │   ├── MealBottomControl.kt        # Controle inferior de refeições
-    │   ├── MealSectionCard.kt          # Cards de itens do cardápio
-    │   ├── NotificationSettingsBottomSheet.kt # Gerenciador granular de alertas
-    │   └── StudentCardScreen.kt        # Carteirinha digital, extrato, guia e updater
-    ├── screens/
-    │   └── MenuHomeScreen.kt           # Tela principal unificada
-    └── theme/
-        ├── Color.kt                    # Paleta Warm Paper e Dark Notion
-        ├── Theme.kt                    # Configuração de temas e status bar
-        └── Type.kt                     # Escala tipográfica editorial
-```
-
----
-
-## Instalação Manual
-
-Caso deseje compilar o projeto a partir do código fonte:
+Para compilar o código fonte localmente:
 
 ### Pré-requisitos
 - JDK 17
-- Android SDK instalado com Build Tools 34+
-- Dispositivo físico ou emulador com Android 8.0 (API 26) ou superior
+- Android SDK (Build Tools 34+)
 
-### Passo a Passo
+### Instruções
 
-1. **Clone o repositório:**
+1. Clone o repositório:
    ```bash
    git clone https://github.com/Cl0udShifter/ru-unb-cardapio.git
    cd ru-unb-cardapio
    ```
 
-2. **Compile o APK de depuração:**
+2. Compile o APK de depuração:
    ```bash
    ./gradlew assembleDebug
    ```
 
-3. **Instale via ADB:**
+3. Instale no dispositivo via ADB:
    ```bash
    adb install -r app/build/outputs/apk/debug/app-debug.apk
    ```
 
 ---
 
-
-
-## 📄 Licença
+## Licença
 
 Distribuído sob a licença MIT. Consulte `LICENSE` para mais informações.
