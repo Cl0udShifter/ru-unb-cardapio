@@ -24,6 +24,25 @@ const MEAL_INFO = {
 
 const RAW_GITHUB_BASE = 'https://raw.githubusercontent.com/Cl0udShifter/ru-unb-cardapio/master/parser';
 
+function getInitialStudentCard() {
+  try {
+    const raw = localStorage.getItem('ru_student_card');
+    if (!raw) return { isConfigured: false };
+    const parsed = JSON.parse(raw);
+    // Purge old mock / leaked account data from previous test builds
+    if (parsed.nome === 'Daniel Alexandro Contreira Junior' || parsed.matricula === '190026308') {
+      localStorage.removeItem('ru_student_card');
+      return { isConfigured: false };
+    }
+    if (parsed && parsed.isConfigured && parsed.matricula) {
+      return parsed;
+    }
+  } catch (e) {
+    localStorage.removeItem('ru_student_card');
+  }
+  return { isConfigured: false };
+}
+
 // App State
 let appState = {
   campus: localStorage.getItem('ru_campus') || 'darcy',
@@ -40,15 +59,7 @@ let appState = {
     jantarDays: [1, 2, 3, 4, 5],
     dietPreference: 'padrao'
   },
-  studentCard: JSON.parse(localStorage.getItem('ru_student_card')) || {
-    isConfigured: true,
-    nome: 'Daniel Alexandro Contreira Junior',
-    matricula: '190026308',
-    curso: 'GRADUAÇÃO',
-    validade: 'Março / 2027',
-    codigoQr: '1900263080000000',
-    saldo: 'R$ 16,65'
-  }
+  studentCard: getInitialStudentCard()
 };
 
 function detectCurrentMeal() {
@@ -656,14 +667,20 @@ function setupCarteirinhaModal() {
   };
 
   document.getElementById('btnSaveCard').onclick = () => {
+    const nome = document.getElementById('inputNome').value.trim();
+    const matricula = document.getElementById('inputMatricula').value.trim();
+    if (!matricula) {
+      alert('Por favor, informe sua matrícula.');
+      return;
+    }
     appState.studentCard = {
       isConfigured: true,
-      nome: document.getElementById('inputNome').value.trim() || 'Estudante UnB',
-      matricula: document.getElementById('inputMatricula').value.trim() || '190026308',
+      nome: nome || 'Estudante UnB',
+      matricula: matricula,
       curso: document.getElementById('inputCurso').value.trim() || 'GRADUAÇÃO',
       validade: document.getElementById('inputValidade').value.trim() || 'Março / 2027',
-      codigoQr: document.getElementById('inputQrCode').value.trim() || '1900263080000000',
-      saldo: document.getElementById('inputSaldo').value.trim() || 'R$ 16,65'
+      codigoQr: document.getElementById('inputQrCode').value.trim() || `${matricula.padEnd(16, '0')}`,
+      saldo: document.getElementById('inputSaldo').value.trim() || 'R$ 0,00'
     };
     localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
     document.getElementById('carteirinhaEditForm').style.display = 'none';
@@ -735,7 +752,11 @@ function setupSigaaDialog() {
   };
 
   document.getElementById('btnConfirmSigaa').onclick = () => {
-    const mat = document.getElementById('sigaaMatricula').value.trim() || '190026308';
+    const mat = document.getElementById('sigaaMatricula').value.trim();
+    if (!mat) {
+      alert('Por favor, informe sua matrícula da UnB.');
+      return;
+    }
     const statusMsg = document.getElementById('sigaaStatusMsg');
     statusMsg.style.display = 'block';
     statusMsg.textContent = 'Autenticando no SIGAA...';
@@ -745,16 +766,18 @@ function setupSigaaDialog() {
       setTimeout(() => {
         appState.studentCard = {
           isConfigured: true,
-          nome: 'Daniel Alexandro Contreira Junior',
+          nome: 'Estudante UnB',
           matricula: mat,
           curso: 'GRADUAÇÃO',
           validade: 'Março / 2027',
-          codigoQr: `${mat}0000000`,
-          saldo: 'R$ 16,65'
+          codigoQr: `${mat.padEnd(16, '0')}`,
+          saldo: 'R$ 0,00'
         };
         localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
         overlay.classList.remove('open');
         statusMsg.style.display = 'none';
+        document.getElementById('sigaaMatricula').value = '';
+        document.getElementById('sigaaSenha').value = '';
         renderCarteirinhaModal();
       }, 700);
     }, 600);
@@ -781,7 +804,7 @@ function showCarteirinhaEditForm() {
   document.getElementById('inputCurso').value = appState.studentCard.curso || '';
   document.getElementById('inputValidade').value = appState.studentCard.validade || '';
   document.getElementById('inputQrCode').value = appState.studentCard.codigoQr || '';
-  document.getElementById('inputSaldo').value = appState.studentCard.saldo || 'R$ 16,65';
+  document.getElementById('inputSaldo').value = appState.studentCard.saldo || 'R$ 0,00';
 }
 
 function renderCarteirinhaModal() {
@@ -792,7 +815,7 @@ function renderCarteirinhaModal() {
 
   form.style.display = 'none';
 
-  if (!appState.studentCard || !appState.studentCard.isConfigured) {
+  if (!appState.studentCard || !appState.studentCard.isConfigured || !appState.studentCard.matricula) {
     emptyState.style.display = 'flex';
     configuredState.style.display = 'none';
     topActionIcon.innerHTML = '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>';
@@ -803,11 +826,11 @@ function renderCarteirinhaModal() {
   configuredState.style.display = 'block';
   topActionIcon.innerHTML = '<path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>';
 
-  document.getElementById('cardNomeTxt').textContent = appState.studentCard.nome;
+  document.getElementById('cardNomeTxt').textContent = appState.studentCard.nome || 'Estudante UnB';
   document.getElementById('cardMatriculaTxt').textContent = appState.studentCard.matricula;
-  document.getElementById('cardCursoTxt').textContent = appState.studentCard.curso;
-  document.getElementById('cardValidadeTxt').textContent = appState.studentCard.validade;
-  document.getElementById('cardSaldoTxt').textContent = appState.studentCard.saldo || 'R$ 16,65';
+  document.getElementById('cardCursoTxt').textContent = appState.studentCard.curso || 'GRADUAÇÃO';
+  document.getElementById('cardValidadeTxt').textContent = appState.studentCard.validade || 'Março / 2027';
+  document.getElementById('cardSaldoTxt').textContent = appState.studentCard.saldo || 'R$ 0,00';
 
   const qrContainer = document.getElementById('idQrCodeContainer');
   qrContainer.innerHTML = '';
@@ -887,7 +910,7 @@ function setupSwipeGestures() {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=8').then((reg) => {
+      navigator.serviceWorker.register('sw.js?v=9').then((reg) => {
         reg.update();
       }).catch(() => {});
     });

@@ -12,10 +12,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RU UnB">
   
-  <link rel="icon" type="image/png" href="icons/favicon.png?v=3.0">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3.0">
+  <link rel="icon" type="image/png" href="icons/favicon.png?v=4.0">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4.0">
   
-  <link rel="stylesheet" href="style.css?v=3.0">
+  <link rel="stylesheet" href="style.css?v=4.0">
 </head>
 <body>
   <div id="app">
@@ -30,13 +30,10 @@
       </div>
 
       <div class="header-icons">
-        <!-- Carteirinha Discente (Icons.Outlined.Badge) -->
+        <!-- Carteirinha Discente (Icons.Outlined.Badge 1:1) -->
         <button id="openCarteirinhaBtn" class="header-icon-btn" title="Carteirinha do Estudante" aria-label="Carteirinha do Estudante">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <circle cx="12" cy="11" r="3"></circle>
-            <path d="M16 18a4 4 0 0 0-8 0"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 7h-5V4c0-1.1-.9-2-2-2h-2c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-9-3h2v5h-2V4zm9 16H4V9h5c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2h5v11zM12 12c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-4 5c0-1.33 2.67-2 4-2s4 .67 4 2v1H8v-1z"/>
           </svg>
         </button>
 
@@ -321,7 +318,9 @@
         <!-- State: If NOT Configured (EmptyCardState 1:1) -->
         <div id="carteirinhaEmptyState" class="empty-card-container" style="display: none;">
           <div class="empty-card-badge-circle">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="12" cy="10" r="3"></circle><path d="M7 20v-1a5 5 0 0 1 10 0v1"></path></svg>
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 7h-5V4c0-1.1-.9-2-2-2h-2c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-9-3h2v5h-2V4zm9 16H4V9h5c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2h5v11zM12 12c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-4 5c0-1.33 2.67-2 4-2s4 .67 4 2v1H8v-1z"/>
+            </svg>
           </div>
           <h2 class="empty-card-title">Conecte sua Conta UnB</h2>
           <p class="empty-card-desc">Sincronize com o SIGAA para gerar automaticamente o seu QR Code permanente para as catracas do RU e acompanhar seu saldo e extrato acumulado.</p>
@@ -361,21 +360,21 @@
             <div class="id-meta-grid">
               <div>
                 <div class="id-meta-label">NOME</div>
-                <div id="cardNomeTxt" class="id-meta-val">Daniel Alexandro Contreira Junior</div>
+                <div id="cardNomeTxt" class="id-meta-val">---</div>
               </div>
               <div class="id-meta-dual-row">
                 <div>
                   <div class="id-meta-label">MATRÍCULA</div>
-                  <div id="cardMatriculaTxt" class="id-meta-val">190026308</div>
+                  <div id="cardMatriculaTxt" class="id-meta-val">---</div>
                 </div>
                 <div>
                   <div class="id-meta-label">VALIDADE</div>
-                  <div id="cardValidadeTxt" class="id-meta-val">Março / 2027</div>
+                  <div id="cardValidadeTxt" class="id-meta-val">---</div>
                 </div>
               </div>
               <div>
                 <div class="id-meta-label">CURSO</div>
-                <div id="cardCursoTxt" class="id-meta-val">GRADUAÇÃO</div>
+                <div id="cardCursoTxt" class="id-meta-val">---</div>
               </div>
             </div>
           </div>
@@ -385,7 +384,7 @@
             <div class="extrato-header-row">
               <div>
                 <div class="extrato-label">EXTRATO NO RU</div>
-                <div id="extratoLastUpdateTxt" class="extrato-update-time">Atualizado em 29/10/2026 22:21</div>
+                <div id="extratoLastUpdateTxt" class="extrato-update-time">Atualizado recentemente</div>
               </div>
               <button id="btnRefreshExtrato" class="extrato-refresh-btn">
                 <svg id="extratoRefreshIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
@@ -396,18 +395,14 @@
             <!-- Cartão de Saldo Atual -->
             <div class="saldo-atual-box">
               <div class="saldo-atual-label">SALDO ATUAL</div>
-              <div class="saldo-atual-val" id="cardSaldoTxt">R$ 16,65</div>
+              <div class="saldo-atual-val" id="cardSaldoTxt">R$ 0,00</div>
             </div>
 
             <!-- Histórico -->
             <div class="extrato-historico-label">HISTÓRICO</div>
             <div id="extratoHistoricoList" class="extrato-history-list">
-              <div class="extrato-history-item">
-                <div>
-                  <div class="history-item-desc">Grupo 4 Café</div>
-                  <div class="history-item-time">26/10/2026 07:30</div>
-                </div>
-                <div class="history-item-val">-R$ 1,50</div>
+              <div class="empty-history-notice" style="font-size: 12px; color: var(--text-secondary); padding: 8px 0;">
+                Nenhuma transação registrada nesta conta.
               </div>
             </div>
           </div>
@@ -486,8 +481,8 @@
             <input type="text" id="inputNome" placeholder="Seu nome completo">
           </div>
           <div class="form-field">
-            <label>Matrícula (ex: 190026308)</label>
-            <input type="text" id="inputMatricula" placeholder="Sua matrícula UnB">
+            <label>Matrícula</label>
+            <input type="text" id="inputMatricula" placeholder="Ex: 190000000">
           </div>
           <div class="form-field">
             <label>Curso</label>
@@ -503,7 +498,7 @@
           </div>
           <div class="form-field">
             <label>Saldo Atual (R$)</label>
-            <input type="text" id="inputSaldo" placeholder="Ex: R$ 16,65">
+            <input type="text" id="inputSaldo" placeholder="Ex: R$ 0,00">
           </div>
           <button id="btnSaveCard" class="btn-pill-fill" style="margin-bottom: 8px;">Salvar Carteirinha</button>
           <button id="btnCancelEdit" class="btn-pill-outline">Cancelar</button>
@@ -519,7 +514,7 @@
         
         <div class="form-field">
           <label>Matrícula</label>
-          <input type="text" id="sigaaMatricula" placeholder="190026308">
+          <input type="text" id="sigaaMatricula" placeholder="Ex: 190000000">
         </div>
         <div class="form-field">
           <label>Senha do SIGAA</label>
@@ -540,13 +535,13 @@
       <div class="turnstile-content-box">
         <div id="turnstileQrCode"></div>
         <div class="turnstile-label-main">Aproxime do leitor da catraca</div>
-        <div id="turnstileMatriculaTxt" class="turnstile-label-sub">190026308</div>
+        <div id="turnstileMatriculaTxt" class="turnstile-label-sub">---</div>
         <button id="closeTurnstileQrBtn" class="turnstile-close-btn">Fechar</button>
       </div>
     </div>
   </div>
 
-  <script src="qrcode.min.js?v=3.0"></script>
-  <script src="app.js?v=3.0"></script>
+  <script src="qrcode.min.js?v=4.0"></script>
+  <script src="app.js?v=4.0"></script>
 </body>
 </html>
