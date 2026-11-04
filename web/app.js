@@ -30,9 +30,6 @@ function getInitialStudentCard() {
     if (!raw) return { isConfigured: false };
     const parsed = JSON.parse(raw);
     if (parsed && parsed.isConfigured && parsed.matricula) {
-      if (parsed.matricula === '190026308' && (!parsed.codigoQr || parsed.codigoQr === '1900263080000000')) {
-        parsed.codigoQr = '7744502674419362';
-      }
       return parsed;
     }
   } catch (e) {
@@ -93,6 +90,13 @@ function escapeHtml(str) {
   return str.replace(/[&<>"']/g, m => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[m]);
+}
+
+function decodeHtmlEntities(str) {
+  if (!str) return '';
+  const txt = document.createElement('textarea');
+  txt.innerHTML = str;
+  return txt.value;
 }
 
 // Theme handling
@@ -814,8 +818,14 @@ function setupCarteirinhaModal() {
         const existingTrans = existingStmt.transacoes || [];
         const newTrans = data.transacoes || [];
         const mergedMap = new Map();
-        existingTrans.forEach(t => mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t));
-        newTrans.forEach(t => mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t));
+        existingTrans.forEach(t => {
+          t.descricao = decodeHtmlEntities(t.descricao);
+          mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t);
+        });
+        newTrans.forEach(t => {
+          t.descricao = decodeHtmlEntities(t.descricao);
+          mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t);
+        });
         const mergedList = Array.from(mergedMap.values());
 
         appState.statement = {
@@ -955,8 +965,14 @@ function setupSigaaDialog() {
         const existingTrans = existingStmt.transacoes || [];
         const newTrans = data.transacoes || [];
         const mergedMap = new Map();
-        existingTrans.forEach(t => mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t));
-        newTrans.forEach(t => mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t));
+        existingTrans.forEach(t => {
+          t.descricao = decodeHtmlEntities(t.descricao);
+          mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t);
+        });
+        newTrans.forEach(t => {
+          t.descricao = decodeHtmlEntities(t.descricao);
+          mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t);
+        });
         const mergedList = Array.from(mergedMap.values());
 
         appState.statement = {
@@ -1062,7 +1078,7 @@ function renderCarteirinhaModal() {
       historyList.innerHTML = statement.transacoes.map(t => `
         <div class="extrato-history-item">
           <div>
-            <div class="history-item-desc">${escapeHtml(t.descricao)}</div>
+            <div class="history-item-desc">${escapeHtml(decodeHtmlEntities(t.descricao))}</div>
             <div class="history-item-time">${escapeHtml(t.dataHora)}</div>
           </div>
           <div class="history-item-val">${escapeHtml(t.valor)}</div>
@@ -1084,70 +1100,13 @@ function renderCarteirinhaModal() {
   renderZxingQRCode(qrContainer, qrPayload, 190);
 }
 
-const DANIEL_ZXING_MATRIX = [
-  '111111101011101111111',
-  '100000100011001000001',
-  '101110101101001011101',
-  '101110101100101011101',
-  '101110101001001011101',
-  '100000100111101000001',
-  '111111101010101111111',
-  '000000000001100000000',
-  '111100101111110011101',
-  '100001011011111101101',
-  '010010100011000000111',
-  '011101000101001000010',
-  '111101100110100100100',
-  '000000001011001001110',
-  '111111100101100001010',
-  '100000100110000110100',
-  '101110100110111011011',
-  '101110101011001100110',
-  '101110101010101001000',
-  '100000101100010010011',
-  '111111101110010100110'
-];
-
-function renderMatrixToCanvas(container, rawMatrix, sizePx) {
-  const margin = 1;
-  const gridDim = rawMatrix.length;
-  const totalDim = gridDim + margin * 2;
-  const scale = Math.max(1, Math.floor(sizePx / totalDim));
-  const canvas = document.createElement('canvas');
-  canvas.width = totalDim * scale;
-  canvas.height = totalDim * scale;
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
-  canvas.style.display = 'block';
-  canvas.style.imageRendering = 'pixelated';
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#000000';
-  for (let r = 0; r < gridDim; r++) {
-    const row = rawMatrix[r];
-    for (let c = 0; c < row.length; c++) {
-      if (row[c] === '1') {
-        ctx.fillRect((c + margin) * scale, (r + margin) * scale, scale, scale);
-      }
-    }
-  }
-  container.appendChild(canvas);
-}
-
 function renderZxingQRCode(container, content, sizePx) {
   if (!container) return;
   container.innerHTML = '';
   const text = (content || '').trim();
   if (!text) return;
 
-  // 1. Exact match for Daniel's UnB card
-  if (text === '7744502674419362' || (appState.studentCard && appState.studentCard.matricula === '190026308' && (!text || text === '190026308'))) {
-    renderMatrixToCanvas(container, DANIEL_ZXING_MATRIX, sizePx);
-    return;
-  }
-
-  // 2. Official ZXing port (matches Android ru-unb-app 1:1)
+  // 1. Official ZXing port (matches Android ru-unb-app 1:1, Level L, Margin 1)
   if (typeof ZXing !== 'undefined') {
     try {
       const hints = new Map();

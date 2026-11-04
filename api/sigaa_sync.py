@@ -7,6 +7,7 @@ import zlib
 import base64
 import io
 import struct
+import html
 
 def rgb_to_png(width, height, raw_rgb):
     png = b'\x89PNG\r\n\x1a\n'
@@ -20,64 +21,6 @@ def rgb_to_png(width, height, raw_rgb):
         raw_scanlines.append(0)
         raw_scanlines.extend(raw_rgb[y * row_bytes : (y + 1) * row_bytes])
 
-    idat_data = zlib.compress(bytes(raw_scanlines), level=6)
-    idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + idat_data))
-    png += struct.pack('>I', len(idat_data)) + b'IDAT' + idat_data + idat_crc
-    iend_crc = struct.pack('>I', zlib.crc32(b'IEND'))
-    png += struct.pack('>I', 0) + b'IEND' + iend_crc
-    return png
-
-DANIEL_ZXING_MATRIX = [
-    '111111101011101111111',
-    '100000100011001000001',
-    '101110101101001011101',
-    '101110101100101011101',
-    '101110101001001011101',
-    '100000100111101000001',
-    '111111101010101111111',
-    '000000000001100000000',
-    '111100101111110011101',
-    '100001011011111101101',
-    '010010100011000000111',
-    '011101000101001000010',
-    '111101100110100100100',
-    '000000001011001001110',
-    '111111100101100001010',
-    '100000100110000110100',
-    '101110100110111011011',
-    '101110101011001100110',
-    '101110101010101001000',
-    '100000101100010010011',
-    '111111101110010100110'
-]
-
-def generate_matrix_png(matrix_lines, margin=1, scale=12):
-    height = len(matrix_lines)
-    width = len(matrix_lines[0])
-    total_w = (width + margin * 2) * scale
-    total_h = (height + margin * 2) * scale
-    raw_scanlines = bytearray()
-    white_row = b'\xff\xff\xff' * total_w
-    for y in range(total_h):
-        module_y = y // scale - margin
-        raw_scanlines.append(0)
-        if module_y < 0 or module_y >= height:
-            raw_scanlines.extend(white_row)
-        else:
-            line = bytearray()
-            for x in range(total_w):
-                module_x = x // scale - margin
-                if module_x < 0 or module_x >= width:
-                    line.extend(b'\xff\xff\xff')
-                else:
-                    is_black = (matrix_lines[module_y][module_x] == '1')
-                    line.extend(b'\x00\x00\x00' if is_black else b'\xff\xff\xff')
-            raw_scanlines.extend(line)
-
-    png = b'\x89PNG\r\n\x1a\n'
-    ihdr_data = struct.pack('>IIBBBBB', total_w, total_h, 8, 2, 0, 0, 0)
-    ihdr_crc = struct.pack('>I', zlib.crc32(b'IHDR' + ihdr_data))
-    png += struct.pack('>I', len(ihdr_data)) + b'IHDR' + ihdr_data + ihdr_crc
     idat_data = zlib.compress(bytes(raw_scanlines), level=6)
     idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + idat_data))
     png += struct.pack('>I', len(idat_data)) + b'IDAT' + idat_data + idat_crc
@@ -267,9 +210,10 @@ def sync_with_urllib(matricula, senha):
 
             for row_m in re.finditer(r'<tr>(.*?)</tr>', ext_resp_html, re.I | re.DOTALL):
                 row = row_m.group(1)
-                cols = [re.sub(r'<[^>]+>', '', col_m.group(1)).strip() for col_m in re.finditer(r'<t[dh][^>]*>(.*?)</t[dh]>', row, re.I | re.DOTALL)]
+                cols = [html.unescape(re.sub(r'<[^>]+>', '', col_m.group(1))).strip() for col_m in re.finditer(r'<t[dh][^>]*>(.*?)</t[dh]>', row, re.I | re.DOTALL)]
                 if len(cols) >= 3:
                     data_hora, desc, valor = cols[0], cols[1], cols[2]
+                    desc = html.unescape(desc)
                     if 'saldo anterior' in desc.lower():
                         saldo_anterior = valor
                     elif desc.strip().lower() == 'saldo':
@@ -279,9 +223,7 @@ def sync_with_urllib(matricula, senha):
     except Exception as e:
         print('Erro no extrato:', e)
 
-    codigo_qr = qr_payload or ('7744502674419362' if matricula == '190026308' else matricula.ljust(16, '0'))
-    if codigo_qr == '7744502674419362':
-        qr_base64 = 'data:image/png;base64,' + base64.b64encode(generate_matrix_png(DANIEL_ZXING_MATRIX)).decode('utf-8')
+    codigo_qr = qr_payload or matricula.ljust(16, '0')
 
     return {
         'success': True,

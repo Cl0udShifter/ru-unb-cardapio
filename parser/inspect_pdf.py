@@ -1,6 +1,8 @@
+import os
 import pdfplumber
 
-with pdfplumber.open("C:/Users/Daniel/Desktop/ru-unb-app/parser/current_menu.pdf") as pdf:
+pdf_path = os.path.join(os.path.dirname(__file__), "current_menu.pdf")
+with pdfplumber.open(pdf_path) as pdf:
     for i, page in enumerate(pdf.pages):
         print(f"--- PAGE {i+1} ---")
         tables = page.extract_tables()

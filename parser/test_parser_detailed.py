@@ -83,6 +83,7 @@ def parse_pdf_menu(pdf_path):
 
         return days_data
 
-data = parse_pdf_menu("C:/Users/Daniel/Desktop/ru-unb-app/parser/current_menu.pdf")
+pdf_path = os.path.join(os.path.dirname(__file__), "current_menu.pdf")
+data = parse_pdf_menu(pdf_path)
 print("\n--- Exemplo do Almoço de Segunda-feira ---")
 print(json.dumps(data[0], indent=2, ensure_ascii=False))

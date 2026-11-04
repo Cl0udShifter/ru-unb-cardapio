@@ -3,7 +3,7 @@ import urllib.request
 import zipfile
 import subprocess
 
-SDK_ROOT = r"C:\Users\Daniel\AppData\Local\Android\Sdk"
+SDK_ROOT = os.environ.get("ANDROID_HOME") or os.path.expanduser(r"~\AppData\Local\Android\Sdk")
 CMDLINE_ZIP_URL = "https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip"
 ZIP_PATH = os.path.join(SDK_ROOT, "cmdline-tools.zip")
 TARGET_DIR = os.path.join(SDK_ROOT, "cmdline-tools", "latest")

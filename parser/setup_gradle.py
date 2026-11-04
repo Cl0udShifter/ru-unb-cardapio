@@ -3,7 +3,7 @@ import urllib.request
 import zipfile
 
 GRADLE_URL = "https://services.gradle.org/distributions/gradle-8.7-bin.zip"
-DEST_DIR = r"C:\Users\Daniel\AppData\Local\Programs"
+DEST_DIR = os.path.expanduser(r"~\AppData\Local\Programs")
 ZIP_PATH = os.path.join(DEST_DIR, "gradle-8.7.zip")
 TARGET_DIR = os.path.join(DEST_DIR, "gradle-8.7")
 
