@@ -1,80 +1,85 @@
 import json
 import urllib.parse
+import urllib.request
+import http.cookiejar
 import re
-import requests
-from bs4 import BeautifulSoup
 import zlib
 import base64
 import io
-from PIL import Image
 
-def full_sigaa_sync(matricula, senha):
-    session = requests.Session()
-    session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App'})
-    
+def sync_with_urllib(matricula, senha):
+    cj = http.cookiejar.CookieJar()
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App'}
+
     # 1. Obter formulário CAS SSO
     sso_url = 'https://autenticacao.unb.br/sso-server/login?service=https%3A%2F%2Fsig.unb.br%2Fsigaa%2Flogin%2Fcas'
     try:
-        r1 = session.get(sso_url, timeout=20)
+        req1 = urllib.request.Request(sso_url, headers=headers)
+        r1 = opener.open(req1, timeout=20)
+        html1 = r1.read().decode('utf-8', errors='ignore')
     except Exception as e:
-        return {'success': False, 'error': 'Não foi possível conectar ao SSO da UnB.'}
-        
-    soup1 = BeautifulSoup(r1.text, 'html.parser')
-    form = soup1.find('form')
-    if not form:
-        return {'success': False, 'error': 'Não foi possível carregar o formulário do SSO da UnB.'}
-        
-    action = form.get('action', '')
+        return {'success': False, 'error': f'Não foi possível conectar ao SSO da UnB: {str(e)}'}
+
+    action_match = re.search(r'<form[^>]+action=["\']([^"\']+)["\']', html1, re.I)
+    action = action_match.group(1) if action_match else ''
     if not action.startswith('http'):
         action = 'https://autenticacao.unb.br' + action
-        
+
     data = {}
-    for inp in form.find_all('input'):
-        name = inp.get('name')
-        if name:
-            data[name] = inp.get('value', '')
-            
+    for m in re.finditer(r'<input[^>]+name=["\']([^"\']+)["\'][^>]*>', html1, re.I):
+        tag = m.group(0)
+        name = m.group(1)
+        val_m = re.search(r'value=["\']([^"\']*)["\']', tag, re.I)
+        data[name] = val_m.group(1) if val_m else ''
+
     data['username'] = matricula
     data['password'] = senha
     data['submit'] = 'ENTRAR'
-    
+
     # 2. Login
     try:
-        r2 = session.post(action, data=data, timeout=25)
+        post_data = urllib.parse.urlencode(data).encode('utf-8')
+        req2 = urllib.request.Request(action, data=post_data, headers=headers)
+        r2 = opener.open(req2, timeout=25)
+        current_html = r2.read().decode('utf-8', errors='ignore')
+        current_url = r2.geturl()
     except Exception as e:
         return {'success': False, 'error': 'Falha na conexão com o servidor de autenticação.'}
-        
-    if 'Credenciais inv' in r2.text or 'não foram reconhecidas' in r2.text:
+
+    if 'Credenciais inv' in current_html or 'não foram reconhecidas' in current_html:
         return {'success': False, 'error': 'Matrícula ou senha incorretas.'}
-        
-    current_html = r2.text
-    current_url = r2.url
-    
+
     # 3. Tratar avisos institucionais do SIGAA (telaAvisoLogon.jsf)
     attempts = 0
     while 'telaAvisoLogon.jsf' in current_url and attempts < 6:
-        soup_aviso = BeautifulSoup(current_html, 'html.parser')
-        form_aviso = soup_aviso.find('form')
-        if not form_aviso:
+        act_m = re.search(r'<form[^>]+action=["\']([^"\']+)["\']', current_html, re.I)
+        if not act_m:
             break
-        act = form_aviso.get('action', '')
+        act = act_m.group(1)
         if not act.startswith('http'):
             act = 'https://sigaa.unb.br' + act
+
         aviso_data = {}
-        for inp in form_aviso.find_all('input'):
-            n = inp.get('name')
-            if n:
-                aviso_data[n] = inp.get('value', '')
+        for m in re.finditer(r'<input[^>]+name=["\']([^"\']+)["\'][^>]*>', current_html, re.I):
+            tag = m.group(0)
+            name = m.group(1)
+            val_m = re.search(r'value=["\']([^"\']*)["\']', tag, re.I)
+            aviso_data[name] = val_m.group(1) if val_m else ''
+
         if 'formConfirmacaoDeclaracao' in current_html:
             aviso_data['formConfirmacaoDeclaracao:buttonConfirmar'] = 'Confirmar'
         else:
-            submit_btn = form_aviso.find('input', {'type': 'submit'})
-            if submit_btn and submit_btn.get('name'):
-                aviso_data[submit_btn.get('name')] = submit_btn.get('value', 'Continuar >>')
+            submit_m = re.search(r'<input[^>]+type=["\']submit["\'][^>]+name=["\']([^"\']+)["\']', current_html, re.I)
+            if submit_m:
+                aviso_data[submit_m.group(1)] = 'Continuar >>'
+
         try:
-            r_aviso = session.post(act, data=aviso_data, timeout=25)
-            current_html = r_aviso.text
-            current_url = r_aviso.url
+            p_data = urllib.parse.urlencode(aviso_data).encode('utf-8')
+            req_aviso = urllib.request.Request(act, data=p_data, headers=headers)
+            r_aviso = opener.open(req_aviso, timeout=25)
+            current_html = r_aviso.read().decode('utf-8', errors='ignore')
+            current_url = r_aviso.geturl()
         except Exception:
             break
         attempts += 1
@@ -99,27 +104,29 @@ def full_sigaa_sync(matricula, senha):
             curso = m_course2.group(1).strip()
 
     # 5. Emitir Carteirinha PDF e Extrair Imagem do QR Code
-    view_state = ''
-    vs_input = BeautifulSoup(current_html, 'html.parser').find('input', {'name': 'javax.faces.ViewState'})
-    if vs_input:
-        view_state = vs_input.get('value', '')
-        
-    form_id = '331956'
-    id_input = BeautifulSoup(current_html, 'html.parser').find('input', {'name': 'id'})
-    if id_input:
-        form_id = id_input.get('value', '331956')
-        
+    vs_m = re.search(r'name=["\']javax\.faces\.ViewState["\'][^>]+value=["\']([^"\']*)["\']', current_html, re.I)
+    view_state = vs_m.group(1) if vs_m else ''
+    if not view_state:
+        vs_m2 = re.search(r'value=["\']([^"\']*)["\'][^>]+name=["\']javax\.faces\.ViewState["\']', current_html, re.I)
+        view_state = vs_m2.group(1) if vs_m2 else ''
+
+    id_m = re.search(r'name=["\']id["\'][^>]+value=["\']([^"\']*)["\']', current_html, re.I)
+    form_id = id_m.group(1) if id_m else '331956'
+
     card_body = {
         'menu:form_menu_discente': 'menu:form_menu_discente',
         'id': form_id,
         'jscook_action': 'menu_form_menu_discente_discente_menu:A]#{ portalDiscente.emitiCarteiraEstudantilUnb }',
         'javax.faces.ViewState': view_state
     }
-    
+
     qr_base64 = ''
     try:
-        r_card = session.post('https://sigaa.unb.br/sigaa/portais/discente/discente.jsf', data=card_body, timeout=25)
-        pdf_bytes = r_card.content
+        p_card = urllib.parse.urlencode(card_body).encode('utf-8')
+        req_card = urllib.request.Request('https://sigaa.unb.br/sigaa/portais/discente/discente.jsf', data=p_card, headers=headers)
+        r_card = opener.open(req_card, timeout=25)
+        pdf_bytes = r_card.read()
+
         if pdf_bytes.startswith(b'%PDF'):
             matches = list(re.finditer(b'stream[\r\n]+', pdf_bytes))
             for m in matches:
@@ -130,10 +137,14 @@ def full_sigaa_sync(matricula, senha):
                     try:
                         decomp = zlib.decompress(stream_data)
                         if len(decomp) == 250 * 250 * 3:
-                            im = Image.frombytes('RGB', (250, 250), decomp)
-                            buf = io.BytesIO()
-                            im.save(buf, format='PNG')
-                            qr_base64 = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('utf-8')
+                            try:
+                                from PIL import Image
+                                im = Image.frombytes('RGB', (250, 250), decomp)
+                                buf = io.BytesIO()
+                                im.save(buf, format='PNG')
+                                qr_base64 = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('utf-8')
+                            except Exception:
+                                pass
                             break
                     except Exception:
                         pass
@@ -144,24 +155,31 @@ def full_sigaa_sync(matricula, senha):
     saldo_atual = 'R$ 0,00'
     transacoes = []
     try:
-        soup_ext = BeautifulSoup(current_html, 'html.parser')
-        form_ext = soup_ext.find('form', id='formExibirExtrato') or soup_ext.find('form', {'id': re.compile(r'formExibirExtrato', re.I)})
-        if form_ext:
-            ext_act = form_ext.get('action', '')
+        ext_m = re.search(r'<form[^>]+id=["\']formExibirExtrato["\'][^>]+action=["\']([^"\']+)["\']', current_html, re.I)
+        if ext_m:
+            ext_act = ext_m.group(1)
             if not ext_act.startswith('http'):
                 ext_act = 'https://sigaa.unb.br' + ext_act
+
             ext_data = {}
-            for inp in form_ext.find_all('input'):
-                n = inp.get('name')
-                if n:
-                    ext_data[n] = inp.get('value', '')
+            for m in re.finditer(r'<input[^>]+name=["\']([^"\']+)["\'][^>]*>', current_html, re.I):
+                tag = m.group(0)
+                name = m.group(1)
+                val_m = re.search(r'value=["\']([^"\']*)["\']', tag, re.I)
+                ext_data[name] = val_m.group(1) if val_m else ''
+
             m_jsf = re.search(r"jsfcljs\s*\(\s*document\.forms\['[^']+'\],\s*\{'([^']+)':'([^']+)'\}", current_html)
             if m_jsf:
                 ext_data[m_jsf.group(1)] = m_jsf.group(2)
-            r_ext = session.post(ext_act, data=ext_data, timeout=20)
-            soup_res = BeautifulSoup(r_ext.text, 'html.parser')
-            for row in soup_res.find_all('tr'):
-                cols = [td.get_text(strip=True) for td in row.find_all(['td', 'th'])]
+
+            p_ext = urllib.parse.urlencode(ext_data).encode('utf-8')
+            req_ext = urllib.request.Request(ext_act, data=p_ext, headers=headers)
+            r_ext = opener.open(req_ext, timeout=20)
+            ext_html = r_ext.read().decode('utf-8', errors='ignore')
+
+            for row_m in re.finditer(r'<tr>(.*?)</tr>', ext_html, re.I | re.DOTALL):
+                row = row_m.group(1)
+                cols = [re.sub(r'<[^>]+>', '', col_m.group(1)).strip() for col_m in re.finditer(r'<t[dh][^>]*>(.*?)</t[dh]>', row, re.I | re.DOTALL)]
                 if len(cols) >= 3:
                     data_hora, desc, valor = cols[0], cols[1], cols[2]
                     if desc.lower() == 'saldo':
@@ -171,7 +189,6 @@ def full_sigaa_sync(matricula, senha):
     except Exception as e:
         print('Erro no extrato:', e)
 
-    # Código do QR Code da catraca
     codigo_qr = '7744502674419362' if matricula == '190026308' else matricula.ljust(16, '0')
 
     return {
@@ -185,6 +202,9 @@ def full_sigaa_sync(matricula, senha):
         'saldo': saldo_atual,
         'transacoes': transacoes
     }
+
+def full_sigaa_sync(matricula, senha):
+    return sync_with_urllib(matricula, senha)
 
 def app(environ, start_response):
     method = environ.get('REQUEST_METHOD', 'GET')
