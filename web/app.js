@@ -863,7 +863,7 @@ function setupSigaaDialog() {
     confirmBtn.style.opacity = '0.7';
 
     const isVercelHost = window.location.hostname.endsWith('vercel.app') || (window.location.hostname === 'localhost' && window.location.port !== '');
-    const apiUrl = window.SIGAA_API_URL || (isVercelHost ? '/api' : 'https://ru-unb-cardapio-seet.vercel.app/api');
+    const apiUrl = window.SIGAA_API_URL || (isVercelHost ? '/api' : 'https://ru-unb-cardapio-3zjv.vercel.app/api');
 
     try {
       const response = await fetch(apiUrl, {
@@ -1101,7 +1101,7 @@ function setupSwipeGestures() {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=14').then((reg) => {
+      navigator.serviceWorker.register('sw.js?v=15').then((reg) => {
         reg.update();
       }).catch(() => {});
     });
