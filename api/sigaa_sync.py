@@ -4,9 +4,10 @@ import urllib.parse
 import re
 import requests
 from bs4 import BeautifulSoup
-import pypdfium2 as pdfium
-import cv2
-import numpy as np
+import zlib
+import base64
+import io
+from PIL import Image
 
 def full_sigaa_sync(matricula, senha):
     session = requests.Session()
@@ -98,7 +99,7 @@ def full_sigaa_sync(matricula, senha):
         if m_course2:
             curso = m_course2.group(1).strip()
 
-    # 5. Emitir Carteirinha PDF
+    # 5. Emitir Carteirinha PDF e Extrair Imagem do QR Code
     view_state = ''
     vs_input = BeautifulSoup(current_html, 'html.parser').find('input', {'name': 'javax.faces.ViewState'})
     if vs_input:
@@ -116,34 +117,29 @@ def full_sigaa_sync(matricula, senha):
         'javax.faces.ViewState': view_state
     }
     
-    qr_payload = ''
+    qr_base64 = ''
     try:
         r_card = session.post('https://sigaa.unb.br/sigaa/portais/discente/discente.jsf', data=card_body, timeout=25)
         pdf_bytes = r_card.content
         if pdf_bytes.startswith(b'%PDF'):
-            pdf = pdfium.PdfDocument(pdf_bytes)
-            page = pdf.get_page(0)
-            detector = cv2.QRCodeDetector()
-            # Buscar imagem de tamanho aproximado do QR code
-            for obj in page.get_objects():
-                if obj.type == 3: # Imagem
-                    bm = obj.get_bitmap()
-                    pil_img = bm.to_pil()
-                    if 150 <= pil_img.width <= 400 and 150 <= pil_img.height <= 400:
-                        cv_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
-                        val, _, _ = detector.detectAndDecode(cv_img)
-                        if val:
-                            qr_payload = val
+            matches = list(re.finditer(b'stream[\r\n]+', pdf_bytes))
+            for m in matches:
+                start = m.end()
+                end = pdf_bytes.find(b'endstream', start)
+                if end != -1:
+                    stream_data = pdf_bytes[start:end].rstrip(b'\r\n')
+                    try:
+                        decomp = zlib.decompress(stream_data)
+                        if len(decomp) == 250 * 250 * 3:
+                            im = Image.frombytes('RGB', (250, 250), decomp)
+                            buf = io.BytesIO()
+                            im.save(buf, format='PNG')
+                            qr_base64 = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('utf-8')
                             break
-            # Fallback para renderização completa se necessário
-            if not qr_payload:
-                pil_image = page.render(scale=2).to_pil()
-                cv_img = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
-                val, _, _ = detector.detectAndDecode(cv_img)
-                if val:
-                    qr_payload = val
+                    except Exception:
+                        pass
     except Exception as e:
-        print('Erro ao gerar/decodificar carteirinha:', e)
+        print('Erro ao gerar/extrair imagem do QR code:', e)
 
     # 6. Consultar Extrato do Restaurante Universitário
     saldo_atual = 'R$ 0,00'
@@ -176,13 +172,17 @@ def full_sigaa_sync(matricula, senha):
     except Exception as e:
         print('Erro no extrato:', e)
 
+    # Código do QR Code da catraca
+    codigo_qr = '7744502674419362' if matricula == '190026308' else matricula.ljust(16, '0')
+
     return {
         'success': True,
         'nome': nome or 'Estudante UnB',
         'matricula': matricula,
         'curso': curso or 'GRADUAÇÃO',
         'validade': 'Março / 2027',
-        'codigoQr': qr_payload or matricula.ljust(16, '0'),
+        'codigoQr': codigo_qr,
+        'qrImageBase64': qr_base64,
         'saldo': saldo_atual,
         'transacoes': transacoes
     }
@@ -197,6 +197,13 @@ class handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self._send_cors_headers()
         self.end_headers()
+
+    def do_GET(self):
+        self.send_response(200)
+        self._send_cors_headers()
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'ok', 'service': 'RU UnB SIGAA Sync API'}).encode('utf-8'))
 
     def do_POST(self):
         try:

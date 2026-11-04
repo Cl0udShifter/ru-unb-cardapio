@@ -863,7 +863,7 @@ function setupSigaaDialog() {
     confirmBtn.style.opacity = '0.7';
 
     const isVercelHost = window.location.hostname.endsWith('vercel.app') || (window.location.hostname === 'localhost' && window.location.port !== '');
-    const apiUrl = window.SIGAA_API_URL || (isVercelHost ? '/api/sigaa_sync' : 'https://ru-unb-cardapio.vercel.app/api/sigaa_sync');
+    const apiUrl = window.SIGAA_API_URL || (isVercelHost ? '/api' : 'https://ru-unb-cardapio-seet.vercel.app/api');
 
     try {
       const response = await fetch(apiUrl, {

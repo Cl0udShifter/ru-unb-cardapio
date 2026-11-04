@@ -1,2 +1,2 @@
 [tool.vercel]
-entrypoint = "api.sigaa_sync:handler"
+entrypoint = "api.index:handler"
