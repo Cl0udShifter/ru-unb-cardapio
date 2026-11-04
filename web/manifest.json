@@ -1,6 +1,6 @@
 {
-  "name": "Cardápio RU UnB",
-  "short_name": "RU UnB",
+  "name": "Cardápio RU UnB (Testes)",
+  "short_name": "RU Testes",
   "description": "Cardápio semanal e carteirinha digital do Restaurante Universitário da UnB",
   "start_url": "./",
   "scope": "./",
