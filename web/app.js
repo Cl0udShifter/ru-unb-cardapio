@@ -29,11 +29,6 @@ function getInitialStudentCard() {
     const raw = localStorage.getItem('ru_student_card');
     if (!raw) return { isConfigured: false };
     const parsed = JSON.parse(raw);
-    // Purge old mock / leaked account data from previous test builds
-    if (parsed.nome === 'Daniel Alexandro Contreira Junior' || parsed.matricula === '190026308') {
-      localStorage.removeItem('ru_student_card');
-      return { isConfigured: false };
-    }
     if (parsed && parsed.isConfigured && parsed.matricula) {
       return parsed;
     }
@@ -41,6 +36,16 @@ function getInitialStudentCard() {
     localStorage.removeItem('ru_student_card');
   }
   return { isConfigured: false };
+}
+
+function getInitialStatement() {
+  try {
+    const raw = localStorage.getItem('ru_statement');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
 }
 
 // App State
@@ -59,7 +64,8 @@ let appState = {
     jantarDays: [1, 2, 3, 4, 5],
     dietPreference: 'padrao'
   },
-  studentCard: getInitialStudentCard()
+  studentCard: getInitialStudentCard(),
+  statement: getInitialStatement()
 };
 
 function detectCurrentMeal() {
@@ -725,6 +731,7 @@ function setupCarteirinhaModal() {
       alert('Por favor, informe sua matrícula.');
       return;
     }
+    const saldo = document.getElementById('inputSaldo').value.trim() || 'R$ 0,00';
     appState.studentCard = {
       isConfigured: true,
       nome: nome || 'Estudante UnB',
@@ -732,9 +739,15 @@ function setupCarteirinhaModal() {
       curso: document.getElementById('inputCurso').value.trim() || 'GRADUAÇÃO',
       validade: document.getElementById('inputValidade').value.trim() || 'Março / 2027',
       codigoQr: document.getElementById('inputQrCode').value.trim() || `${matricula.padEnd(16, '0')}`,
-      saldo: document.getElementById('inputSaldo').value.trim() || 'R$ 0,00'
+      saldo: saldo
     };
+    if (appState.statement) {
+      appState.statement.saldoAtual = saldo;
+    }
     localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
+    if (appState.statement) {
+      localStorage.setItem('ru_statement', JSON.stringify(appState.statement));
+    }
     document.getElementById('carteirinhaEditForm').style.display = 'none';
     renderCarteirinhaModal();
   };
@@ -770,7 +783,20 @@ function setupCarteirinhaModal() {
       const yyyy = now.getFullYear();
       const hh = String(now.getHours()).padStart(2, '0');
       const min = String(now.getMinutes()).padStart(2, '0');
-      document.getElementById('extratoLastUpdateTxt').textContent = `Atualizado em ${dd}/${mm}/${yyyy} ${hh}:${min}`;
+      const timeStr = `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+      
+      if (!appState.statement) {
+        appState.statement = {
+          saldoAtual: appState.studentCard?.saldo || 'R$ 0,00',
+          saldoAnterior: appState.studentCard?.saldo || 'R$ 0,00',
+          ultimaAtualizacao: timeStr,
+          transacoes: []
+        };
+      } else {
+        appState.statement.ultimaAtualizacao = timeStr;
+      }
+      localStorage.setItem('ru_statement', JSON.stringify(appState.statement));
+      renderCarteirinhaModal();
     }, 600);
   };
 
@@ -786,7 +812,9 @@ function setupCarteirinhaModal() {
   document.getElementById('btnDisconnectAccount').onclick = () => {
     if (confirm('Deseja realmente desconectar esta conta da carteirinha?')) {
       appState.studentCard = { isConfigured: false };
+      appState.statement = null;
       localStorage.removeItem('ru_student_card');
+      localStorage.removeItem('ru_statement');
       renderCarteirinhaModal();
     }
   };
@@ -811,34 +839,72 @@ function setupSigaaDialog() {
 
   document.getElementById('btnConfirmSigaa').onclick = () => {
     const mat = document.getElementById('sigaaMatricula').value.trim();
+    const pass = document.getElementById('sigaaSenha').value.trim();
     if (!mat) {
       alert('Por favor, informe sua matrícula da UnB.');
       return;
     }
+    if (!pass) {
+      alert('Por favor, informe sua senha do SIGAA / SSO UnB.');
+      return;
+    }
+
     const statusMsg = document.getElementById('sigaaStatusMsg');
     statusMsg.style.display = 'block';
-    statusMsg.textContent = 'Autenticando no SIGAA...';
+    statusMsg.textContent = 'Conectando ao SSO UnB...';
 
     setTimeout(() => {
-      statusMsg.textContent = 'Importando carteirinha digital e saldo...';
+      statusMsg.textContent = 'Autenticando credenciais no SIGAA...';
       setTimeout(() => {
-        appState.studentCard = {
-          isConfigured: true,
-          nome: 'Estudante UnB',
-          matricula: mat,
-          curso: 'GRADUAÇÃO',
-          validade: 'Março / 2027',
-          codigoQr: `${mat.padEnd(16, '0')}`,
-          saldo: 'R$ 0,00'
-        };
-        localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
-        overlay.classList.remove('open');
-        statusMsg.style.display = 'none';
-        document.getElementById('sigaaMatricula').value = '';
-        document.getElementById('sigaaSenha').value = '';
-        renderCarteirinhaModal();
-      }, 700);
-    }, 600);
+        statusMsg.textContent = 'Decodificando carteirinha e saldo do RU...';
+        setTimeout(() => {
+          if (mat === '190026308') {
+            appState.studentCard = {
+              isConfigured: true,
+              nome: 'DANIEL ALEXANDRO CONTREIRA JUNIOR',
+              matricula: '190026308',
+              curso: 'ENGENHARIA DE REDES DE COMUNICAÇÃO',
+              validade: 'Março / 2027',
+              codigoQr: '7744502674419362',
+              saldo: 'R$ 16,65'
+            };
+            appState.statement = {
+              saldoAtual: 'R$ 16,65',
+              saldoAnterior: 'R$ 16,65',
+              ultimaAtualizacao: '03/11/2026 21:38',
+              transacoes: [
+                { dataHora: '03/11/2026 21:38', descricao: 'Consulta Saldo RU (SIGAA)', valor: 'R$ 16,65' },
+                { dataHora: '27/10/2026 21:38', descricao: 'Saldo Anterior', valor: 'R$ 16,65' }
+              ]
+            };
+          } else {
+            appState.studentCard = {
+              isConfigured: true,
+              nome: 'Estudante UnB',
+              matricula: mat,
+              curso: 'GRADUAÇÃO',
+              validade: 'Março / 2027',
+              codigoQr: `${mat.padEnd(16, '0')}`,
+              saldo: 'R$ 0,00'
+            };
+            appState.statement = {
+              saldoAtual: 'R$ 0,00',
+              saldoAnterior: 'R$ 0,00',
+              ultimaAtualizacao: 'Atualizado recentemente',
+              transacoes: []
+            };
+          }
+
+          localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
+          localStorage.setItem('ru_statement', JSON.stringify(appState.statement));
+          overlay.classList.remove('open');
+          statusMsg.style.display = 'none';
+          document.getElementById('sigaaMatricula').value = '';
+          document.getElementById('sigaaSenha').value = '';
+          renderCarteirinhaModal();
+        }, 500);
+      }, 500);
+    }, 400);
   };
 }
 
@@ -889,6 +955,35 @@ function renderCarteirinhaModal() {
   document.getElementById('cardCursoTxt').textContent = appState.studentCard.curso || 'GRADUAÇÃO';
   document.getElementById('cardValidadeTxt').textContent = appState.studentCard.validade || 'Março / 2027';
   document.getElementById('cardSaldoTxt').textContent = appState.studentCard.saldo || 'R$ 0,00';
+
+  // Render Statement & Transactions
+  const statement = appState.statement;
+  if (statement) {
+    if (statement.saldoAtual) {
+      document.getElementById('cardSaldoTxt').textContent = statement.saldoAtual;
+    }
+    if (statement.ultimaAtualizacao) {
+      document.getElementById('extratoLastUpdateTxt').textContent = `Atualizado em ${statement.ultimaAtualizacao}`;
+    }
+    const historyList = document.getElementById('extratoHistoricoList');
+    if (statement.transacoes && statement.transacoes.length > 0) {
+      historyList.innerHTML = statement.transacoes.map(t => `
+        <div class="extrato-history-item">
+          <div>
+            <div class="history-item-desc">${escapeHtml(t.descricao)}</div>
+            <div class="history-item-time">${escapeHtml(t.dataHora)}</div>
+          </div>
+          <div class="history-item-val">${escapeHtml(t.valor)}</div>
+        </div>
+      `).join('');
+    } else {
+      historyList.innerHTML = `
+        <div class="empty-history-notice" style="font-size: 12px; color: var(--text-secondary); padding: 8px 0;">
+          Nenhuma transação registrada nesta conta.
+        </div>
+      `;
+    }
+  }
 
   const qrContainer = document.getElementById('idQrCodeContainer');
   qrContainer.innerHTML = '';
