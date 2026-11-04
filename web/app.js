@@ -836,80 +836,110 @@ function setupSigaaDialog() {
     }
   };
 
-  document.getElementById('btnConfirmSigaa').onclick = () => {
+  const confirmBtn = document.getElementById('btnConfirmSigaa');
+
+  confirmBtn.onclick = async () => {
     const mat = document.getElementById('sigaaMatricula').value.trim();
     const pass = document.getElementById('sigaaSenha').value.trim();
+    const statusMsg = document.getElementById('sigaaStatusMsg');
+
     if (!mat) {
-      alert('Por favor, informe sua matrícula da UnB.');
+      statusMsg.className = 'sigaa-status-msg error';
+      statusMsg.style.display = 'block';
+      statusMsg.textContent = 'Por favor, informe sua matrícula da UnB.';
       return;
     }
     if (!pass) {
-      alert('Por favor, informe sua senha do SIGAA / SSO UnB.');
+      statusMsg.className = 'sigaa-status-msg error';
+      statusMsg.style.display = 'block';
+      statusMsg.textContent = 'Por favor, informe sua senha do SIGAA / SSO UnB.';
       return;
     }
 
-    const statusMsg = document.getElementById('sigaaStatusMsg');
+    statusMsg.className = 'sigaa-status-msg';
     statusMsg.style.display = 'block';
     statusMsg.textContent = 'Conectando ao SSO UnB...';
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '0.7';
 
-    setTimeout(() => {
-      statusMsg.textContent = 'Autenticando credenciais no SIGAA...';
-      setTimeout(() => {
-        statusMsg.textContent = 'Decodificando carteirinha e saldo do RU...';
+    const isVercelHost = window.location.hostname.endsWith('vercel.app') || (window.location.hostname === 'localhost' && window.location.port !== '');
+    const apiUrl = window.SIGAA_API_URL || (isVercelHost ? '/api/sigaa_sync' : 'https://ru-unb-cardapio.vercel.app/api/sigaa_sync');
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matricula: mat, senha: pass })
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (response.ok && data && data.success) {
+        statusMsg.textContent = 'Carteirinha sincronizada com sucesso!';
+        
+        appState.studentCard = {
+          isConfigured: true,
+          nome: data.nome || 'Estudante UnB',
+          matricula: data.matricula || mat,
+          curso: data.curso || 'GRADUAÇÃO',
+          validade: data.validade || 'Março / 2027',
+          codigoQr: data.codigoQr || `${mat.padEnd(16, '0')}`,
+          saldo: data.saldo || 'R$ 0,00'
+        };
+
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2, '0');
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const yyyy = now.getFullYear();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        const timeStr = `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+
+        appState.statement = {
+          saldoAtual: data.saldo || 'R$ 0,00',
+          saldoAnterior: data.saldo || 'R$ 0,00',
+          ultimaAtualizacao: timeStr,
+          transacoes: (data.transacoes && data.transacoes.length > 0) ? data.transacoes : [
+            { dataHora: timeStr, descricao: 'Consulta Saldo RU (SIGAA)', valor: data.saldo || 'R$ 0,00' }
+          ]
+        };
+
+        localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
+        localStorage.setItem('ru_statement', JSON.stringify(appState.statement));
+
         setTimeout(() => {
-          if (mat === '190026308') {
-            appState.studentCard = {
-              isConfigured: true,
-              nome: 'DANIEL ALEXANDRO CONTREIRA JUNIOR',
-              matricula: '190026308',
-              curso: 'ENGENHARIA DE REDES DE COMUNICAÇÃO',
-              validade: 'Março / 2027',
-              codigoQr: '7744502674419362',
-              saldo: 'R$ 16,65'
-            };
-            appState.statement = {
-              saldoAtual: 'R$ 16,65',
-              saldoAnterior: 'R$ 16,65',
-              ultimaAtualizacao: '03/11/2026 21:38',
-              transacoes: [
-                { dataHora: '03/11/2026 21:38', descricao: 'Consulta Saldo RU (SIGAA)', valor: 'R$ 16,65' },
-                { dataHora: '27/10/2026 21:38', descricao: 'Saldo Anterior', valor: 'R$ 16,65' }
-              ]
-            };
-          } else {
-            appState.studentCard = {
-              isConfigured: true,
-              nome: 'Estudante UnB',
-              matricula: mat,
-              curso: 'GRADUAÇÃO',
-              validade: 'Março / 2027',
-              codigoQr: `${mat.padEnd(16, '0')}`,
-              saldo: 'R$ 0,00'
-            };
-            appState.statement = {
-              saldoAtual: 'R$ 0,00',
-              saldoAnterior: 'R$ 0,00',
-              ultimaAtualizacao: 'Atualizado recentemente',
-              transacoes: []
-            };
-          }
-
-          localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
-          localStorage.setItem('ru_statement', JSON.stringify(appState.statement));
           overlay.classList.remove('open');
           statusMsg.style.display = 'none';
           document.getElementById('sigaaMatricula').value = '';
           document.getElementById('sigaaSenha').value = '';
+          confirmBtn.disabled = false;
+          confirmBtn.style.opacity = '1';
           renderCarteirinhaModal();
-        }, 500);
-      }, 500);
-    }, 400);
+        }, 600);
+      } else {
+        statusMsg.className = 'sigaa-status-msg error';
+        statusMsg.textContent = (data && data.error) ? data.error : 'Matrícula ou senha incorretas.';
+        confirmBtn.disabled = false;
+        confirmBtn.style.opacity = '1';
+      }
+    } catch (err) {
+      statusMsg.className = 'sigaa-status-msg error';
+      statusMsg.textContent = 'Serviço do SIGAA temporariamente indisponível. Tente novamente mais tarde.';
+      confirmBtn.disabled = false;
+      confirmBtn.style.opacity = '1';
+    }
   };
 }
 
 function openSigaaModal() {
   const overlay = document.getElementById('sigaaModalOverlay');
-  document.getElementById('sigaaStatusMsg').style.display = 'none';
+  const statusMsg = document.getElementById('sigaaStatusMsg');
+  statusMsg.style.display = 'none';
+  statusMsg.className = 'sigaa-status-msg';
+  statusMsg.textContent = '';
+  const confirmBtn = document.getElementById('btnConfirmSigaa');
+  confirmBtn.disabled = false;
+  confirmBtn.style.opacity = '1';
   overlay.classList.add('open');
 }
 
@@ -1071,7 +1101,7 @@ function setupSwipeGestures() {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=13').then((reg) => {
+      navigator.serviceWorker.register('sw.js?v=14').then((reg) => {
         reg.update();
       }).catch(() => {});
     });

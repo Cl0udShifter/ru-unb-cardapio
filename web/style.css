@@ -1211,6 +1211,14 @@ input:checked + .slider:before {
   margin-top: 10px;
   background-color: var(--surface-variant);
   color: var(--text-primary);
+  text-align: center;
+}
+
+.sigaa-status-msg.error {
+  background-color: rgba(220, 38, 38, 0.08);
+  color: #DC2626 !important;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  font-weight: 500;
 }
 
 /* Fullscreen Turnstile QR Overlay (FullScreenQrDialog 1:1) */

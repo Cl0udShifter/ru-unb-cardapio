@@ -13,3 +13,6 @@ parser/.venv
 parser/__pycache__
 parser/current_menu.pdf
 *.apk
+
+__pycache__/
+*.pyc
