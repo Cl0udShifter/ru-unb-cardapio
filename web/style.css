@@ -876,6 +876,8 @@ input:checked + .slider:before {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 .id-qr-hint {
@@ -1286,6 +1288,8 @@ input:checked + .slider:before {
   width: 100% !important;
   height: 100% !important;
   object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
   border-radius: 8px;
   display: block;
 }

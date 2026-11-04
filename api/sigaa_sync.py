@@ -121,6 +121,7 @@ def sync_with_urllib(matricula, senha):
     }
 
     qr_base64 = ''
+    qr_payload = None
     try:
         p_card = urllib.parse.urlencode(card_body).encode('utf-8')
         req_card = urllib.request.Request('https://sigaa.unb.br/sigaa/portais/discente/discente.jsf', data=p_card, headers=headers)
@@ -143,6 +144,14 @@ def sync_with_urllib(matricula, senha):
                                 buf = io.BytesIO()
                                 im.save(buf, format='PNG')
                                 qr_base64 = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('utf-8')
+
+                                try:
+                                    import pyrxing
+                                    barcode = pyrxing.read_barcode(im)
+                                    if barcode and barcode.text:
+                                        qr_payload = barcode.text.strip()
+                                except Exception:
+                                    pass
                             except Exception:
                                 pass
                             break
@@ -153,43 +162,50 @@ def sync_with_urllib(matricula, senha):
 
     # 6. Consultar Extrato do Restaurante Universitário
     saldo_atual = 'R$ 0,00'
+    saldo_anterior = 'R$ 0,00'
     transacoes = []
     try:
-        ext_m = re.search(r'<form[^>]+id=["\']formExibirExtrato["\'][^>]+action=["\']([^"\']+)["\']', current_html, re.I)
-        if ext_m:
-            ext_act = ext_m.group(1)
+        form_m = re.search(r'<form[^>]+id=["\']formExibirExtrato["\'][^>]*>(.*?)</form>', current_html, re.DOTALL | re.I)
+        if form_m:
+            form_html = form_m.group(1)
+            act_m = re.search(r'<form[^>]+id=["\']formExibirExtrato["\'][^>]+action=["\']([^"\']+)["\']', current_html, re.I)
+            ext_act = act_m.group(1) if act_m else '/sigaa/portais/discente/discente.jsf'
             if not ext_act.startswith('http'):
                 ext_act = 'https://sigaa.unb.br' + ext_act
 
             ext_data = {}
-            for m in re.finditer(r'<input[^>]+name=["\']([^"\']+)["\'][^>]*>', current_html, re.I):
+            for m in re.finditer(r'<input[^>]+name=["\']([^"\']+)["\'][^>]*>', form_html, re.I):
                 tag = m.group(0)
                 name = m.group(1)
                 val_m = re.search(r'value=["\']([^"\']*)["\']', tag, re.I)
                 ext_data[name] = val_m.group(1) if val_m else ''
 
-            m_jsf = re.search(r"jsfcljs\s*\(\s*document\.forms\['[^']+'\],\s*\{'([^']+)':'([^']+)'\}", current_html)
-            if m_jsf:
-                ext_data[m_jsf.group(1)] = m_jsf.group(2)
+            jsf_m = re.search(r"jsfcljs\(document\.getElementById\(['\"]formExibirExtrato['\"]\),\{'([^']+)':'([^']+)'\}", form_html, re.I)
+            if not jsf_m:
+                jsf_m = re.search(r"\{'([^']*formExibirExtrato[^']*)':'([^']+)'\}", form_html, re.I)
+            if jsf_m:
+                ext_data[jsf_m.group(1)] = jsf_m.group(2)
 
             p_ext = urllib.parse.urlencode(ext_data).encode('utf-8')
             req_ext = urllib.request.Request(ext_act, data=p_ext, headers=headers)
             r_ext = opener.open(req_ext, timeout=20)
-            ext_html = r_ext.read().decode('utf-8', errors='ignore')
+            ext_resp_html = r_ext.read().decode('utf-8', errors='ignore')
 
-            for row_m in re.finditer(r'<tr>(.*?)</tr>', ext_html, re.I | re.DOTALL):
+            for row_m in re.finditer(r'<tr>(.*?)</tr>', ext_resp_html, re.I | re.DOTALL):
                 row = row_m.group(1)
                 cols = [re.sub(r'<[^>]+>', '', col_m.group(1)).strip() for col_m in re.finditer(r'<t[dh][^>]*>(.*?)</t[dh]>', row, re.I | re.DOTALL)]
                 if len(cols) >= 3:
                     data_hora, desc, valor = cols[0], cols[1], cols[2]
-                    if desc.lower() == 'saldo':
+                    if 'saldo anterior' in desc.lower():
+                        saldo_anterior = valor
+                    elif desc.strip().lower() == 'saldo':
                         saldo_atual = valor
                     elif re.match(r'^\d{2}/\d{2}/\d{4}', data_hora):
                         transacoes.append({'dataHora': data_hora, 'descricao': desc, 'valor': valor})
     except Exception as e:
         print('Erro no extrato:', e)
 
-    codigo_qr = '7744502674419362' if matricula == '190026308' else matricula.ljust(16, '0')
+    codigo_qr = qr_payload or ('7744502674419362' if matricula == '190026308' else matricula.ljust(16, '0'))
 
     return {
         'success': True,

@@ -732,13 +732,17 @@ function setupCarteirinhaModal() {
       return;
     }
     const saldo = document.getElementById('inputSaldo').value.trim() || 'R$ 0,00';
+    const prevQr = appState.studentCard ? appState.studentCard.codigoQr : '';
+    const newQr = document.getElementById('inputQrCode').value.trim() || `${matricula.padEnd(16, '0')}`;
+    const qrImg = (newQr === prevQr && appState.studentCard) ? (appState.studentCard.qrImageBase64 || '') : '';
     appState.studentCard = {
       isConfigured: true,
       nome: nome || 'Estudante UnB',
       matricula: matricula,
       curso: document.getElementById('inputCurso').value.trim() || 'GRADUAÇÃO',
       validade: document.getElementById('inputValidade').value.trim() || 'Março / 2027',
-      codigoQr: document.getElementById('inputQrCode').value.trim() || `${matricula.padEnd(16, '0')}`,
+      codigoQr: newQr,
+      qrImageBase64: qrImg,
       saldo: saldo
     };
     if (appState.statement) {
@@ -771,32 +775,60 @@ function setupCarteirinhaModal() {
 
   // Refresh Extrato
   const btnRefreshExtrato = document.getElementById('btnRefreshExtrato');
-  btnRefreshExtrato.onclick = () => {
+  btnRefreshExtrato.onclick = async () => {
+    const credsRaw = localStorage.getItem('ru_sigaa_creds');
+    if (!credsRaw) {
+      openSigaaModal();
+      return;
+    }
     const icon = document.getElementById('extratoRefreshIcon');
     icon.style.animation = 'spin 0.8s linear infinite';
-    setTimeout(() => {
-      icon.style.animation = 'none';
-      const now = new Date();
-      const dd = String(now.getDate()).padStart(2, '0');
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const yyyy = now.getFullYear();
-      const hh = String(now.getHours()).padStart(2, '0');
-      const min = String(now.getMinutes()).padStart(2, '0');
-      const timeStr = `${dd}/${mm}/${yyyy} ${hh}:${min}`;
-      
-      if (!appState.statement) {
+    try {
+      const creds = JSON.parse(credsRaw);
+      const isVercelHost = window.location.hostname.endsWith('vercel.app') || (window.location.hostname === 'localhost' && window.location.port !== '');
+      const apiUrl = window.SIGAA_API_URL || (isVercelHost ? '/api' : 'https://ru-unb-cardapio-3zjv.vercel.app/api');
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matricula: creds.matricula, senha: creds.senha })
+      });
+      const data = await response.json();
+      if (response.ok && data && data.success) {
+        if (data.saldo) {
+          appState.studentCard.saldo = data.saldo;
+          if (data.qrImageBase64) appState.studentCard.qrImageBase64 = data.qrImageBase64;
+          localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
+        }
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2, '0');
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const yyyy = now.getFullYear();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        const timeStr = `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+
+        const existingStmt = JSON.parse(localStorage.getItem('ru_statement') || '{}');
+        const existingTrans = existingStmt.transacoes || [];
+        const newTrans = data.transacoes || [];
+        const mergedMap = new Map();
+        existingTrans.forEach(t => mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t));
+        newTrans.forEach(t => mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t));
+        const mergedList = Array.from(mergedMap.values());
+
         appState.statement = {
-          saldoAtual: appState.studentCard?.saldo || 'R$ 0,00',
-          saldoAnterior: appState.studentCard?.saldo || 'R$ 0,00',
+          saldoAtual: data.saldo || appState.studentCard.saldo || 'R$ 0,00',
+          saldoAnterior: data.saldoAnterior || data.saldo || 'R$ 0,00',
           ultimaAtualizacao: timeStr,
-          transacoes: []
+          transacoes: mergedList
         };
-      } else {
-        appState.statement.ultimaAtualizacao = timeStr;
+        localStorage.setItem('ru_statement', JSON.stringify(appState.statement));
+        renderCarteirinhaModal();
       }
-      localStorage.setItem('ru_statement', JSON.stringify(appState.statement));
-      renderCarteirinhaModal();
-    }, 600);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      icon.style.animation = 'none';
+    }
   };
 
   // Toggle RU Guide
@@ -814,6 +846,7 @@ function setupCarteirinhaModal() {
       appState.statement = null;
       localStorage.removeItem('ru_student_card');
       localStorage.removeItem('ru_statement');
+      localStorage.removeItem('ru_sigaa_creds');
       renderCarteirinhaModal();
     }
   };
@@ -876,14 +909,34 @@ function setupSigaaDialog() {
 
       if (response.ok && data && data.success) {
         statusMsg.textContent = 'Carteirinha sincronizada com sucesso!';
-        
+
+        let decodedQr = data.codigoQr || `${mat.padEnd(16, '0')}`;
+        if (data.qrImageBase64 && typeof jsQR !== 'undefined') {
+          try {
+            const tempImg = new Image();
+            tempImg.src = data.qrImageBase64;
+            await new Promise((resolve) => { tempImg.onload = resolve; tempImg.onerror = resolve; });
+            const canvas = document.createElement('canvas');
+            canvas.width = tempImg.naturalWidth || 250;
+            canvas.height = tempImg.naturalHeight || 250;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(tempImg, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const decoded = jsQR(imgData.data, canvas.width, canvas.height);
+            if (decoded && decoded.data) {
+              decodedQr = decoded.data;
+            }
+          } catch (_) {}
+        }
+
         appState.studentCard = {
           isConfigured: true,
           nome: data.nome || 'Estudante UnB',
           matricula: data.matricula || mat,
           curso: data.curso || 'GRADUAÇÃO',
           validade: data.validade || 'Março / 2027',
-          codigoQr: data.codigoQr || `${mat.padEnd(16, '0')}`,
+          codigoQr: decodedQr,
+          qrImageBase64: data.qrImageBase64 || '',
           saldo: data.saldo || 'R$ 0,00'
         };
 
@@ -895,17 +948,24 @@ function setupSigaaDialog() {
         const min = String(now.getMinutes()).padStart(2, '0');
         const timeStr = `${dd}/${mm}/${yyyy} ${hh}:${min}`;
 
+        const existingStmt = JSON.parse(localStorage.getItem('ru_statement') || '{}');
+        const existingTrans = existingStmt.transacoes || [];
+        const newTrans = data.transacoes || [];
+        const mergedMap = new Map();
+        existingTrans.forEach(t => mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t));
+        newTrans.forEach(t => mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t));
+        const mergedList = Array.from(mergedMap.values());
+
         appState.statement = {
           saldoAtual: data.saldo || 'R$ 0,00',
-          saldoAnterior: data.saldo || 'R$ 0,00',
+          saldoAnterior: data.saldoAnterior || data.saldo || 'R$ 0,00',
           ultimaAtualizacao: timeStr,
-          transacoes: (data.transacoes && data.transacoes.length > 0) ? data.transacoes : [
-            { dataHora: timeStr, descricao: 'Consulta Saldo RU (SIGAA)', valor: data.saldo || 'R$ 0,00' }
-          ]
+          transacoes: mergedList
         };
 
         localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
         localStorage.setItem('ru_statement', JSON.stringify(appState.statement));
+        localStorage.setItem('ru_sigaa_creds', JSON.stringify({ matricula: mat, senha: pass }));
 
         setTimeout(() => {
           overlay.classList.remove('open');
@@ -1016,7 +1076,17 @@ function renderCarteirinhaModal() {
 
   const qrContainer = document.getElementById('idQrCodeContainer');
   qrContainer.innerHTML = '';
-  if (typeof QRCode !== 'undefined') {
+  if (appState.studentCard.qrImageBase64) {
+    const img = document.createElement('img');
+    img.src = appState.studentCard.qrImageBase64;
+    img.alt = 'QR Code da Catraca';
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'contain';
+    img.style.imageRendering = 'pixelated';
+    img.style.display = 'block';
+    qrContainer.appendChild(img);
+  } else if (typeof QRCode !== 'undefined') {
     qrCodeInstance = new QRCode(qrContainer, {
       text: appState.studentCard.codigoQr || appState.studentCard.matricula,
       width: 190,
@@ -1041,14 +1111,24 @@ function renderTurnstileFullscreenQR() {
     matEl.textContent = `Matrícula: ${appState.studentCard.matricula || '---'}`;
   }
 
-  if (typeof QRCode !== 'undefined') {
+  if (appState.studentCard.qrImageBase64) {
+    const img = document.createElement('img');
+    img.src = appState.studentCard.qrImageBase64;
+    img.alt = 'QR Code da Catraca';
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'contain';
+    img.style.imageRendering = 'pixelated';
+    img.style.display = 'block';
+    container.appendChild(img);
+  } else if (typeof QRCode !== 'undefined') {
     turnstileQrInstance = new QRCode(container, {
       text: appState.studentCard.codigoQr || appState.studentCard.matricula,
       width: 320,
       height: 320,
       colorDark: '#000000',
       colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.H
+      correctLevel: QRCode.CorrectLevel.M
     });
   }
 }
