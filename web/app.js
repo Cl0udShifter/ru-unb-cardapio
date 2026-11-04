@@ -756,7 +756,6 @@ function setupCarteirinhaModal() {
   const qrBox = document.getElementById('idQrCodeContainer');
   const hintBtn = document.getElementById('openFullscreenQrHint');
   const turnstileOverlay = document.getElementById('turnstileQrOverlay');
-  const closeTurnstileBtn = document.getElementById('closeTurnstileQrBtn');
 
   const openTurnstile = () => {
     renderTurnstileFullscreenQR();
@@ -766,7 +765,7 @@ function setupCarteirinhaModal() {
   qrBox.onclick = openTurnstile;
   hintBtn.onclick = openTurnstile;
 
-  closeTurnstileBtn.onclick = () => {
+  turnstileOverlay.onclick = () => {
     turnstileOverlay.classList.remove('open');
   };
 
@@ -1002,12 +1001,21 @@ function renderCarteirinhaModal() {
 function renderTurnstileFullscreenQR() {
   const container = document.getElementById('turnstileQrCode');
   container.innerHTML = '';
-  document.getElementById('turnstileMatriculaTxt').textContent = appState.studentCard.matricula;
+  const nomeEl = document.getElementById('turnstileNomeTxt');
+  const matEl = document.getElementById('turnstileMatriculaTxt');
+
+  if (nomeEl) {
+    nomeEl.textContent = appState.studentCard.nome || 'Estudante UnB';
+  }
+  if (matEl) {
+    matEl.textContent = `Matrícula: ${appState.studentCard.matricula || '---'}`;
+  }
+
   if (typeof QRCode !== 'undefined') {
     turnstileQrInstance = new QRCode(container, {
       text: appState.studentCard.codigoQr || appState.studentCard.matricula,
-      width: 240,
-      height: 240,
+      width: 320,
+      height: 320,
       colorDark: '#000000',
       colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.H
@@ -1063,7 +1071,7 @@ function setupSwipeGestures() {
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js?v=12').then((reg) => {
+      navigator.serviceWorker.register('sw.js?v=13').then((reg) => {
         reg.update();
       }).catch(() => {});
     });
@@ -1072,6 +1080,10 @@ function registerServiceWorker() {
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().catch(() => {});
+  }
+
   initTheme();
   document.getElementById('themeToggleBtn').onclick = toggleTheme;
   document.getElementById('refreshBtn').onclick = () => {

@@ -1,10 +1,10 @@
-const CACHE_NAME = 'ru-unb-v15';
+const CACHE_NAME = 'ru-unb-v16';
 
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './style.css?v=4.6',
-  './app.js?v=4.6',
+  './style.css?v=4.7',
+  './app.js?v=4.7',
   './qrcode.min.js?v=4.1',
   './manifest.json',
   './icons/favicon.png?v=4.1',

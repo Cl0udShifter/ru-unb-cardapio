@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="icons/favicon.png?v=4.1">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4.1">
   
-  <link rel="stylesheet" href="style.css?v=4.6">
+  <link rel="stylesheet" href="style.css?v=4.7">
 </head>
 <body>
   <div id="app">
@@ -528,18 +528,19 @@
       </div>
     </div>
 
-    <!-- Fullscreen Turnstile QR Overlay (for turnstiles) -->
-    <div id="turnstileQrOverlay" class="turnstile-qr-overlay">
-      <div class="turnstile-content-box">
-        <div id="turnstileQrCode"></div>
-        <div class="turnstile-label-main">Aproxime do leitor da catraca</div>
-        <div id="turnstileMatriculaTxt" class="turnstile-label-sub">---</div>
-        <button id="closeTurnstileQrBtn" class="turnstile-close-btn">Fechar</button>
+    <!-- Fullscreen Turnstile QR Overlay (FullScreenQrDialog 1:1) -->
+    <div id="turnstileQrOverlay" class="turnstile-qr-overlay" role="dialog" aria-modal="true" aria-label="QR Code da Catraca">
+      <div class="turnstile-qr-container">
+        <div class="turnstile-title">Aponte para o leitor da catraca</div>
+        <div class="turnstile-subtitle">Brilho no máximo ativado • Toque para fechar</div>
+        <div id="turnstileQrCode" class="turnstile-qr-code-box"></div>
+        <div id="turnstileNomeTxt" class="turnstile-student-name">---</div>
+        <div id="turnstileMatriculaTxt" class="turnstile-student-mat">---</div>
       </div>
     </div>
   </div>
 
   <script src="qrcode.min.js?v=4.1"></script>
-  <script src="app.js?v=4.6"></script>
+  <script src="app.js?v=4.7"></script>
 </body>
 </html>
