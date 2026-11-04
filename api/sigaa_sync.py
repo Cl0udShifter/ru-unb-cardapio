@@ -6,6 +6,27 @@ import re
 import zlib
 import base64
 import io
+import struct
+
+def rgb_to_png(width, height, raw_rgb):
+    png = b'\x89PNG\r\n\x1a\n'
+    ihdr_data = struct.pack('>IIBBBBB', width, height, 8, 2, 0, 0, 0)
+    ihdr_crc = struct.pack('>I', zlib.crc32(b'IHDR' + ihdr_data))
+    png += struct.pack('>I', len(ihdr_data)) + b'IHDR' + ihdr_data + ihdr_crc
+
+    raw_scanlines = bytearray()
+    row_bytes = width * 3
+    for y in range(height):
+        raw_scanlines.append(0)
+        raw_scanlines.extend(raw_rgb[y * row_bytes : (y + 1) * row_bytes])
+
+    idat_data = zlib.compress(bytes(raw_scanlines), level=6)
+    idat_crc = struct.pack('>I', zlib.crc32(b'IDAT' + idat_data))
+    png += struct.pack('>I', len(idat_data)) + b'IDAT' + idat_data + idat_crc
+
+    iend_crc = struct.pack('>I', zlib.crc32(b'IEND'))
+    png += struct.pack('>I', 0) + b'IEND' + iend_crc
+    return png
 
 def sync_with_urllib(matricula, senha):
     cj = http.cookiejar.CookieJar()
@@ -138,20 +159,16 @@ def sync_with_urllib(matricula, senha):
                     try:
                         decomp = zlib.decompress(stream_data)
                         if len(decomp) == 250 * 250 * 3:
+                            png_bytes = rgb_to_png(250, 250, decomp)
+                            qr_base64 = 'data:image/png;base64,' + base64.b64encode(png_bytes).decode('utf-8')
+
                             try:
                                 from PIL import Image
-                                im = Image.frombytes('RGB', (250, 250), decomp)
-                                buf = io.BytesIO()
-                                im.save(buf, format='PNG')
-                                qr_base64 = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('utf-8')
-
-                                try:
-                                    import pyrxing
-                                    barcode = pyrxing.read_barcode(im)
-                                    if barcode and barcode.text:
-                                        qr_payload = barcode.text.strip()
-                                except Exception:
-                                    pass
+                                im = Image.open(io.BytesIO(png_bytes))
+                                import pyrxing
+                                barcode = pyrxing.read_barcode(im)
+                                if barcode and barcode.text:
+                                    qr_payload = barcode.text.strip()
                             except Exception:
                                 pass
                             break
