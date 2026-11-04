@@ -15,7 +15,7 @@ object QrCodeGenerator {
             val hints = mapOf(
                 EncodeHintType.MARGIN to 1,
                 EncodeHintType.CHARACTER_SET to "UTF-8",
-                EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M
+                EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.L
             )
             val bitMatrix = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, sizePx, sizePx, hints)
             val width = bitMatrix.width
