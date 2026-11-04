@@ -1,4 +1,3 @@
-from http.server import BaseHTTPRequestHandler
 import json
 import urllib.parse
 import re
@@ -187,57 +186,48 @@ def full_sigaa_sync(matricula, senha):
         'transacoes': transacoes
     }
 
-class handler(BaseHTTPRequestHandler):
-    def _send_cors_headers(self):
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+def app(environ, start_response):
+    method = environ.get('REQUEST_METHOD', 'GET')
+    headers = [
+        ('Access-Control-Allow-Origin', '*'),
+        ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
+        ('Access-Control-Allow-Headers', 'Content-Type'),
+        ('Content-Type', 'application/json; charset=utf-8')
+    ]
 
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self._send_cors_headers()
-        self.end_headers()
+    if method == 'OPTIONS':
+        start_response('200 OK', headers)
+        return [b'']
 
-    def do_GET(self):
-        self.send_response(200)
-        self._send_cors_headers()
-        self.send_header('Content-Type', 'application/json; charset=utf-8')
-        self.end_headers()
-        self.wfile.write(json.dumps({'status': 'ok', 'service': 'RU UnB SIGAA Sync API'}).encode('utf-8'))
+    if method == 'GET':
+        start_response('200 OK', headers)
+        return [json.dumps({'status': 'ok', 'service': 'RU UnB SIGAA Sync API'}).encode('utf-8')]
 
-    def do_POST(self):
+    if method == 'POST':
         try:
-            content_length = int(self.headers.get('Content-Length', 0))
-            post_data = self.rfile.read(content_length)
-            body = json.loads(post_data.decode('utf-8'))
-            matricula = str(body.get('matricula', '')).strip()
-            senha = str(body.get('senha', '')).strip()
+            content_length = int(environ.get('CONTENT_LENGTH', 0))
+        except (ValueError, TypeError):
+            content_length = 0
 
-            if not matricula or not senha:
-                self.send_response(400)
-                self._send_cors_headers()
-                self.send_header('Content-Type', 'application/json; charset=utf-8')
-                self.end_headers()
-                self.wfile.write(json.dumps({'success': False, 'error': 'Matrícula e senha são obrigatórias.'}).encode('utf-8'))
-                return
+        body = environ['wsgi.input'].read(content_length).decode('utf-8') if content_length > 0 else '{}'
+        try:
+            data = json.loads(body)
+        except Exception:
+            data = {}
 
-            result = full_sigaa_sync(matricula, senha)
-            
-            status_code = 200 if result.get('success') else 401
-            self.send_response(status_code)
-            self._send_cors_headers()
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
-        except Exception as e:
-            self.send_response(500)
-            self._send_cors_headers()
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(json.dumps({'success': False, 'error': f'Erro interno no servidor: {str(e)}'}).encode('utf-8'))
+        matricula = str(data.get('matricula', '')).strip()
+        senha = str(data.get('senha', '')).strip()
 
-if __name__ == '__main__':
-    from http.server import HTTPServer
-    server = HTTPServer(('127.0.0.1', 8765), handler)
-    print('Servidor SIGAA Sync iniciado em http://127.0.0.1:8765')
-    server.serve_forever()
+        if not matricula or not senha:
+            start_response('400 Bad Request', headers)
+            return [json.dumps({'success': False, 'error': 'Matrícula e senha são obrigatórias.'}).encode('utf-8')]
+
+        result = full_sigaa_sync(matricula, senha)
+        status_code = '200 OK' if result.get('success') else '401 Unauthorized'
+        start_response(status_code, headers)
+        return [json.dumps(result, ensure_ascii=False).encode('utf-8')]
+
+    start_response('405 Method Not Allowed', headers)
+    return [b'']
+
+handler = app
