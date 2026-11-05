@@ -65,7 +65,9 @@ class MainActivity : ComponentActivity() {
                     onConfirmUpdate = { viewModel.downloadAndInstallUpdate() },
                     onDismissUpdate = { viewModel.dismissUpdateDialog() },
                     onClearUpdateMessage = { viewModel.clearUpdateMessage() },
-                    onGetHistoryPdf = { viewModel.getHistoryPdfFile() }
+                    onGetHistoryPdf = { viewModel.getHistoryPdfFile() },
+                    onMarkNoticeAsRead = { viewModel.markNoticeAsRead(it) },
+                    onSyncHistory = { viewModel.syncAcademicHistory() }
                 )
             }
         }

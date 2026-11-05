@@ -71,6 +71,7 @@ class StudentCardRepository(private val context: Context) {
         private const val KEY_FOTO_URL = "card_foto_url"
         private const val KEY_DISCIPLINAS = "card_disciplinas"
         private const val KEY_ACADEMIC_HISTORY = "card_academic_history"
+        private const val KEY_READ_NOTICES = "card_read_notices"
     }
 
     fun getStudentCard(): StudentCard {
@@ -386,6 +387,27 @@ class StudentCardRepository(private val context: Context) {
                 return@withContext Result.failure(Exception("Não foi possível gerar a carteirinha pelo SIGAA."))
             }
 
+            // 4.1 Baixar Histórico Escolar Oficial em PDF com a mesma sessão fresca do portal
+            onProgress("Baixando histórico escolar oficial...")
+            var histPdfBytes = byteArrayOf()
+            try {
+                val histBody = FormBody.Builder()
+                    .add("menu:form_menu_discente", "menu:form_menu_discente")
+                    .add("id", formId)
+                    .add("jscook_action", "menu_form_menu_discente_discente_menu:A]#{ portalDiscente.historico }")
+                    .add("javax.faces.ViewState", viewState)
+                    .build()
+
+                val histReq = Request.Builder()
+                    .url("https://sigaa.unb.br/sigaa/portais/discente/discente.jsf")
+                    .post(histBody)
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                    .build()
+
+                val histResp = client.newCall(histReq).execute()
+                histPdfBytes = histResp.body?.bytes() ?: byteArrayOf()
+            } catch (_: Exception) {}
+
             // 5. Decodificar QR Code com PdfRenderer e ZXing
             onProgress("Decodificando QR Code da catraca...")
             val tempFile = File(context.cacheDir, "temp_card_${System.currentTimeMillis()}.pdf")
@@ -466,31 +488,9 @@ class StudentCardRepository(private val context: Context) {
             saveStudentCard(newCard)
             saveCredentials(matricula, pass)
 
-            // 6. Extrair Disciplinas e Grade de Aulas
-            onProgress("Lendo turmas e grade de horários...")
-            val rawClasses = parseClassesFromHtml(currentHtml)
-            val classes = enrichClassesFromTurmaVirtual(client, currentHtml, rawClasses, onProgress)
-            saveClasses(classes)
-
-            // 7. Baixar Histórico Escolar Oficial em PDF
-            onProgress("Baixando histórico escolar oficial...")
+            // Processar Histórico Escolar se baixado no passo 4.1
             var academicHistory = AcademicHistory()
             try {
-                val histBody = FormBody.Builder()
-                    .add("menu:form_menu_discente", "menu:form_menu_discente")
-                    .add("id", formId)
-                    .add("jscook_action", "menu_form_menu_discente_discente_menu:A]#{ portalDiscente.historico }")
-                    .add("javax.faces.ViewState", viewState)
-                    .build()
-
-                val histReq = Request.Builder()
-                    .url("https://sigaa.unb.br/sigaa/portais/discente/discente.jsf")
-                    .post(histBody)
-                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
-                    .build()
-
-                val histResp = client.newCall(histReq).execute()
-                val histPdfBytes = histResp.body?.bytes() ?: byteArrayOf()
                 if (histPdfBytes.size > 1000 && histPdfBytes.take(4).toByteArray().contentEquals("%PDF".toByteArray())) {
                     saveHistoryPdf(histPdfBytes)
                     val texts = extractTextFromPdfBytes(histPdfBytes)
@@ -499,7 +499,23 @@ class StudentCardRepository(private val context: Context) {
                 }
             } catch (_: Exception) {}
 
-            // 8. Consultar Extrato do Restaurante Universitário
+            // 6. Extrair Disciplinas e Grade de Aulas
+            onProgress("Lendo turmas e grade de horários...")
+            val rawClasses = parseClassesFromHtml(currentHtml)
+            val classes = enrichClassesFromTurmaVirtual(client, currentHtml, rawClasses, onProgress)
+            saveClasses(classes)
+
+            // Se o histórico ainda não foi obtido (por exemplo se a sessão mudou), tentar fallback dedicado
+            if (academicHistory.semestres.isEmpty()) {
+                try {
+                    val fallbackResult = syncAcademicHistory(matricula, pass)
+                    if (fallbackResult.isSuccess) {
+                        academicHistory = fallbackResult.getOrNull() ?: academicHistory
+                    }
+                } catch (_: Exception) {}
+            }
+
+            // 7. Consultar Extrato do Restaurante Universitário
             onProgress("Consultando saldo e extrato do RU...")
             val statement = fetchStatementFromPortal(client, currentHtml, matricula)
             saveStatement(statement)
@@ -1424,5 +1440,118 @@ class StudentCardRepository(private val context: Context) {
             totalCursando = totalMatr,
             pdfAvailable = getHistoryPdfFile() != null
         )
+    }
+
+    fun getReadNoticeIds(): Set<String> {
+        return prefs.getStringSet(KEY_READ_NOTICES, emptySet()) ?: emptySet()
+    }
+
+    fun markNoticeAsRead(noticeId: String) {
+        val current = getReadNoticeIds().toMutableSet()
+        current.add(noticeId)
+        prefs.edit().putStringSet(KEY_READ_NOTICES, current).apply()
+    }
+
+    suspend fun syncAcademicHistory(matricula: String, pass: String): Result<AcademicHistory> = withContext(Dispatchers.IO) {
+        try {
+            val client = OkHttpClient.Builder()
+                .cookieJar(MemoryCookieJar())
+                .followRedirects(true)
+                .followSslRedirects(true)
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build()
+
+            val ssoUrl = "https://autenticacao.unb.br/sso-server/login?service=https%3A%2F%2Fsig.unb.br%2Fsigaa%2Flogin%2Fcas"
+            val ssoReq = Request.Builder()
+                .url(ssoUrl)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                .build()
+
+            val ssoHtml = client.newCall(ssoReq).execute().body?.string() ?: ""
+            val actionUrl = extractFormAction(ssoHtml, "https://autenticacao.unb.br")
+            val hiddenInputs = extractInputFields(ssoHtml).toMutableMap()
+            hiddenInputs["username"] = matricula
+            hiddenInputs["password"] = pass
+            hiddenInputs["submit"] = "ENTRAR"
+
+            val postForm = FormBody.Builder()
+            hiddenInputs.forEach { (k, v) -> postForm.add(k, v) }
+
+            val loginReq = Request.Builder()
+                .url(actionUrl)
+                .post(postForm.build())
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                .build()
+
+            var currentResp = client.newCall(loginReq).execute()
+            var currentHtml = currentResp.body?.string() ?: ""
+            var currentUrl = currentResp.request.url.toString()
+
+            var avisoAttempts = 0
+            while (currentUrl.contains("telaAvisoLogon.jsf") && avisoAttempts < 6) {
+                val avisoFormAction = extractFormAction(currentHtml, "https://sigaa.unb.br")
+                val hasPasswordField = currentHtml.contains("type=\"password\"") || currentHtml.contains("formConfirmacaoDeclaracao")
+                val formBody = FormBody.Builder()
+
+                if (hasPasswordField) {
+                    val pInputName = extractInputNameByPattern(currentHtml, "password") ?: "formConfirmacaoDeclaracao:senha"
+                    val allInputs = extractInputFields(currentHtml)
+                    allInputs.forEach { (k, v) ->
+                        if (k == pInputName) formBody.add(k, pass) else formBody.add(k, v)
+                    }
+                    formBody.add("formConfirmacaoDeclaracao:buttonConfirmar", "Confirmar")
+                } else {
+                    val allInputs = extractInputFields(currentHtml)
+                    allInputs.forEach { (k, v) -> formBody.add(k, v) }
+                    val submitBtn = extractSubmitButton(currentHtml, "Continuar")
+                    if (submitBtn != null) formBody.add(submitBtn.first, submitBtn.second)
+                }
+
+                val avisoReq = Request.Builder()
+                    .url(avisoFormAction)
+                    .post(formBody.build())
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                    .build()
+
+                currentResp = client.newCall(avisoReq).execute()
+                currentHtml = currentResp.body?.string() ?: ""
+                currentUrl = currentResp.request.url.toString()
+                avisoAttempts++
+            }
+
+            val viewState = extractValue(currentHtml, "javax.faces.ViewState") ?: "j_id1"
+            val formId = extractMenuFormId(currentHtml) ?: "331956"
+            val studentCourse = extractStudentCourse(currentHtml)
+            val ira = extractPattern(currentHtml, "IRA:\\s*(?:</acronym>)?</td>\\s*<td[^>]*>(?:<div[^>]*>)?([\\d\\.,]+)").ifBlank { "--" }
+
+            val histBody = FormBody.Builder()
+                .add("menu:form_menu_discente", "menu:form_menu_discente")
+                .add("id", formId)
+                .add("jscook_action", "menu_form_menu_discente_discente_menu:A]#{ portalDiscente.historico }")
+                .add("javax.faces.ViewState", viewState)
+                .build()
+
+            val histReq = Request.Builder()
+                .url("https://sigaa.unb.br/sigaa/portais/discente/discente.jsf")
+                .post(histBody)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                .build()
+
+            val histResp = client.newCall(histReq).execute()
+            val histPdfBytes = histResp.body?.bytes() ?: byteArrayOf()
+
+            if (histPdfBytes.size > 1000 && histPdfBytes.take(4).toByteArray().contentEquals("%PDF".toByteArray())) {
+                saveHistoryPdf(histPdfBytes)
+                val texts = extractTextFromPdfBytes(histPdfBytes)
+                val history = parseAcademicHistory(texts, matricula, studentCourse, ira)
+                saveAcademicHistory(history)
+                Result.success(history)
+            } else {
+                Result.failure(Exception("Não foi possível obter o PDF do histórico escolar do SIGAA."))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

@@ -48,6 +48,8 @@ data class MenuUiState(
     val classes: List<ClassSchedule> = emptyList(),
     val academicHistory: AcademicHistory = AcademicHistory(),
     val flowSemesters: List<FlowSemester> = emptyList(),
+    val isSyncingHistory: Boolean = false,
+    val readNoticeIds: Set<String> = emptySet(),
     val isSyncingCard: Boolean = false,
     val isRefreshingStatement: Boolean = false,
     val syncProgressMessage: String? = null,
@@ -98,6 +100,7 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
         val savedClasses = cardRepository.getClasses()
         val savedHistory = cardRepository.getAcademicHistory()
         val flowSemesters = CurriculumMatrix.resolveFlow(savedHistory)
+        val savedReadNotices = cardRepository.getReadNoticeIds()
 
         // 4. Carregar campus selecionado
         val savedCampus = repository.getSelectedCampus()
@@ -111,6 +114,7 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
                 classes = savedClasses,
                 academicHistory = savedHistory,
                 flowSemesters = flowSemesters,
+                readNoticeIds = savedReadNotices,
                 selectedCampus = savedCampus
             )
         }
@@ -119,6 +123,10 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
         determineTodayAndMeal()
         loadMenu(savedCampus)
         checkForUpdate(force = false)
+
+        if (savedCard.isConfigured && savedHistory.semestres.isEmpty()) {
+            syncAcademicHistory()
+        }
     }
 
     private fun determineTodayAndMeal() {
@@ -398,6 +406,30 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearUpdateMessage() {
         _uiState.update { it.copy(updateMessage = null) }
+    }
+
+    fun syncAcademicHistory() {
+        val creds = cardRepository.getSavedCredentials() ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSyncingHistory = true) }
+            val result = cardRepository.syncAcademicHistory(creds.first, creds.second)
+            result.onSuccess { hist ->
+                _uiState.update {
+                    it.copy(
+                        isSyncingHistory = false,
+                        academicHistory = hist,
+                        flowSemesters = CurriculumMatrix.resolveFlow(hist)
+                    )
+                }
+            }.onFailure {
+                _uiState.update { it.copy(isSyncingHistory = false) }
+            }
+        }
+    }
+
+    fun markNoticeAsRead(noticeId: String) {
+        cardRepository.markNoticeAsRead(noticeId)
+        _uiState.update { it.copy(readNoticeIds = it.readNoticeIds + noticeId) }
     }
 
     fun getHistoryPdfFile(): File? = cardRepository.getHistoryPdfFile()

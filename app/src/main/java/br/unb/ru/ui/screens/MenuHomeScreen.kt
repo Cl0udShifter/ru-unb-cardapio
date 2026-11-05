@@ -101,6 +101,8 @@ fun MenuHomeScreen(
     onDismissUpdate: () -> Unit = {},
     onClearUpdateMessage: () -> Unit = {},
     onGetHistoryPdf: () -> java.io.File? = { null },
+    onMarkNoticeAsRead: (String) -> Unit = {},
+    onSyncHistory: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -220,6 +222,8 @@ fun MenuHomeScreen(
                         card = state.studentCard,
                         onBack = { showHistorico = false },
                         onOpenPdf = { openHistoryPdf() },
+                        isSyncing = state.isSyncingHistory,
+                        onSyncHistory = onSyncHistory,
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
@@ -484,6 +488,8 @@ fun MenuHomeScreen(
                             classes = state.classes,
                             isConfigured = state.studentCard.isConfigured,
                             onOpenLogin = { currentTab = MainScreenTab.DISCENTE },
+                            readNoticeIds = state.readNoticeIds,
+                            onMarkNoticeAsRead = onMarkNoticeAsRead,
                             modifier = Modifier.statusBarsPadding()
                         )
                     } else {
@@ -501,6 +507,8 @@ fun MenuHomeScreen(
                             isCheckingUpdate = state.isCheckingUpdate,
                             onFlipToQr = { isDiscenteFlipped = true },
                             onOpenHistorico = { showHistorico = true },
+                            isSyncingHistory = state.isSyncingHistory,
+                            onSyncHistory = onSyncHistory,
                             scrollState = discenteScrollState,
                             modifier = Modifier.statusBarsPadding()
                         )

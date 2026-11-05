@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="icons/favicon.png?v=4.1">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4.1">
   
-  <link rel="stylesheet" href="style.css?v=8.2">
+  <link rel="stylesheet" href="style.css?v=8.3">
 </head>
 <body>
   <div id="app">
@@ -297,8 +297,12 @@
                   </div>
                 </div>
 
-                <!-- Rodapé: Botão de Desconectar Conta -->
-                <div class="discente-disconnect-section">
+                <!-- Rodapé: Sincronizar e Desconectar Conta -->
+                <div class="discente-disconnect-section" style="display: flex; flex-direction: column; gap: 8px;">
+                  <button id="discenteSyncBtn" class="notion-btn notion-btn-secondary" type="button" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;" onclick="syncHistoricoFromWeb()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                    <span>Sincronizar dados do SIGAA</span>
+                  </button>
                   <button id="discenteDisconnectBtn" class="discente-danger-btn" type="button">
                     Desconectar conta
                   </button>
@@ -907,6 +911,6 @@
   <script src="zxing.min.js"></script>
   <script src="jsqr.min.js"></script>
   <script src="qrcode.min.js?v=4.1"></script>
-  <script src="app.js?v=8.2"></script>
+  <script src="app.js?v=8.3"></script>
 </body>
 </html>

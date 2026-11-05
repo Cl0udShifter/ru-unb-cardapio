@@ -40,6 +40,8 @@ fun AulasScreen(
     classes: List<ClassSchedule>,
     isConfigured: Boolean,
     onOpenLogin: () -> Unit = {},
+    readNoticeIds: Set<String> = emptySet(),
+    onMarkNoticeAsRead: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedTab by rememberSaveable { mutableStateOf("dia") }
@@ -84,6 +86,15 @@ fun AulasScreen(
             val time = c.horariosSafe.firstOrNull { it.dia == selectedDia }
             if (time != null) Pair(c, time) else null
         }.sortedBy { it.second.inicioSafe }
+    }
+
+    val totalUnreadNotices = remember(classes, readNoticeIds) {
+        classes.sumOf { c ->
+            c.noticiasSafe.count { aviso ->
+                val id = "${c.codigoSafe.trim().uppercase()}_${aviso.dataSafe.trim()}_${aviso.tituloSafe.trim()}"
+                id !in readNoticeIds
+            }
+        }
     }
 
     LazyColumn(
@@ -166,7 +177,7 @@ fun AulasScreen(
                                     fontWeight = if (isTurmasActive) FontWeight.Bold else FontWeight.Medium,
                                     color = if (isTurmasActive) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                                 )
-                                if (classes.isNotEmpty()) {
+                                if (totalUnreadNotices > 0) {
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Surface(
                                         shape = RoundedCornerShape(6.dp),
@@ -174,7 +185,7 @@ fun AulasScreen(
                                         modifier = Modifier.padding(1.dp)
                                     ) {
                                         Text(
-                                            text = "${classes.size}",
+                                            text = "$totalUnreadNotices",
                                             style = NotionTypography.labelSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = if (isTurmasActive) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground,
@@ -459,7 +470,7 @@ fun AulasScreen(
                     classes,
                     key = { "${it.nomeSafe}_${it.codigoSafe}_${it.turmaSafe}" }
                 ) { disciplina ->
-                    SemesterTurmaCardItem(disciplina = disciplina)
+                    SemesterTurmaCardItem(disciplina = disciplina, readNoticeIds = readNoticeIds, onMarkNoticeAsRead = onMarkNoticeAsRead)
                 }
             }
         }
@@ -656,7 +667,11 @@ private fun ClassCardItem(
 }
 
 @Composable
-private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
+private fun SemesterTurmaCardItem(
+    disciplina: ClassSchedule,
+    readNoticeIds: Set<String> = emptySet(),
+    onMarkNoticeAsRead: (String) -> Unit = {}
+) {
     var isExpanded by remember { mutableStateOf(false) }
     val rotation by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f, label = "turma_expand")
 
@@ -894,6 +909,9 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
 
             // ACCORDION: Avisos e Arquivos da Turma Virtual
             val noticesList = disciplina.noticiasSafe
+            fun getNoticeId(aviso: ClassNotice): String = "${disciplina.codigoSafe.trim().uppercase()}_${aviso.dataSafe.trim()}_${aviso.tituloSafe.trim()}"
+            val unreadNoticesCount = noticesList.count { getNoticeId(it) !in readNoticeIds }
+
             Surface(
                 shape = RoundedCornerShape(10.dp),
                 color = Color.Transparent,
@@ -923,7 +941,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onBackground
                         )
-                        if (noticesList.isNotEmpty()) {
+                        if (unreadNoticesCount > 0) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
@@ -931,7 +949,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                                 modifier = Modifier.padding(1.dp)
                             ) {
                                 Text(
-                                    text = "${noticesList.size}",
+                                    text = "$unreadNoticesCount",
                                     style = NotionTypography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.background,
@@ -969,7 +987,13 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                         )
                     } else {
                         noticesList.forEach { aviso ->
-                            NoticeCardItem(aviso = aviso)
+                            val nId = getNoticeId(aviso)
+                            val isRead = readNoticeIds.contains(nId)
+                            NoticeCardItem(
+                                aviso = aviso,
+                                isRead = isRead,
+                                onRead = { onMarkNoticeAsRead(nId) }
+                            )
                         }
                     }
                 }
@@ -979,20 +1003,27 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
 }
 
 @Composable
-private fun NoticeCardItem(aviso: ClassNotice) {
+private fun NoticeCardItem(
+    aviso: ClassNotice,
+    isRead: Boolean = false,
+    onRead: () -> Unit = {}
+) {
     var isNoticeExpanded by remember { mutableStateOf(false) }
     val rotation by animateFloatAsState(targetValue = if (isNoticeExpanded) 180f else 0f, label = "notice_arrow")
     val context = LocalContext.current
 
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)),
+        color = if (isRead) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, if (isRead) MaterialTheme.colorScheme.outline.copy(alpha = 0.1f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clip(RoundedCornerShape(10.dp))
-            .clickable { isNoticeExpanded = !isNoticeExpanded }
+            .clickable {
+                isNoticeExpanded = !isNoticeExpanded
+                if (!isRead) onRead()
+            }
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -1007,6 +1038,15 @@ private fun NoticeCardItem(aviso: ClassNotice) {
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.weight(1f)
                 )
+                if (!isRead) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onBackground)
+                    )
+                }
                 if (aviso.dataSafe.isNotBlank()) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(

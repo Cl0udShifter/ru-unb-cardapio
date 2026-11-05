@@ -44,6 +44,8 @@ fun HistoricoFluxogramaScreen(
     card: StudentCard,
     onBack: () -> Unit,
     onOpenPdf: () -> Unit,
+    isSyncing: Boolean = false,
+    onSyncHistory: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     BackHandler { onBack() }
@@ -81,6 +83,24 @@ fun HistoricoFluxogramaScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = onSyncHistory,
+                        enabled = !isSyncing
+                    ) {
+                        if (isSyncing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.Refresh,
+                                contentDescription = "Sincronizar Histórico",
+                                tint = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    }
                     if (history.pdfAvailable) {
                         IconButton(onClick = onOpenPdf) {
                             Icon(
@@ -186,6 +206,8 @@ fun HistoricoFluxogramaScreen(
                         HistoricoTabContent(
                             history = history,
                             card = card,
+                            isSyncing = isSyncing,
+                            onSyncHistory = onSyncHistory,
                             onOpenPdf = onOpenPdf
                         )
                     }
@@ -193,7 +215,9 @@ fun HistoricoFluxogramaScreen(
                         FluxogramaTabContent(
                             flowSemesters = flowSemesters,
                             history = history,
-                            card = card
+                            card = card,
+                            isSyncing = isSyncing,
+                            onSyncHistory = onSyncHistory
                         )
                     }
                 }
@@ -206,6 +230,8 @@ fun HistoricoFluxogramaScreen(
 private fun HistoricoTabContent(
     history: AcademicHistory,
     card: StudentCard,
+    isSyncing: Boolean,
+    onSyncHistory: () -> Unit,
     onOpenPdf: () -> Unit
 ) {
     if (history.semestres.isEmpty()) {
@@ -231,11 +257,41 @@ private fun HistoricoTabContent(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Conecte sua conta do SIGAA na aba Estudante para baixar automaticamente seu histórico oficial.",
+                    text = if (card.isConfigured) "Baixe seu histórico oficial e fluxograma diretamente do SIGAA com um toque." else "Conecte sua conta do SIGAA na aba Estudante para baixar automaticamente seu histórico oficial.",
                     style = NotionTypography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center
                 )
+                if (card.isConfigured) {
+                    Spacer(modifier = Modifier.height(18.dp))
+                    Button(
+                        onClick = onSyncHistory,
+                        enabled = !isSyncing,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.onBackground,
+                            contentColor = MaterialTheme.colorScheme.background
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        if (isSyncing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.background
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Sincronizando...", style = NotionTypography.labelMedium)
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Sincronizar Histórico Escolar", style = NotionTypography.labelMedium)
+                        }
+                    }
+                }
             }
         }
         return
@@ -562,7 +618,9 @@ private fun MentionBadge(disc: AcademicDiscipline) {
 private fun FluxogramaTabContent(
     flowSemesters: List<FlowSemester>,
     history: AcademicHistory,
-    card: StudentCard
+    card: StudentCard,
+    isSyncing: Boolean,
+    onSyncHistory: () -> Unit
 ) {
     if (flowSemesters.isEmpty()) {
         Box(
@@ -571,12 +629,58 @@ private fun FluxogramaTabContent(
                 .padding(32.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "Fluxograma não disponível. Sincronize seu histórico primeiro.",
-                style = NotionTypography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.Outlined.AccountTree,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    modifier = Modifier.size(54.dp)
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    text = "Fluxograma não disponível",
+                    style = NotionTypography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = if (card.isConfigured) "Sincronize seu histórico escolar para mapear o fluxo do seu curso." else "Conecte sua conta do SIGAA para visualizar seu fluxo curricular.",
+                    style = NotionTypography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    textAlign = TextAlign.Center
+                )
+                if (card.isConfigured) {
+                    Spacer(modifier = Modifier.height(18.dp))
+                    Button(
+                        onClick = onSyncHistory,
+                        enabled = !isSyncing,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.onBackground,
+                            contentColor = MaterialTheme.colorScheme.background
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        if (isSyncing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.background
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Sincronizando...", style = NotionTypography.labelMedium)
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Sincronizar Histórico Escolar", style = NotionTypography.labelMedium)
+                        }
+                    }
+                }
+            }
         }
         return
     }

@@ -64,6 +64,8 @@ fun DiscenteScreen(
     isCheckingUpdate: Boolean = false,
     onFlipToQr: () -> Unit = {},
     onOpenHistorico: () -> Unit = {},
+    isSyncingHistory: Boolean = false,
+    onSyncHistory: () -> Unit = {},
     scrollState: ScrollState = rememberSaveable(saver = ScrollState.Saver) { ScrollState(0) },
     modifier: Modifier = Modifier
 ) {
@@ -828,13 +830,45 @@ fun DiscenteScreen(
                         }
                     }
 
-                    // RODAPÉ: DESCONECTAR CONTA
-                    Box(
+                    // RODAPÉ: SINCRONIZAR / DESCONECTAR CONTA
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 8.dp, bottom = 16.dp),
-                        contentAlignment = Alignment.Center
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        TextButton(
+                            onClick = onSyncHistory,
+                            enabled = !isSyncingHistory && !isSyncing
+                        ) {
+                            if (isSyncingHistory) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Sincronizando...",
+                                    style = NotionTypography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Outlined.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Sincronizar dados",
+                                    style = NotionTypography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
                         TextButton(
                             onClick = { showDisconnectConfirm = true },
                             colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFEF4444))

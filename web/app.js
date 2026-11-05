@@ -1649,19 +1649,63 @@ function setupAulasSegmentedControl() {
   };
 }
 
-function renderAulasScreen() {
-  setupAulasSegmentedControl();
+const READ_NOTICES_KEY = 'ru_read_notices';
+function getReadNoticeIds() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(READ_NOTICES_KEY) || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+function markNoticeAsRead(noticeId) {
+  const set = getReadNoticeIds();
+  set.add(noticeId);
+  localStorage.setItem(READ_NOTICES_KEY, JSON.stringify(Array.from(set)));
+}
+
+function updateNoticesBadges() {
+  const classes = appState.disciplinas || [];
+  const readNotices = getReadNoticeIds();
+  const allCourseNames = new Set(classes.map(cl => (cl.nome || '').trim().toLowerCase()));
+
+  let totalUnread = 0;
+  classes.forEach((c, idx) => {
+    const rawNotices = c.noticias || [];
+    const notices = rawNotices.filter(n => {
+      const t = (n.titulo || '').trim().toLowerCase();
+      return t && !allCourseNames.has(t);
+    });
+    const unreadCount = notices.filter(n => {
+      const id = `${(c.codigo || '').trim().toUpperCase()}_${(n.data || '').trim()}_${(n.titulo || '').trim()}`;
+      return !readNotices.has(id);
+    }).length;
+    totalUnread += unreadCount;
+
+    const badge = document.getElementById(`turmaNoticeCount_${idx}`);
+    if (badge) {
+      if (unreadCount > 0) {
+        badge.textContent = unreadCount;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  });
 
   const countBadge = document.getElementById('turmasCountBadge');
-  const classes = appState.disciplinas || [];
   if (countBadge) {
-    if (classes.length > 0) {
-      countBadge.textContent = classes.length;
+    if (totalUnread > 0) {
+      countBadge.textContent = totalUnread;
       countBadge.style.display = 'inline-block';
     } else {
       countBadge.style.display = 'none';
     }
   }
+}
+
+function renderAulasScreen() {
+  setupAulasSegmentedControl();
+  updateNoticesBadges();
 
   if (currentAulasSegment === 'turmas') {
     renderTurmasList();
@@ -1893,22 +1937,38 @@ function renderTurmasList() {
         </div>
 
         <!-- Accordion: Avisos da Turma Virtual -->
-        <button class="turma-accordion-toggle" type="button" onclick="toggleTurmaNotices(${idx})">
-          <div class="turma-accordion-left">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-            <span>Avisos da Turma Virtual</span>
-            ${notices.length > 0 ? `<span class="segment-counter-badge">${notices.length}</span>` : ''}
-          </div>
-          <svg class="turma-accordion-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </button>
+        ${(() => {
+          const readNotices = getReadNoticeIds();
+          const unreadNoticesCount = notices.filter(n => {
+            const id = `${(c.codigo || '').trim().toUpperCase()}_${(n.data || '').trim()}_${(n.titulo || '').trim()}`;
+            return !readNotices.has(id);
+          }).length;
+          return `
+            <button class="turma-accordion-toggle" type="button" onclick="toggleTurmaNotices(${idx})">
+              <div class="turma-accordion-left">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                <span>Avisos da Turma Virtual</span>
+                <span class="segment-counter-badge" id="turmaNoticeCount_${idx}" style="${unreadNoticesCount > 0 ? '' : 'display: none;'}">${unreadNoticesCount}</span>
+              </div>
+              <svg class="turma-accordion-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+          `;
+        })()}
 
         <div class="turma-notices-panel">
           ${notices.length === 0 ? `
             <div style="font-size: 12px; color: var(--text-secondary); padding: 4px 0;">Nenhum aviso publicado pelo docente desta turma.</div>
-          ` : notices.map((aviso, nIdx) => `
-            <div class="turma-notice-item" id="noticeItem_${idx}_${nIdx}" onclick="toggleNoticeItem(${idx}, ${nIdx})">
+          ` : notices.map((aviso, nIdx) => {
+            const readNotices = getReadNoticeIds();
+            const noticeId = `${(c.codigo || '').trim().toUpperCase()}_${(aviso.data || '').trim()}_${(aviso.titulo || '').trim()}`;
+            const isRead = readNotices.has(noticeId);
+            return `
+            <div class="turma-notice-item ${isRead ? 'read' : 'unread'}" id="noticeItem_${idx}_${nIdx}" data-notice-id="${noticeId}" onclick="toggleNoticeItem(${idx}, ${nIdx})">
               <div class="turma-notice-top">
-                <div class="turma-notice-title">${aviso.titulo}</div>
+                <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
+                  <div class="turma-notice-title">${aviso.titulo}</div>
+                  ${!isRead ? `<span class="turma-notice-unread-dot" style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: var(--text-primary); flex-shrink: 0;"></span>` : ''}
+                </div>
                 <div style="display: flex; align-items: center; gap: 6px;">
                   ${aviso.data ? `<span class="turma-notice-date">${aviso.data}</span>` : ''}
                   <svg class="turma-notice-chevron" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -1928,7 +1988,8 @@ function renderTurmasList() {
                 ` : ''}
               </div>
             </div>
-          `).join('')}
+          `;
+          }).join('')}
         </div>
       </div>
     `;
@@ -1946,6 +2007,15 @@ window.toggleNoticeItem = function(cardIdx, noticeIdx) {
   const el = document.getElementById(`noticeItem_${cardIdx}_${noticeIdx}`);
   if (el) {
     el.classList.toggle('expanded');
+    const noticeId = el.getAttribute('data-notice-id');
+    if (noticeId) {
+      markNoticeAsRead(noticeId);
+      el.classList.remove('unread');
+      el.classList.add('read');
+      const dot = el.querySelector('.turma-notice-unread-dot');
+      if (dot) dot.remove();
+      updateNoticesBadges();
+    }
   }
 };
 
@@ -2057,7 +2127,11 @@ function renderHistoricoModal() {
       semListEl.innerHTML = `
         <div style="text-align: center; padding: 32px 16px; color: var(--text-secondary);">
           <p style="font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Histórico não sincronizado</p>
-          <p style="font-size: 13px;">Conecte sua conta do SIGAA na aba Estudante para baixar automaticamente seu histórico oficial.</p>
+          <p style="font-size: 13px; margin-bottom: 16px;">Sincronize com o SIGAA para baixar automaticamente seu histórico oficial e fluxograma.</p>
+          <button class="notion-btn notion-btn-primary" id="btnSyncHistModal" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 8px;" onclick="syncHistoricoFromWeb()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            <span>Sincronizar Histórico Escolar</span>
+          </button>
         </div>
       `;
     } else {
@@ -2114,7 +2188,12 @@ function renderHistoricoModal() {
     if (!flow || flow.length === 0) {
       flowListEl.innerHTML = `
         <div style="text-align: center; padding: 32px 16px; color: var(--text-secondary);">
-          <p style="font-size: 13px;">Fluxograma não disponível. Sincronize seu histórico com o SIGAA.</p>
+          <p style="font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Fluxograma não disponível</p>
+          <p style="font-size: 13px; margin-bottom: 16px;">Sincronize seu histórico escolar para mapear o fluxo do seu curso.</p>
+          <button class="notion-btn notion-btn-primary" id="btnSyncFlowModal" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 8px;" onclick="syncHistoricoFromWeb()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            <span>Sincronizar Histórico Escolar</span>
+          </button>
         </div>
       `;
     } else {
@@ -2174,3 +2253,68 @@ function renderHistoricoModal() {
     }
   }
 }
+
+window.syncHistoricoFromWeb = async function() {
+  let creds = null;
+  try {
+    creds = JSON.parse(localStorage.getItem('ru_sigaa_creds') || 'null');
+  } catch (e) {}
+
+  let mat = creds?.matricula;
+  let pass = creds?.senha;
+
+  if (!mat || !pass) {
+    const dlgBtn = document.getElementById('openSigaaDialogBtn');
+    if (dlgBtn) dlgBtn.click();
+    return;
+  }
+
+  const syncBtn = document.getElementById('discenteSyncBtn');
+  const modalSyncBtn = document.getElementById('btnSyncHistModal');
+  const modalFlowBtn = document.getElementById('btnSyncFlowModal');
+  const origText = syncBtn ? syncBtn.innerHTML : '';
+  const origModalText = modalSyncBtn ? modalSyncBtn.innerHTML : '';
+  const origFlowText = modalFlowBtn ? modalFlowBtn.innerHTML : '';
+
+  if (syncBtn) {
+    syncBtn.disabled = true;
+    syncBtn.innerHTML = `<span>Sincronizando com SIGAA...</span>`;
+  }
+  if (modalSyncBtn) {
+    modalSyncBtn.disabled = true;
+    modalSyncBtn.innerHTML = `<span>Sincronizando...</span>`;
+  }
+  if (modalFlowBtn) {
+    modalFlowBtn.disabled = true;
+    modalFlowBtn.innerHTML = `<span>Sincronizando...</span>`;
+  }
+
+  try {
+    const res = await syncSigaa(mat, pass);
+    if (res.success) {
+      if (document.getElementById('historicoModal')?.style.display === 'flex') {
+        renderHistoricoModal();
+      }
+      renderTurmasList();
+      renderAulasScreen();
+      alert('Sincronização concluída com sucesso!');
+    } else {
+      alert(res.error || 'Erro ao sincronizar com o SIGAA.');
+    }
+  } catch (err) {
+    alert('Erro ao sincronizar: ' + (err.message || err));
+  } finally {
+    if (syncBtn) {
+      syncBtn.disabled = false;
+      syncBtn.innerHTML = origText;
+    }
+    if (modalSyncBtn) {
+      modalSyncBtn.disabled = false;
+      modalSyncBtn.innerHTML = origModalText;
+    }
+    if (modalFlowBtn) {
+      modalFlowBtn.disabled = false;
+      modalFlowBtn.innerHTML = origFlowText;
+    }
+  }
+};

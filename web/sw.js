@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ru-unb-test-v16';
+const CACHE_NAME = 'ru-unb-test-v17';
 
 const STATIC_ASSETS = [
   './',
