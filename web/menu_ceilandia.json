@@ -1,8 +1,8 @@
 {
   "campus": "FCE (Ceilândia)",
   "vigencia": "02/11/2026 À 08/11/2026",
-  "atualizado_em": "2026-11-03T16:43:09.984484+00:00",
-  "pdf_url": "https://ru.unb.br/wp-content/uploads/2026/10/Ceilandia-Semana-03-02-11-a-08-11-1.pdf",
+  "atualizado_em": "2026-11-05T17:23:25.438957+00:00",
+  "pdf_url": "https://ru.unb.br/wp-content/uploads/2026/11/Ceilandia-Semana-03-02-11-a-08-11.pdf",
   "dias": [
     {
       "dia_semana": "Segunda-feira",
@@ -113,7 +113,7 @@
         "salada_1": "Repolho roxo",
         "salada_2": "Tomate",
         "molho": "Iogurte / Limão",
-        "prato_principal": "Filé de peixe ao molho de ervas",
+        "prato_principal": "Hambúrguer gratinado",
         "vegetariano": "Omelete caprese gratinada",
         "vegano": "Bobó de legumes com soja",
         "guarnicao": "",
@@ -153,7 +153,7 @@
         "salada_1": "Alface crespa",
         "salada_2": "Cenoura ralada",
         "molho": "Chimichurri / Limão",
-        "prato_principal": "Isca de frango ao molho branco",
+        "prato_principal": "Filé de peixe ao molho de ervas",
         "vegetariano": "Quibe de legumes com quinoa gratinado",
         "vegano": "Refogado de grão de bico",
         "guarnicao": "",
@@ -193,7 +193,7 @@
         "salada_1": "Alface roxa",
         "salada_2": "Berinjela com azeitonas",
         "molho": "Chipotle",
-        "prato_principal": "Hambúrguer gratinado",
+        "prato_principal": "Isca de frango ao molho branco",
         "vegetariano": "Nhoque ao molho branco com soja e queijo",
         "vegano": "Moqueca de banana da terra com proteína de soja",
         "guarnicao": "",
