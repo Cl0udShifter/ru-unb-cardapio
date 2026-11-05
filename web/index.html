@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="icons/favicon.png?v=4.1">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4.1">
   
-  <link rel="stylesheet" href="style.css?v=7.2">
+  <link rel="stylesheet" href="style.css?v=7.3">
 </head>
 <body>
   <div id="app">
@@ -313,18 +313,34 @@
           </div>
         </div>
       </section>
+      <!-- Aba Aulas (Módulo 2: Grade Horária e Aulas de Hoje) -->
+      <section id="viewAulas" class="tab-view" style="display: none;">
+        <div class="aulas-container">
+          <div class="aulas-header">
+            <h1 class="aulas-title">Aulas & Grade</h1>
+            <p class="aulas-subhead">Semestre 2026.2 • Horário Oficial</p>
+          </div>
+          <div class="aulas-day-rail" id="aulasDayRail"></div>
+          <div id="aulasContentList" class="aulas-list"></div>
+        </div>
+      </section>
 
     </div>
 
     <!-- Barra de Navegação Inferior Global (Bottom Navigation) -->
     <nav class="app-tab-pill-nav" aria-label="Navegação principal">
       <button id="navCardapioBtn" class="tab-pill-item active" data-tab="cardapio" type="button" aria-label="Cardápio" title="Cardápio">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
           <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>
         </svg>
       </button>
+      <button id="navAulasBtn" class="tab-pill-item" data-tab="aulas" type="button" aria-label="Aulas" title="Aulas">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2zm-7 5h5v5h-5z"/>
+        </svg>
+      </button>
       <button id="navDiscenteBtn" class="tab-pill-item" data-tab="discente" type="button" aria-label="Discente" title="Discente">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
           <path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/>
         </svg>
       </button>
@@ -666,7 +682,7 @@
           <div class="app-version-box">
             <div class="app-version-left">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-              <span>Versão v1.2.0-test.6 (PWA)</span>
+              <span>Versão v1.2.0-test.7 (PWA)</span>
             </div>
             <div class="app-version-badge" style="background: rgba(234, 179, 8, 0.2); color: #eab308; border-color: rgba(234, 179, 8, 0.4);">Testes</div>
           </div>
@@ -744,6 +760,6 @@
   <script src="zxing.min.js"></script>
   <script src="jsqr.min.js"></script>
   <script src="qrcode.min.js?v=4.1"></script>
-  <script src="app.js?v=7.2"></script>
+  <script src="app.js?v=7.3"></script>
 </body>
 </html>

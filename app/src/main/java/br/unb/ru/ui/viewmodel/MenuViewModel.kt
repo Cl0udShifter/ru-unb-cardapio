@@ -10,6 +10,7 @@ import br.unb.ru.data.model.DailyMenu
 import br.unb.ru.data.model.MealType
 import br.unb.ru.data.model.RestaurantStatement
 import br.unb.ru.data.model.StudentCard
+import br.unb.ru.data.model.ClassSchedule
 import br.unb.ru.data.model.WeeklyMenu
 import br.unb.ru.data.repository.AppUpdateRepository
 import br.unb.ru.data.repository.MenuRepository
@@ -41,6 +42,7 @@ data class MenuUiState(
     val isCardOpen: Boolean = false,
     val studentCard: StudentCard = StudentCard(),
     val statement: RestaurantStatement = RestaurantStatement(),
+    val classes: List<ClassSchedule> = emptyList(),
     val isSyncingCard: Boolean = false,
     val isRefreshingStatement: Boolean = false,
     val syncProgressMessage: String? = null,
@@ -88,6 +90,7 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             RestaurantStatement()
         }
+        val savedClasses = cardRepository.getClasses()
 
         // 4. Carregar campus selecionado
         val savedCampus = repository.getSelectedCampus()
@@ -98,6 +101,7 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
                 notificationConfig = notifConfig,
                 studentCard = savedCard,
                 statement = savedStatement,
+                classes = savedClasses,
                 selectedCampus = savedCampus
             )
         }
@@ -223,6 +227,7 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
                             syncProgressMessage = null,
                             studentCard = syncResult.card,
                             statement = syncResult.statement,
+                            classes = syncResult.classes,
                             cardSyncError = null
                         )
                     }
@@ -245,7 +250,8 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update {
             it.copy(
                 studentCard = StudentCard(),
-                statement = RestaurantStatement()
+                statement = RestaurantStatement(),
+                classes = emptyList()
             )
         }
     }

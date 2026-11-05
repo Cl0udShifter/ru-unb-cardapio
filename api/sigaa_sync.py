@@ -276,10 +276,69 @@ def sync_with_urllib(matricula, senha):
     except Exception as e:
         print('Erro no extrato:', e)
 
+    # 7. Extrair Disciplinas e Grade de Aulas
+    disciplinas = []
+    try:
+        table_m = re.search(r'<table[^>]*>.*?Componente Curricular.*?<tbody>(.*?)</tbody>\s*</table>', current_html, re.DOTALL | re.I)
+        if table_m:
+            tbody = table_m.group(1)
+            rows = re.findall(r'<tr[^>]*class=["'](?:odd)?["'][^>]*>(.*?)</tr>', tbody, re.DOTALL | re.I)
+            DAY_MAP = {'segunda': 1, 'terca': 2, 'terça': 2, 'quarta': 3, 'quinta': 4, 'sexta': 5, 'sabado': 6, 'sábado': 6}
+            for r in rows:
+                nome_m = re.search(r'<a[^>]*>(.*?)</a>', r, re.DOTALL)
+                nome_disc = html.unescape(nome_m.group(1)).strip() if nome_m else ''
+                turma_m = re.search(r'["']frontEndIdTurma["']\s*:\s*["']([^"']+)["']', r)
+                turma_id = turma_m.group(1) if turma_m else ''
+                tds = re.findall(r'<td[^>]*>(.*?)</td>', r, re.DOTALL)
+                local = html.unescape(re.sub(r'<[^>]+>', '', tds[1])).strip() if len(tds) >= 2 else ''
+                horario_raw = ''
+                horarios = []
+                if len(tds) >= 3:
+                    td_horario = tds[2]
+                    raw_m = re.search(r'([1-7]+[MTN][1-6]+)', td_horario)
+                    if raw_m:
+                        horario_raw = raw_m.group(1)
+                    popup_m = re.search(r'<div[^>]*class=["']popUp["'][^>]*>(.*?)</div>', td_horario, re.DOTALL | re.I)
+                    if popup_m:
+                        popup_text = html.unescape(popup_m.group(1)).replace('<br />', '\n').replace('<br>', '\n')
+                        for line in popup_text.split('\n'):
+                            line = line.strip()
+                            if not line: continue
+                            h_m = re.search(r'([A-Za-zçãéÇÃÉ]+)(?:-feira)?\s+(\d{2}:\d{2})\s*(?:[àa]s|-)\s*(\d{2}:\d{2})', line, re.I)
+                            if h_m:
+                                dia_str = h_m.group(1).lower()
+                                inicio = h_m.group(2)
+                                fim = h_m.group(3)
+                                dia_num = 0
+                                for k, v in DAY_MAP.items():
+                                    if k in dia_str:
+                                        dia_num = v
+                                        break
+                                dia_nome = h_m.group(1).capitalize() + ('-feira' if 'sab' not in dia_str else '')
+                                if dia_num > 0:
+                                    horarios.append({
+                                        'dia': dia_num,
+                                        'diaNome': dia_nome,
+                                        'inicio': inicio,
+                                        'fim': fim,
+                                        'horarioFormatado': f'{inicio} - {fim}'
+                                    })
+                if nome_disc:
+                    disciplinas.append({
+                        'nome': nome_disc,
+                        'turmaId': turma_id,
+                        'local': local,
+                        'horarioRaw': horario_raw,
+                        'horarios': horarios
+                    })
+    except Exception as e:
+        print('Erro ao extrair disciplinas:', e)
+
     codigo_qr = qr_payload or matricula.ljust(16, '0')
 
     return {
         'success': True,
+        'disciplinas': disciplinas,
         'nome': nome or 'Estudante UnB',
         'matricula': matricula,
         'curso': curso or 'GRADUAÇÃO',

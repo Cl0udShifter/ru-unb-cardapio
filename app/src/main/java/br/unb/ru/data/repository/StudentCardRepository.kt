@@ -7,6 +7,8 @@ import android.os.ParcelFileDescriptor
 import br.unb.ru.data.model.RestaurantStatement
 import br.unb.ru.data.model.StudentCard
 import br.unb.ru.data.model.TransactionItem
+import br.unb.ru.data.model.ClassSchedule
+import br.unb.ru.data.model.ClassTime
 import com.google.gson.Gson
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.DecodeHintType
@@ -31,7 +33,8 @@ import java.util.regex.Pattern
 
 data class SyncResult(
     val card: StudentCard,
-    val statement: RestaurantStatement
+    val statement: RestaurantStatement,
+    val classes: List<ClassSchedule> = emptyList()
 )
 
 class StudentCardRepository(private val context: Context) {
@@ -59,6 +62,7 @@ class StudentCardRepository(private val context: Context) {
         private const val KEY_CH_CONCLUIDA = "card_ch_concluida"
         private const val KEY_PCT_CONCLUIDO = "card_pct_concluido"
         private const val KEY_FOTO_URL = "card_foto_url"
+        private const val KEY_DISCIPLINAS = "card_disciplinas"
     }
 
     fun getStudentCard(): StudentCard {
@@ -115,6 +119,24 @@ class StudentCardRepository(private val context: Context) {
     fun clearStudentCard() {
         clearCredentials()
         prefs.edit().clear().apply()
+    }
+
+    fun getClasses(): List<ClassSchedule> {
+        val json = prefs.getString(KEY_DISCIPLINAS, null) ?: return emptyList()
+        return try {
+            val type = object : com.google.gson.reflect.TypeToken<List<ClassSchedule>>() {}.type
+            gson.fromJson(json, type) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun saveClasses(classes: List<ClassSchedule>) {
+        prefs.edit().putString(KEY_DISCIPLINAS, gson.toJson(classes)).apply()
+    }
+
+    fun clearClasses() {
+        prefs.edit().remove(KEY_DISCIPLINAS).apply()
     }
 
     fun saveCredentials(matricula: String, pass: String) {
@@ -385,13 +407,18 @@ class StudentCardRepository(private val context: Context) {
             saveStudentCard(newCard)
             saveCredentials(matricula, pass)
 
-            // 6. Consultar Extrato do Restaurante Universitário
+            // 6. Extrair Disciplinas e Grade de Aulas
+            onProgress("Lendo grade de disciplinas e horários...")
+            val classes = parseClassesFromHtml(currentHtml)
+            saveClasses(classes)
+
+            // 7. Consultar Extrato do Restaurante Universitário
             onProgress("Consultando saldo e extrato do RU...")
             val statement = fetchStatementFromPortal(client, currentHtml, matricula)
             saveStatement(statement)
 
             onProgress("Pronto!")
-            Result.success(SyncResult(card = newCard, statement = statement))
+            Result.success(SyncResult(card = newCard, statement = statement, classes = classes))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -737,4 +764,100 @@ class StudentCardRepository(private val context: Context) {
         }
         return ""
     }
+
+    fun parseClassesFromHtml(html: String): List<ClassSchedule> {
+        val list = mutableListOf<ClassSchedule>()
+        try {
+            val tablePattern = Pattern.compile("<table[^>]*>.*?Componente Curricular.*?<tbody>(.*?)</tbody>\\s*</table>", Pattern.DOTALL or Pattern.CASE_INSENSITIVE)
+            val mTable = tablePattern.matcher(html)
+            if (!mTable.find()) return emptyList()
+
+            val tbody = mTable.group(1) ?: return emptyList()
+            val rowPattern = Pattern.compile("<tr[^>]*class=[\"\'](?:odd)?[\"\'][^>]*>(.*?)</tr>", Pattern.DOTALL or Pattern.CASE_INSENSITIVE)
+            val mRows = rowPattern.matcher(tbody)
+
+            while (mRows.find()) {
+                val r = mRows.group(1) ?: continue
+
+                // Nome da disciplina
+                val nomeMatcher = Pattern.compile("<a[^>]*>(.*?)</a>", Pattern.DOTALL).matcher(r)
+                val nome = if (nomeMatcher.find()) decodeHtmlEntities(nomeMatcher.group(1) ?: "").trim() else ""
+                if (nome.isBlank()) continue
+
+                // frontEndIdTurma
+                val turmaMatcher = Pattern.compile("[\'\"]frontEndIdTurma[\'\"]\\s*:\\s*[\'\"]([^\'\"]+)[\'\"]").matcher(r)
+                val turmaId = if (turmaMatcher.find()) turmaMatcher.group(1) ?: "" else ""
+
+                // Colunas
+                val tdMatcher = Pattern.compile("<td[^>]*>(.*?)</td>", Pattern.DOTALL).matcher(r)
+                val tds = mutableListOf<String>()
+                while (tdMatcher.find()) {
+                    tds.add(tdMatcher.group(1) ?: "")
+                }
+
+                var local = ""
+                if (tds.size >= 2) {
+                    local = decodeHtmlEntities(tds[1].replace(Regex("<[^>]+>"), "")).trim()
+                }
+
+                var horarioRaw = ""
+                val horarios = mutableListOf<ClassTime>()
+
+                if (tds.size >= 3) {
+                    val tdHorario = tds[2]
+                    val rawM = Pattern.compile("([1-7]+[MTN][1-6]+)").matcher(tdHorario)
+                    if (rawM.find()) {
+                        horarioRaw = rawM.group(1) ?: ""
+                    }
+
+                    val popupM = Pattern.compile("<div[^>]*class=[\"\']popUp[\"\'][^>]*>(.*?)</div>", Pattern.DOTALL or Pattern.CASE_INSENSITIVE).matcher(tdHorario)
+                    if (popupM.find()) {
+                        val popupText = decodeHtmlEntities(popupM.group(1) ?: "").replace("<br />", "\n").replace("<br>", "\n")
+                        val lines = popupText.split("\n")
+                        for (line in lines) {
+                            val trimmed = line.trim()
+                            if (trimmed.isBlank()) continue
+                            val hM = Pattern.compile("([A-Za-zçãéÇÃÉ]+)(?:-feira)?\\s+(\\d{2}:\\d{2})\\s*(?:[àa]s|-)\\s*(\\d{2}:\\d{2})", Pattern.CASE_INSENSITIVE).matcher(trimmed)
+                            if (hM.find()) {
+                                val diaStr = (hM.group(1) ?: "").lowercase()
+                                val inicio = hM.group(2) ?: ""
+                                val fim = hM.group(3) ?: ""
+                                val diaNum = when {
+                                    diaStr.contains("seg") -> 1
+                                    diaStr.contains("ter") -> 2
+                                    diaStr.contains("qua") -> 3
+                                    diaStr.contains("qui") -> 4
+                                    diaStr.contains("sex") -> 5
+                                    diaStr.contains("sab") || diaStr.contains("sáb") -> 6
+                                    else -> 0
+                                }
+                                val diaNome = when (diaNum) {
+                                    1 -> "Segunda-feira"
+                                    2 -> "Terça-feira"
+                                    3 -> "Quarta-feira"
+                                    4 -> "Quinta-feira"
+                                    5 -> "Sexta-feira"
+                                    6 -> "Sábado"
+                                    else -> "Outro"
+                                }
+                                if (diaNum > 0) {
+                                    horarios.add(ClassTime(diaNum, diaNome, inicio, fim))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                list.add(ClassSchedule(
+                    nome = nome,
+                    local = local,
+                    horarioRaw = horarioRaw,
+                    turmaId = turmaId,
+                    horarios = horarios
+                ))
+            }
+        } catch (_: Exception) {}
+        return list
+    }
+
 }

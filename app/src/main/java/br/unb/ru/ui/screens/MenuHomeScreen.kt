@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -55,6 +56,7 @@ import br.unb.ru.ui.components.BreakfastCard
 import br.unb.ru.ui.components.CampusSelectorBottomSheet
 import br.unb.ru.ui.components.DaySelectorRail
 import br.unb.ru.ui.components.DiscenteScreen
+import br.unb.ru.ui.components.AulasScreen
 import br.unb.ru.ui.components.MealTopControl
 import br.unb.ru.ui.components.LunchDinnerCard
 import br.unb.ru.ui.components.MealBottomControl
@@ -66,6 +68,7 @@ import br.unb.ru.util.QrCodeGenerator
 
 enum class MainScreenTab {
     CARDAPIO,
+    AULAS,
     DISCENTE
 }
 
@@ -193,10 +196,18 @@ fun MenuHomeScreen(
                             if (!isDiscenteFlipped) {
                                 detectHorizontalDragGestures(
                                     onDragEnd = {
-                                        if (totalSwipeDrag < -70f && currentTab == MainScreenTab.CARDAPIO) {
-                                            currentTab = MainScreenTab.DISCENTE
-                                        } else if (totalSwipeDrag > 70f && currentTab == MainScreenTab.DISCENTE) {
-                                            currentTab = MainScreenTab.CARDAPIO
+                                        if (totalSwipeDrag < -70f) {
+                                            currentTab = when (currentTab) {
+                                                MainScreenTab.CARDAPIO -> MainScreenTab.AULAS
+                                                MainScreenTab.AULAS -> MainScreenTab.DISCENTE
+                                                MainScreenTab.DISCENTE -> MainScreenTab.DISCENTE
+                                            }
+                                        } else if (totalSwipeDrag > 70f) {
+                                            currentTab = when (currentTab) {
+                                                MainScreenTab.DISCENTE -> MainScreenTab.AULAS
+                                                MainScreenTab.AULAS -> MainScreenTab.CARDAPIO
+                                                MainScreenTab.CARDAPIO -> MainScreenTab.CARDAPIO
+                                            }
                                         }
                                         totalSwipeDrag = 0f
                                     },
@@ -210,7 +221,7 @@ fun MenuHomeScreen(
                     AnimatedContent(
                         targetState = currentTab,
                         transitionSpec = {
-                            if (targetState == MainScreenTab.DISCENTE) {
+                            if (initialState.ordinal < targetState.ordinal) {
                                 (slideInHorizontally(animationSpec = tween(260, easing = FastOutSlowInEasing)) { width -> width } + fadeIn(animationSpec = tween(220)))
                                     .togetherWith(slideOutHorizontally(animationSpec = tween(260, easing = FastOutSlowInEasing)) { width -> -width } + fadeOut(animationSpec = tween(180)))
                             } else {
@@ -457,6 +468,13 @@ fun MenuHomeScreen(
                                 }
                             }
                         }
+                    } else if (tab == MainScreenTab.AULAS) {
+                        AulasScreen(
+                            classes = state.classes,
+                            isConfigured = state.studentCard.isConfigured,
+                            onOpenLogin = { currentTab = MainScreenTab.DISCENTE },
+                            modifier = Modifier.statusBarsPadding()
+                        )
                     } else {
                         DiscenteScreen(
                             card = state.studentCard,
@@ -496,11 +514,11 @@ fun MenuHomeScreen(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .navigationBarsPadding()
-                            .padding(bottom = 20.dp)
+                            .padding(bottom = 16.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 5.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             // Aba Cardápio
@@ -517,7 +535,7 @@ fun MenuHomeScreen(
                             )
                             Box(
                                 modifier = Modifier
-                                    .size(width = 72.dp, height = 48.dp)
+                                    .size(width = 64.dp, height = 42.dp)
                                     .clip(CircleShape)
                                     .background(cardapioBg)
                                     .clickable { currentTab = MainScreenTab.CARDAPIO },
@@ -527,7 +545,35 @@ fun MenuHomeScreen(
                                     imageVector = Icons.Outlined.RestaurantMenu,
                                     contentDescription = "Cardápio",
                                     tint = cardapioIconColor,
-                                    modifier = Modifier.size(26.dp)
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+
+                            // Aba Aulas
+                            val isAulas = currentTab == MainScreenTab.AULAS
+                            val aulasBg by animateColorAsState(
+                                targetValue = if (isAulas) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                animationSpec = tween(durationMillis = 180),
+                                label = "tab_aulas_bg"
+                            )
+                            val aulasIconColor by animateColorAsState(
+                                targetValue = if (isAulas) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                animationSpec = tween(durationMillis = 180),
+                                label = "tab_aulas_icon"
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 64.dp, height = 42.dp)
+                                    .clip(CircleShape)
+                                    .background(aulasBg)
+                                    .clickable { currentTab = MainScreenTab.AULAS },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.CalendarMonth,
+                                    contentDescription = "Aulas",
+                                    tint = aulasIconColor,
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
 
@@ -545,7 +591,7 @@ fun MenuHomeScreen(
                             )
                             Box(
                                 modifier = Modifier
-                                    .size(width = 72.dp, height = 48.dp)
+                                    .size(width = 64.dp, height = 42.dp)
                                     .clip(CircleShape)
                                     .background(discenteBg)
                                     .clickable { currentTab = MainScreenTab.DISCENTE },
@@ -555,7 +601,7 @@ fun MenuHomeScreen(
                                     imageVector = Icons.Outlined.School,
                                     contentDescription = "Discente",
                                     tint = discenteIconColor,
-                                    modifier = Modifier.size(26.dp)
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
                         }

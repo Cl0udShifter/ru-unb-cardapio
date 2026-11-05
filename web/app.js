@@ -34,6 +34,8 @@ function getInitialStudentCard() {
     }
   } catch (e) {
     localStorage.removeItem('ru_student_card');
+    localStorage.removeItem('ru_sigaa_disciplinas');
+    appState.disciplinas = [];
   }
   return { isConfigured: false };
 }
@@ -775,6 +777,10 @@ async function executeSigaaSync(mat, pass) {
       transacoes: mergedList
     };
 
+        if (data.disciplinas) {
+      appState.disciplinas = data.disciplinas;
+      localStorage.setItem('ru_sigaa_disciplinas', JSON.stringify(appState.disciplinas));
+    }
     localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
     localStorage.setItem('ru_statement', JSON.stringify(appState.statement));
     localStorage.setItem('ru_sigaa_creds', JSON.stringify({ matricula: mat, senha: pass }));
@@ -873,6 +879,8 @@ function setupDiscenteDashboard() {
         appState.studentCard = { isConfigured: false };
         appState.statement = null;
         localStorage.removeItem('ru_student_card');
+    localStorage.removeItem('ru_sigaa_disciplinas');
+    appState.disciplinas = [];
         localStorage.removeItem('ru_statement');
         localStorage.removeItem('ru_sigaa_creds');
         renderDiscenteDashboard();
@@ -1079,6 +1087,10 @@ function setupCarteirinhaModal() {
     if (appState.statement) {
       appState.statement.saldoAtual = saldo;
     }
+        if (data.disciplinas) {
+      appState.disciplinas = data.disciplinas;
+      localStorage.setItem('ru_sigaa_disciplinas', JSON.stringify(appState.disciplinas));
+    }
     localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
     if (appState.statement) {
       localStorage.setItem('ru_statement', JSON.stringify(appState.statement));
@@ -1128,7 +1140,11 @@ function setupCarteirinhaModal() {
         if (data.saldo) {
           appState.studentCard.saldo = data.saldo;
           if (data.qrImageBase64) appState.studentCard.qrImageBase64 = data.qrImageBase64;
-          localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
+              if (data.disciplinas) {
+      appState.disciplinas = data.disciplinas;
+      localStorage.setItem('ru_sigaa_disciplinas', JSON.stringify(appState.disciplinas));
+    }
+    localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
         }
         const now = new Date();
         const dd = String(now.getDate()).padStart(2, '0');
@@ -1182,6 +1198,8 @@ function setupCarteirinhaModal() {
       appState.studentCard = { isConfigured: false };
       appState.statement = null;
       localStorage.removeItem('ru_student_card');
+    localStorage.removeItem('ru_sigaa_disciplinas');
+    appState.disciplinas = [];
       localStorage.removeItem('ru_statement');
       localStorage.removeItem('ru_sigaa_creds');
       renderCarteirinhaModal();
@@ -1490,12 +1508,17 @@ function setupSwipeGestures() {
     // Require dominant horizontal movement exceeding threshold
     if (Math.abs(distX) > 65 && Math.abs(distX) > Math.abs(distY) * 1.5) {
       const isCardapio = document.getElementById('navCardapioBtn')?.classList.contains('active');
-      if (distX < 0 && isCardapio) {
-        // Swipe left -> go to Discente
-        document.getElementById('navDiscenteBtn')?.click();
-      } else if (distX > 0 && !isCardapio) {
-        // Swipe right -> go to Cardápio
-        document.getElementById('navCardapioBtn')?.click();
+      const isAulas = document.getElementById('navAulasBtn')?.classList.contains('active');
+      const isDiscente = document.getElementById('navDiscenteBtn')?.classList.contains('active');
+
+      if (distX < 0) {
+        // Swipe left (advance right)
+        if (isCardapio) document.getElementById('navAulasBtn')?.click();
+        else if (isAulas) document.getElementById('navDiscenteBtn')?.click();
+      } else if (distX > 0) {
+        // Swipe right (advance left)
+        if (isDiscente) document.getElementById('navAulasBtn')?.click();
+        else if (isAulas) document.getElementById('navCardapioBtn')?.click();
       }
     }
     startX = 0;
@@ -1587,3 +1610,159 @@ document.addEventListener('DOMContentLoaded', () => {
   loadMenu();
   registerServiceWorker();
 });
+
+
+let currentSelectedAulasDia = null;
+
+function getTodayDiaNum() {
+  const d = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  return (d >= 1 && d <= 6) ? d : 1;
+}
+
+function renderAulasScreen() {
+  const dayRail = document.getElementById('aulasDayRail');
+  const listEl = document.getElementById('aulasContentList');
+  if (!dayRail || !listEl) return;
+
+  if (currentSelectedAulasDia === null) {
+    currentSelectedAulasDia = getTodayDiaNum();
+  }
+
+  const todayNum = getTodayDiaNum();
+  const diasSemana = [
+    { num: 1, label: 'SEG' },
+    { num: 2, label: 'TER' },
+    { num: 3, label: 'QUA' },
+    { num: 4, label: 'QUI' },
+    { num: 5, label: 'SEX' },
+    { num: 6, label: 'SÁB' }
+  ];
+
+  // Render Day Rail
+  dayRail.innerHTML = diasSemana.map(d => {
+    const isActive = d.num === currentSelectedAulasDia;
+    const isToday = d.num === todayNum;
+    return `
+      <div class="aulas-day-chip ${isActive ? 'active' : ''}" data-dia="${d.num}">
+        <span class="chip-label">${d.label}</span>
+        ${isToday ? '<span class="chip-dot"></span>' : ''}
+      </div>
+    `;
+  }).join('');
+
+  dayRail.querySelectorAll('.aulas-day-chip').forEach(chip => {
+    chip.onclick = () => {
+      currentSelectedAulasDia = parseInt(chip.getAttribute('data-dia'), 10);
+      renderAulasScreen();
+    };
+  });
+
+  // Not connected state
+  if (!appState.studentCard || !appState.studentCard.isConfigured) {
+    listEl.innerHTML = `
+      <div class="discente-card not-connected-card" style="text-align: center; padding: 32px 20px;">
+        <div class="not-connected-icon-box" style="margin: 0 auto 16px auto;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/>
+          </svg>
+        </div>
+        <h2 style="font-size: 17px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Grade Horária e Aulas</h2>
+        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 20px;">Conecte sua conta do SIGAA da UnB para carregar automaticamente suas disciplinas, salas e horários de aula.</p>
+        <button id="aulasConnectBtn" class="sigaa-confirm-btn" type="button" style="width: 100%;">
+          Sincronizar com SIGAA
+        </button>
+      </div>
+    `;
+    const btn = document.getElementById('aulasConnectBtn');
+    if (btn) {
+      btn.onclick = () => {
+        const discenteTab = document.getElementById('navDiscenteBtn');
+        if (discenteTab) discenteTab.click();
+        const dlgBtn = document.getElementById('openSigaaDialogBtn');
+        if (dlgBtn) dlgBtn.click();
+      };
+    }
+    return;
+  }
+
+  // Filter classes for selected day
+  const classes = appState.disciplinas || [];
+  const aulasDoDia = [];
+  classes.forEach(c => {
+    const time = (c.horarios || []).find(h => h.dia === currentSelectedAulasDia);
+    if (time) aulasDoDia.push({ disciplina: c, time: time });
+  });
+
+  aulasDoDia.sort((a, b) => (a.time.inicio || '').localeCompare(b.time.inicio || ''));
+
+  if (aulasDoDia.length === 0) {
+    const diaNome = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'][currentSelectedAulasDia] || 'este dia';
+    listEl.innerHTML = `
+      <div class="discente-card" style="text-align: center; padding: 36px 20px;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color: var(--text-secondary); opacity: 0.5; margin-bottom: 12px;">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Nenhuma aula neste dia</h3>
+        <p style="font-size: 13px; color: var(--text-secondary);">Sem disciplinas agendadas para ${diaNome}.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Render class cards
+  listEl.innerHTML = aulasDoDia.map(({ disciplina, time }) => {
+    const outros = (disciplina.horarios || []).filter(h => h.dia !== currentSelectedAulasDia);
+    return `
+      <div class="aula-card" data-local="${encodeURIComponent(disciplina.local || '')}">
+        <div class="aula-card-header">
+          <div class="aula-time-badge">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <span>${time.horarioFormatado || (time.inicio + ' - ' + time.fim)}</span>
+          </div>
+          <svg class="aula-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+        <div class="aula-name">${disciplina.nome}</div>
+        <div class="aula-local-row">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          <span>${disciplina.local || 'Sala não informada'}</span>
+        </div>
+        <div class="aula-details-panel">
+          ${disciplina.horarioRaw ? `<div class="aula-detail-item"><strong>Código SIGAA:</strong> ${disciplina.horarioRaw}</div>` : ''}
+          ${outros.length > 0 ? `
+            <div class="aula-detail-item">
+              <strong>Outros horários:</strong><br/>
+              ${outros.map(o => `• ${o.diaNome}: ${o.horarioFormatado}`).join('<br/>')}
+            </div>
+          ` : ''}
+          ${disciplina.local ? `
+            <button class="aula-copy-btn" type="button" onclick="event.stopPropagation(); copyAulaLocal(this, '${encodeURIComponent(disciplina.local)}');">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copiar sala</span>
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  listEl.querySelectorAll('.aula-card').forEach(card => {
+    card.onclick = () => {
+      card.classList.toggle('expanded');
+    };
+  });
+}
+
+function copyAulaLocal(btn, encodedLocal) {
+  const local = decodeURIComponent(encodedLocal);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(local).then(() => {
+      const span = btn.querySelector('span');
+      if (span) {
+        const orig = span.textContent;
+        span.textContent = 'Copiado!';
+        setTimeout(() => { span.textContent = orig; }, 1500);
+      }
+    }).catch(() => {});
+  }
+}

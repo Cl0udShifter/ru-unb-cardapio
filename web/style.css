@@ -2240,16 +2240,16 @@ body.discente-flipped .app-bottom-nav {
 /* Global Floating Tab Pill Navigation */
 .app-tab-pill-nav {
   position: fixed;
-  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background-color: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: 9999px;
-  padding: 6px;
+  padding: 5px;
   z-index: 100;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
   backdrop-filter: blur(16px);
@@ -2261,8 +2261,8 @@ body.discente-flipped .app-bottom-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 72px;
-  height: 48px;
+  width: 64px;
+  height: 42px;
   border-radius: 9999px;
   background: transparent;
   border: none;
@@ -2282,8 +2282,8 @@ body.discente-flipped .app-bottom-nav {
 }
 
 .tab-pill-item svg {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   display: block;
 }
 
@@ -2293,4 +2293,183 @@ body.discente-flipped .app-tab-pill-nav {
 
 .main-content {
   padding-bottom: 96px;
+}
+
+
+/* AULAS & GRADE HORÁRIA (Módulo 2 - Notion Editorial Style) */
+.aulas-container {
+  padding: 16px 16px 96px 16px;
+  max-width: 540px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.aulas-header {
+  padding: 4px 0 4px 0;
+}
+
+.aulas-title {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.aulas-subhead {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.aulas-day-rail {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.aulas-day-chip {
+  flex: 1;
+  height: 52px;
+  border-radius: 12px;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.aulas-day-chip .chip-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--text-secondary);
+}
+
+.aulas-day-chip .chip-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--primary-color, #2E7D32);
+}
+
+.aulas-day-chip.active {
+  background-color: var(--text-primary);
+  border-color: var(--text-primary);
+}
+
+.aulas-day-chip.active .chip-label {
+  color: var(--background-color);
+  font-weight: 700;
+}
+
+.aulas-day-chip.active .chip-dot {
+  background-color: var(--background-color);
+}
+
+.aulas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.aula-card {
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  user-select: none;
+}
+
+.aula-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.aula-time-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.aula-chevron {
+  color: var(--text-secondary);
+  transition: transform 0.22s ease;
+}
+
+.aula-card.expanded .aula-chevron {
+  transform: rotate(180deg);
+}
+
+.aula-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 10px;
+  line-height: 1.35;
+}
+
+.aula-local-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.aula-details-panel {
+  display: none;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.aula-card.expanded .aula-details-panel {
+  display: block;
+}
+
+.aula-detail-item {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.aula-detail-item strong {
+  color: var(--text-primary);
+}
+
+.aula-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.aula-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
