@@ -1482,8 +1482,7 @@ function renderTurnstileFullscreenQR() {
 function setupSwipeGestures() {
   let startX = 0;
   let startY = 0;
-  let distX = 0;
-  let distY = 0;
+  let hasSwipedTab = false;
 
   window.addEventListener('touchstart', (e) => {
     // Disable tab swiping when QR code is flipped or modal/sheet is open
@@ -1493,38 +1492,38 @@ function setupSwipeGestures() {
     const touch = e.touches[0];
     startX = touch.clientX;
     startY = touch.clientY;
-    distX = 0;
-    distY = 0;
+    hasSwipedTab = false;
   }, { passive: true });
 
   window.addEventListener('touchmove', (e) => {
-    if (!startX || !startY) return;
+    if (!startX || !startY || hasSwipedTab) return;
     const touch = e.touches[0];
-    distX = touch.clientX - startX;
-    distY = touch.clientY - startY;
-  }, { passive: true });
+    const dX = touch.clientX - startX;
+    const dY = touch.clientY - startY;
 
-  window.addEventListener('touchend', () => {
-    // Require dominant horizontal movement exceeding threshold
-    if (Math.abs(distX) > 65 && Math.abs(distX) > Math.abs(distY) * 1.5) {
+    // Trigger immediately without delay once horizontal movement is decisive
+    if (Math.abs(dX) > 36 && Math.abs(dX) > Math.abs(dY) * 1.25) {
+      hasSwipedTab = true;
       const isCardapio = document.getElementById('navCardapioBtn')?.classList.contains('active');
       const isAulas = document.getElementById('navAulasBtn')?.classList.contains('active');
       const isDiscente = document.getElementById('navDiscenteBtn')?.classList.contains('active');
 
-      if (distX < 0) {
-        // Swipe left (advance right)
+      if (dX < 0) {
+        // Swipe left -> advance right
         if (isCardapio) document.getElementById('navAulasBtn')?.click();
         else if (isAulas) document.getElementById('navDiscenteBtn')?.click();
-      } else if (distX > 0) {
-        // Swipe right (advance left)
+      } else if (dX > 0) {
+        // Swipe right -> advance left
         if (isDiscente) document.getElementById('navAulasBtn')?.click();
         else if (isAulas) document.getElementById('navCardapioBtn')?.click();
       }
     }
+  }, { passive: true });
+
+  window.addEventListener('touchend', () => {
     startX = 0;
     startY = 0;
-    distX = 0;
-    distY = 0;
+    hasSwipedTab = false;
   });
 }
 
@@ -1735,12 +1734,7 @@ function renderAulasScreen() {
               ${outros.map(o => `• ${o.diaNome}: ${o.horarioFormatado}`).join('<br/>')}
             </div>
           ` : ''}
-          ${disciplina.local ? `
-            <button class="aula-copy-btn" type="button" onclick="event.stopPropagation(); copyAulaLocal(this, '${encodeURIComponent(disciplina.local)}');">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              <span>Copiar sala</span>
-            </button>
-          ` : ''}
+
         </div>
       </div>
     `;
@@ -1753,16 +1747,4 @@ function renderAulasScreen() {
   });
 }
 
-function copyAulaLocal(btn, encodedLocal) {
-  const local = decodeURIComponent(encodedLocal);
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(local).then(() => {
-      const span = btn.querySelector('span');
-      if (span) {
-        const orig = span.textContent;
-        span.textContent = 'Copiado!';
-        setTimeout(() => { span.textContent = orig; }, 1500);
-      }
-    }).catch(() => {});
-  }
-}
+

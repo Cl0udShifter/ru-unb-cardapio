@@ -1,9 +1,5 @@
 package br.unb.ru.ui.components
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
@@ -25,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -42,7 +37,6 @@ fun AulasScreen(
     onOpenLogin: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
 
     val todayDiaNum = remember {
         when (Calendar.getInstance().get(Calendar.DAY_OF_WEEK)) {
@@ -292,13 +286,7 @@ fun AulasScreen(
                 ClassCardItem(
                     disciplina = disciplina,
                     currentTime = time,
-                    selectedDia = selectedDia,
-                    onCopyLocal = { local ->
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("Local da Aula", local)
-                        clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "Local copiado: $local", Toast.LENGTH_SHORT).show()
-                    }
+                    selectedDia = selectedDia
                 )
             }
         }
@@ -314,8 +302,7 @@ fun AulasScreen(
 private fun ClassCardItem(
     disciplina: ClassSchedule,
     currentTime: ClassTime,
-    selectedDia: Int,
-    onCopyLocal: (String) -> Unit
+    selectedDia: Int
 ) {
     var isExpanded by rememberSaveable { mutableStateOf(false) }
     val rotation by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f, label = "card_expand_arrow")
@@ -454,28 +441,7 @@ private fun ClassCardItem(
                         Spacer(modifier = Modifier.height(10.dp))
                     }
 
-                    if (disciplina.local.isNotBlank()) {
-                        OutlinedButton(
-                            onClick = { onCopyLocal(disciplina.local) },
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            modifier = Modifier.height(36.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.ContentCopy,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onBackground
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Copiar sala",
-                                style = NotionTypography.labelSmall,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                        }
-                    }
+
                 }
             }
         }
