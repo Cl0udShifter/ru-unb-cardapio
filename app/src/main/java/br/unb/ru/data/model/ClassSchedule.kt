@@ -58,7 +58,8 @@ data class ClassSchedule(
     val aulasMinistradasTexto: String? = "",
     val horarios: List<ClassTime>? = emptyList(),
     val noticias: List<ClassNotice>? = emptyList(),
-    val topicos: List<ClassTopic>? = emptyList()
+    val topicos: List<ClassTopic>? = emptyList(),
+    val jsfParams: Map<String, String>? = emptyMap()
 ) {
     val nomeSafe: String get() = nome ?: ""
     val localSafe: String get() = local ?: ""
@@ -72,4 +73,5 @@ data class ClassSchedule(
     val horariosSafe: List<ClassTime> get() = horarios ?: emptyList()
     val noticiasSafe: List<ClassNotice> get() = noticias ?: emptyList()
     val topicosSafe: List<ClassTopic> get() = topicos ?: emptyList()
+    val jsfParamsSafe: Map<String, String> get() = jsfParams ?: emptyMap()
 }

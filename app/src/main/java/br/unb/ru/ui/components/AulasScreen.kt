@@ -28,6 +28,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import br.unb.ru.data.model.ClassNotice
+import br.unb.ru.data.model.ClassNoticeAttachment
 import br.unb.ru.data.model.ClassSchedule
 import br.unb.ru.data.model.ClassTime
 import br.unb.ru.ui.theme.NotionTypography
@@ -40,7 +42,7 @@ fun AulasScreen(
     onOpenLogin: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var selectedTab by rememberSaveable { mutableStateOf("dia") } // "dia" ou "turmas"
+    var selectedTab by rememberSaveable { mutableStateOf("dia") }
 
     val todayDiaNum = remember {
         when (Calendar.getInstance().get(Calendar.DAY_OF_WEEK)) {
@@ -657,7 +659,6 @@ private fun ClassCardItem(
 private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
     var isExpanded by remember { mutableStateOf(false) }
     val rotation by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f, label = "turma_expand")
-    val context = LocalContext.current
 
     Surface(
         shape = RoundedCornerShape(14.dp),
@@ -809,9 +810,13 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     // 1. Aulas Ministradas
-                    val pctMinistradas = disciplina.percentualAulasMinistradas ?: 0f
-                    val textoMinistradas = disciplina.aulasMinistradasTextoSafe.ifBlank {
-                        if (pctMinistradas > 0) "${pctMinistradas.toInt()}% ministradas" else "Aulas em andamento"
+                    val pctMinistradas = disciplina.percentualAulasMinistradas
+                    val textoMinistradas = if (pctMinistradas != null && pctMinistradas > 0f) {
+                        disciplina.aulasMinistradasTextoSafe.ifBlank { "${pctMinistradas.toInt()}% ministradas" }
+                    } else if (disciplina.aulasMinistradasTextoSafe.isNotBlank()) {
+                        disciplina.aulasMinistradasTextoSafe
+                    } else {
+                        "Em andamento"
                     }
 
                     Row(
@@ -834,7 +839,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
 
                     Spacer(modifier = Modifier.height(6.dp))
                     LinearProgressIndicator(
-                        progress = { (pctMinistradas / 100f).coerceIn(0f, 1f) },
+                        progress = { if (pctMinistradas != null) (pctMinistradas / 100f).coerceIn(0f, 1f) else 0f },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(6.dp)
@@ -846,11 +851,11 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // 2. Frequência / Faltas
-                    val pctFreq = disciplina.percentualFrequencia ?: 100f
-                    val textoFreq = if (disciplina.percentualFrequencia != null) {
+                    val pctFreq = disciplina.percentualFrequencia
+                    val textoFreq = if (pctFreq != null) {
                         "${pctFreq.toInt()}% • ${disciplina.faltas} falta(s)"
                     } else {
-                        "100% de presença"
+                        "A apurar no SIGAA"
                     }
 
                     Row(
@@ -867,18 +872,18 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                             text = textoFreq,
                             style = NotionTypography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (pctFreq < 75f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
+                            color = if (pctFreq != null && pctFreq < 75f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
                         )
                     }
 
                     Spacer(modifier = Modifier.height(6.dp))
                     LinearProgressIndicator(
-                        progress = { (pctFreq / 100f).coerceIn(0f, 1f) },
+                        progress = { if (pctFreq != null) (pctFreq / 100f).coerceIn(0f, 1f) else 0f },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(6.dp)
                             .clip(RoundedCornerShape(3.dp)),
-                        color = if (pctFreq < 75f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
+                        color = if (pctFreq != null && pctFreq < 75f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
                         trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
                     )
                 }
@@ -887,6 +892,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
             Spacer(modifier = Modifier.height(10.dp))
 
             // ACCORDION: Avisos e Arquivos da Turma Virtual
+            val noticesList = disciplina.noticiasSafe
             Surface(
                 shape = RoundedCornerShape(10.dp),
                 color = Color.Transparent,
@@ -916,7 +922,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onBackground
                         )
-                        if (disciplina.noticiasSafe.isNotEmpty()) {
+                        if (noticesList.isNotEmpty()) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
@@ -924,7 +930,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                                 modifier = Modifier.padding(1.dp)
                             ) {
                                 Text(
-                                    text = "${disciplina.noticiasSafe.size}",
+                                    text = "${noticesList.size}",
                                     style = NotionTypography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.background,
@@ -953,97 +959,126 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                     )
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    if (disciplina.noticiasSafe.isEmpty()) {
+                    if (noticesList.isEmpty()) {
                         Text(
-                            text = "Nenhum aviso publicado pelo docente até o momento.",
+                            text = "Nenhum aviso publicado pelo docente desta turma.",
                             style = NotionTypography.bodySmall,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(vertical = 4.dp)
+                            modifier = Modifier.padding(vertical = 6.dp)
                         )
                     } else {
-                        disciplina.noticiasSafe.forEach { aviso ->
+                        noticesList.forEach { aviso ->
+                            NoticeCardItem(aviso = aviso)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NoticeCardItem(aviso: ClassNotice) {
+    var isNoticeExpanded by remember { mutableStateOf(false) }
+    val rotation by animateFloatAsState(targetValue = if (isNoticeExpanded) 180f else 0f, label = "notice_arrow")
+    val context = LocalContext.current
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .clickable { isNoticeExpanded = !isNoticeExpanded }
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = aviso.tituloSafe,
+                    style = NotionTypography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(1f)
+                )
+                if (aviso.dataSafe.isNotBlank()) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = aviso.dataSafe,
+                        style = NotionTypography.labelSmall,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    )
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    imageVector = Icons.Outlined.KeyboardArrowDown,
+                    contentDescription = if (isNoticeExpanded) "Recolher" else "Expandir",
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f),
+                    modifier = Modifier
+                        .size(16.dp)
+                        .rotate(rotation)
+                )
+            }
+
+            AnimatedVisibility(visible = isNoticeExpanded) {
+                Column(modifier = Modifier.padding(top = 8.dp)) {
+                    if (aviso.conteudoSafe.isNotBlank()) {
+                        Text(
+                            text = aviso.conteudoSafe,
+                            style = NotionTypography.bodySmall,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
+                            lineHeight = 18.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    } else if (aviso.anexosSafe.isEmpty()) {
+                        Text(
+                            text = "Sem descrição adicional neste aviso.",
+                            style = NotionTypography.bodySmall,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                        )
+                    }
+
+                    if (aviso.anexosSafe.isNotEmpty()) {
+                        aviso.anexosSafe.forEach { anexo ->
                             Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)),
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surface,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
+                                    .padding(vertical = 3.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        try {
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(anexo.urlSafe))
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {}
+                                    }
                             ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = aviso.tituloSafe,
-                                            style = NotionTypography.bodyMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onBackground,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        if (aviso.dataSafe.isNotBlank()) {
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = aviso.dataSafe,
-                                                style = NotionTypography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                                            )
-                                        }
-                                    }
-
-                                    if (aviso.conteudoSafe.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Text(
-                                            text = aviso.conteudoSafe,
-                                            style = NotionTypography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f)
-                                        )
-                                    }
-
-                                    // Anexos para download
-                                    if (aviso.anexosSafe.isNotEmpty()) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        aviso.anexosSafe.forEach { anexo ->
-                                            Surface(
-                                                shape = RoundedCornerShape(8.dp),
-                                                color = MaterialTheme.colorScheme.surface,
-                                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 3.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .clickable {
-                                                        try {
-                                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(anexo.urlSafe))
-                                                            context.startActivity(intent)
-                                                        } catch (_: Exception) {}
-                                                    }
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Outlined.FileDownload,
-                                                        contentDescription = "Baixar",
-                                                        tint = MaterialTheme.colorScheme.onBackground,
-                                                        modifier = Modifier.size(16.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    Text(
-                                                        text = anexo.nomeSafe,
-                                                        style = NotionTypography.bodySmall,
-                                                        fontWeight = FontWeight.Medium,
-                                                        color = MaterialTheme.colorScheme.onBackground,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.FileDownload,
+                                        contentDescription = "Baixar",
+                                        tint = MaterialTheme.colorScheme.onBackground,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = anexo.nomeSafe,
+                                        style = NotionTypography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
                             }
                         }

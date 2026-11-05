@@ -1803,16 +1803,22 @@ function renderTurmasList() {
     return;
   }
 
+  const allCourseNames = new Set(classes.map(cl => (cl.nome || '').trim().toLowerCase()));
+
   listEl.innerHTML = classes.map((c, idx) => {
-    const pctMinistradas = typeof c.percentualAulasMinistradas === 'number' ? c.percentualAulasMinistradas : 0;
-    const textoMinistradas = c.aulasMinistradasTexto || (pctMinistradas > 0 ? `${Math.round(pctMinistradas)}% ministradas` : 'Aulas em andamento');
-    const pctFreq = typeof c.percentualFrequencia === 'number' ? c.percentualFrequencia : 100;
+    const pctMinistradas = typeof c.percentualAulasMinistradas === 'number' ? c.percentualAulasMinistradas : null;
+    const textoMinistradas = c.aulasMinistradasTexto || (pctMinistradas !== null ? `${Math.round(pctMinistradas)}% ministradas` : 'Em andamento');
+    const pctFreq = typeof c.percentualFrequencia === 'number' ? c.percentualFrequencia : null;
     const faltasCount = typeof c.faltas === 'number' ? c.faltas : 0;
-    const textoFreq = typeof c.percentualFrequencia === 'number' ? `${Math.round(pctFreq)}% • ${faltasCount} falta(s)` : '100% de presença';
-    const isWarningFreq = pctFreq < 75;
+    const textoFreq = pctFreq !== null ? `${Math.round(pctFreq)}% • ${faltasCount} falta(s)` : 'A apurar no SIGAA';
+    const isWarningFreq = pctFreq !== null && pctFreq < 75;
 
     const weeklySchedule = (c.horarios || []).map(h => `${(h.diaNome || '').slice(0, 3)} ${h.horarioFormatado}`).join(' • ');
-    const notices = c.noticias || [];
+    const rawNotices = c.noticias || [];
+    const notices = rawNotices.filter(n => {
+      const t = (n.titulo || '').trim().toLowerCase();
+      return t && !allCourseNames.has(t);
+    });
 
     return `
       <div class="turma-card" id="turmaCard_${idx}">
@@ -1853,7 +1859,7 @@ function renderTurmasList() {
               <span class="metric-line-val">${textoMinistradas}</span>
             </div>
             <div class="metric-bar-track">
-              <div class="metric-bar-fill" style="width: ${Math.min(100, Math.max(0, pctMinistradas))}%;"></div>
+              <div class="metric-bar-fill" style="width: ${pctMinistradas !== null ? Math.min(100, Math.max(0, pctMinistradas)) : 0}%;"></div>
             </div>
           </div>
 
@@ -1863,7 +1869,7 @@ function renderTurmasList() {
               <span class="metric-line-val ${isWarningFreq ? 'warning' : ''}">${textoFreq}</span>
             </div>
             <div class="metric-bar-track">
-              <div class="metric-bar-fill ${isWarningFreq ? 'warning' : ''}" style="width: ${Math.min(100, Math.max(0, pctFreq))}%;"></div>
+              <div class="metric-bar-fill ${isWarningFreq ? 'warning' : ''}" style="width: ${pctFreq !== null ? Math.min(100, Math.max(0, pctFreq)) : 0}%;"></div>
             </div>
           </div>
         </div>
@@ -1880,24 +1886,29 @@ function renderTurmasList() {
 
         <div class="turma-notices-panel">
           ${notices.length === 0 ? `
-            <div style="font-size: 12px; color: var(--text-secondary); padding: 4px 0;">Nenhum aviso publicado pelo docente até o momento.</div>
-          ` : notices.map(aviso => `
-            <div class="turma-notice-item">
+            <div style="font-size: 12px; color: var(--text-secondary); padding: 4px 0;">Nenhum aviso publicado pelo docente desta turma.</div>
+          ` : notices.map((aviso, nIdx) => `
+            <div class="turma-notice-item" id="noticeItem_${idx}_${nIdx}" onclick="toggleNoticeItem(${idx}, ${nIdx})">
               <div class="turma-notice-top">
                 <div class="turma-notice-title">${aviso.titulo}</div>
-                ${aviso.data ? `<span class="turma-notice-date">${aviso.data}</span>` : ''}
-              </div>
-              ${aviso.conteudo ? `<div class="turma-notice-content">${aviso.conteudo}</div>` : ''}
-              ${(aviso.anexos || []).length > 0 ? `
-                <div style="margin-top: 6px;">
-                  ${aviso.anexos.map(anexo => `
-                    <a class="turma-attachment-btn" href="${anexo.url}" target="_blank" rel="noopener noreferrer" download>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                      <span>${anexo.nome}</span>
-                    </a>
-                  `).join('')}
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  ${aviso.data ? `<span class="turma-notice-date">${aviso.data}</span>` : ''}
+                  <svg class="turma-notice-chevron" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
                 </div>
-              ` : ''}
+              </div>
+              <div class="turma-notice-body">
+                ${aviso.conteudo ? `<div class="turma-notice-content">${aviso.conteudo}</div>` : `<div class="turma-notice-content" style="opacity: 0.5;">Sem descrição adicional neste aviso.</div>`}
+                ${(aviso.anexos || []).length > 0 ? `
+                  <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
+                    ${aviso.anexos.map(anexo => `
+                      <a class="turma-attachment-btn" href="${anexo.url}" target="_blank" rel="noopener noreferrer" download onclick="event.stopPropagation()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>${anexo.nome}</span>
+                      </a>
+                    `).join('')}
+                  </div>
+                ` : ''}
+              </div>
             </div>
           `).join('')}
         </div>
@@ -1910,6 +1921,13 @@ window.toggleTurmaNotices = function(idx) {
   const card = document.getElementById(`turmaCard_${idx}`);
   if (card) {
     card.classList.toggle('notices-expanded');
+  }
+};
+
+window.toggleNoticeItem = function(cardIdx, noticeIdx) {
+  const el = document.getElementById(`noticeItem_${cardIdx}_${noticeIdx}`);
+  if (el) {
+    el.classList.toggle('expanded');
   }
 };
 

@@ -279,15 +279,33 @@ def sync_with_urllib(matricula, senha):
     # 7. Extrair Disciplinas e Grade de Aulas
     disciplinas = []
     try:
+        # Atualiza view_state caso esteja em current_html
+        vs_refresh = re.search(r"""name=["\']javax\.faces\.ViewState["\'][^>]+value=["\']([^"\']*)["\']""", current_html, re.I)
+        if vs_refresh:
+            view_state = vs_refresh.group(1)
+
         table_m = re.search(r'<table[^>]*>.*?Componente Curricular.*?<tbody>(.*?)</tbody>\s*</table>', current_html, re.DOTALL | re.I)
         if table_m:
             tbody = table_m.group(1)
-            rows = re.findall(r'<tr[^>]*class=["'](?:odd)?["'][^>]*>(.*?)</tr>', tbody, re.DOTALL | re.I)
+            rows = re.findall(r'<tr[^>]*>(.*?)</tr>', tbody, re.DOTALL | re.I)
+            
+            # Coleta previamente todos os nomes de disciplinas para evitar falsos positivos nos avisos
+            all_course_names = set()
+            for r in rows:
+                if 'frontEndIdTurma' in r:
+                    nome_m = re.search(r'<a[^>]*>(.*?)</a>', r, re.DOTALL)
+                    if nome_m:
+                        n_clean = html.unescape(nome_m.group(1)).strip().lower()
+                        if n_clean:
+                            all_course_names.add(n_clean)
+
             DAY_MAP = {'segunda': 1, 'terca': 2, 'terça': 2, 'quarta': 3, 'quinta': 4, 'sexta': 5, 'sabado': 6, 'sábado': 6}
             for r in rows:
+                if 'frontEndIdTurma' not in r:
+                    continue
                 nome_m = re.search(r'<a[^>]*>(.*?)</a>', r, re.DOTALL)
                 nome_disc = html.unescape(nome_m.group(1)).strip() if nome_m else ''
-                turma_m = re.search(r'["']frontEndIdTurma["']\s*:\s*["']([^"']+)["']', r)
+                turma_m = re.search(r'["\']frontEndIdTurma["\']\s*:\s*["\']([^"\']+)["\']', r)
                 turma_id = turma_m.group(1) if turma_m else ''
                 tds = re.findall(r'<td[^>]*>(.*?)</td>', r, re.DOTALL)
                 local = html.unescape(re.sub(r'<[^>]+>', '', tds[1])).strip() if len(tds) >= 2 else ''
@@ -298,7 +316,7 @@ def sync_with_urllib(matricula, senha):
                     raw_m = re.search(r'([1-7]+[MTN][1-6]+)', td_horario)
                     if raw_m:
                         horario_raw = raw_m.group(1)
-                    popup_m = re.search(r'<div[^>]*class=["']popUp["'][^>]*>(.*?)</div>', td_horario, re.DOTALL | re.I)
+                    popup_m = re.search(r'<div[^>]*class=["\']popUp["\'][^>]*>(.*?)</div>', td_horario, re.DOTALL | re.I)
                     if popup_m:
                         popup_text = html.unescape(popup_m.group(1)).replace('<br />', '\n').replace('<br>', '\n')
                         for line in popup_text.split('\n'):
@@ -343,7 +361,7 @@ def sync_with_urllib(matricula, senha):
                     if ch_m2:
                         carga_horaria = f"{ch_m2.group(1).strip()}h"
 
-                sub_m = re.search(r'<span[^>]*class=["']subTexto["'][^>]*>(.*?)</span>', td0, re.DOTALL | re.I)
+                sub_m = re.search(r'<span[^>]*class=["\']subTexto["\'][^>]*>(.*?)</span>', td0, re.DOTALL | re.I)
                 if sub_m:
                     raw_doc = html.unescape(re.sub(r'<[^>]+>', '', sub_m.group(1))).strip()
                     docente = re.sub(r'\(\d+h\)', '', raw_doc).strip()
@@ -358,57 +376,87 @@ def sync_with_urllib(matricula, senha):
                 aulas_ministradas_texto = ''
                 noticias = []
 
-                if turma_id and view_state:
+                jsf_map = {}
+                jsf_m = re.search(r"""jsfcljs\s*\(\s*document\.getElementById\(['"]form_acessarTurmaVirtual['"]\)\s*,\s*\{([^}]+)\}""", r, re.I)
+                if jsf_m:
+                    dict_content = jsf_m.group(1)
+                    for p_m in re.finditer(r"""['"]([^'"]+)['"]\s*:\s*['"]([^'"]*)['"]""", dict_content):
+                        jsf_map[p_m.group(1)] = p_m.group(2)
+
+                if (turma_id or jsf_map) and view_state:
                     try:
                         tv_payload = {
                             'form_acessarTurmaVirtual': 'form_acessarTurmaVirtual',
-                            'form_acessarTurmaVirtual:frontEndIdTurma': turma_id,
                             'javax.faces.ViewState': view_state
                         }
+                        for k, v in jsf_map.items():
+                            tv_payload[k] = v
+                        if 'form_acessarTurmaVirtual:frontEndIdTurma' not in tv_payload and turma_id:
+                            tv_payload['form_acessarTurmaVirtual:frontEndIdTurma'] = turma_id
+
                         req_tv = urllib.request.Request(
                             'https://sigaa.unb.br/sigaa/portais/discente/discente.jsf',
                             data=urllib.parse.urlencode(tv_payload).encode('utf-8'),
                             headers=headers
                         )
-                        r_tv = opener.open(req_tv, timeout=6)
+                        r_tv = opener.open(req_tv, timeout=8)
                         tv_html = r_tv.read().decode('latin-1', errors='ignore')
 
-                        m_aulas = re.search(r'Aulas\s+Ministradas:\s*(?:<strong>)?\s*([0-9]+\s*(?:de\s*[0-9]+)?(?:\s*\([0-9\.,]+%\))?)', tv_html, re.I)
-                        if m_aulas:
-                            aulas_ministradas_texto = m_aulas.group(1).strip()
-                            m_pct = re.search(r'([0-9\.,]+)%', aulas_ministradas_texto)
-                            if m_pct:
-                                pct_ministradas = float(m_pct.group(1).replace(',', '.'))
+                        # Só processa como Turma Virtual se a resposta não for a própria lista discente
+                        is_tv = ('turmaVirtual' in tv_html or 'turma_virtual' in tv_html.lower() or 'noticia' in tv_html.lower() or 'principal da turma' in tv_html.lower()) and ('portal do discente' not in tv_html.lower() or 'turmaVirtual.jsf' in r_tv.geturl())
 
-                        m_freq = re.search(r'Frequ[êe]ncia:\s*(?:<strong>)?\s*([0-9\.,]+)%', tv_html, re.I)
-                        if m_freq:
-                            pct_freq = float(m_freq.group(1).replace(',', '.'))
+                        if is_tv:
+                            m_aulas = re.search(r'Aulas\s+Ministradas:\s*(?:<strong>)?\s*([0-9]+\s*(?:de\s*[0-9]+)?(?:\s*\([0-9\.,]+%\))?)', tv_html, re.I)
+                            if m_aulas:
+                                aulas_ministradas_texto = m_aulas.group(1).strip()
+                                m_pct = re.search(r'([0-9\.,]+)%', aulas_ministradas_texto)
+                                if m_pct:
+                                    pct_ministradas = float(m_pct.group(1).replace(',', '.'))
 
-                        m_faltas = re.search(r'Faltas:\s*(?:<strong>)?\s*([0-9]+)', tv_html, re.I)
-                        if m_faltas:
-                            faltas = int(m_faltas.group(1))
+                            m_freq = re.search(r'Frequ[êe]ncia:\s*(?:<strong>)?\s*([0-9\.,]+)%', tv_html, re.I)
+                            if m_freq:
+                                pct_freq = float(m_freq.group(1).replace(',', '.'))
 
-                        for not_match in re.finditer(r'<tr[^>]*class=["'](?:linhaNoticia|odd|even)["'][^>]*>(.*?)</tr>', tv_html, re.DOTALL | re.I):
-                            row_c = not_match.group(1)
-                            date_m = re.search(r'(\d{2}/\d{2}/\d{4})', row_c)
-                            title_m = re.search(r'<a[^>]*>(.*?)</a>', row_c, re.DOTALL)
-                            if title_m:
-                                n_titulo = html.unescape(re.sub(r'<[^>]+>', '', title_m.group(1))).strip()
-                                n_data = date_m.group(1) if date_m else ''
-                                anexos = []
-                                for att_m in re.finditer(r'<a[^>]+href=["']([^"']*(?:verArquivo|downloadArquivo)[^"']*)["'][^>]*>(.*?)</a>', row_c, re.I):
-                                    att_url = att_m.group(1)
-                                    if not att_url.startswith('http'):
-                                        att_url = 'https://sigaa.unb.br' + att_url
-                                    att_name = html.unescape(re.sub(r'<[^>]+>', '', att_m.group(2))).strip() or 'Baixar anexo'
-                                    anexos.append({'nome': att_name, 'url': att_url})
-                                if n_titulo:
-                                    noticias.append({
-                                        'titulo': n_titulo,
-                                        'data': n_data,
-                                        'conteudo': '',
-                                        'anexos': anexos
-                                    })
+                            m_faltas = re.search(r'Faltas:\s*(?:<strong>)?\s*([0-9]+)', tv_html, re.I)
+                            if m_faltas:
+                                faltas = int(m_faltas.group(1))
+
+                            bloco_m = re.search(r'<(?:div|table)[^>]+(?:id|class)=["\'][^"\']*(?:noticia|aviso)[^"\']*["\'][^>]*>(.*?)</(?:div|table)>', tv_html, re.DOTALL | re.I)
+                            noticia_html = bloco_m.group(1) if bloco_m else ''
+
+                            if noticia_html:
+                                for not_match in re.finditer(r'<tr[^>]*>(.*?)</tr>', noticia_html, re.DOTALL | re.I):
+                                    row_c = not_match.group(1)
+                                    date_m = re.search(r'(\d{2}/\d{2}/\d{4})', row_c)
+                                    title_m = re.search(r'<a[^>]*>(.*?)</a>', row_c, re.DOTALL)
+                                    if title_m:
+                                        n_titulo = html.unescape(re.sub(r'<[^>]+>', '', title_m.group(1))).strip()
+                                        n_data = date_m.group(1) if date_m else ''
+                                        if n_titulo and n_titulo.lower() not in all_course_names:
+                                            anexos = []
+                                            for att_m in re.finditer(r'<a[^>]+href=["\']([^"\']*(?:verArquivo|downloadArquivo)[^"\']*)["\'][^>]*>(.*?)</a>', row_c, re.I):
+                                                att_url = att_m.group(1)
+                                                if not att_url.startswith('http'):
+                                                    att_url = 'https://sigaa.unb.br' + att_url
+                                                att_name = html.unescape(re.sub(r'<[^>]+>', '', att_m.group(2))).strip() or 'Baixar anexo'
+                                                anexos.append({'nome': att_name, 'url': att_url})
+                                            noticias.append({
+                                                'titulo': n_titulo,
+                                                'data': n_data,
+                                                'conteudo': '',
+                                                'anexos': anexos
+                                            })
+
+                            # Reseta visão para discente.jsf para a próxima matéria
+                            try:
+                                req_reset = urllib.request.Request('https://sigaa.unb.br/sigaa/portais/discente/discente.jsf', headers=headers)
+                                r_reset = opener.open(req_reset, timeout=6)
+                                reset_html = r_reset.read().decode('latin-1', errors='ignore')
+                                vs_m = re.search(r'name=["\']javax\.faces\.ViewState["\'][^>]+value=["\']([^"\']*)["\']', reset_html)
+                                if vs_m:
+                                    view_state = vs_m.group(1)
+                            except Exception:
+                                pass
                     except Exception as e_tv:
                         print(f"Erro ao consultar Turma Virtual para {nome_disc}:", e_tv)
 

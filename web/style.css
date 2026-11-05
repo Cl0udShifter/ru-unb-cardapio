@@ -2734,10 +2734,32 @@ body.discente-flipped .app-tab-pill-nav {
 }
 
 .turma-notice-item {
+  cursor: pointer;
   background: var(--surface-secondary, rgba(0, 0, 0, 0.02));
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 10px 12px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+}
+.turma-notice-item:active {
+  background: var(--surface-pressed, rgba(0, 0, 0, 0.05));
+}
+.turma-notice-chevron {
+  transition: transform 0.2s ease;
+  color: var(--text-secondary);
+}
+.turma-notice-item.expanded .turma-notice-chevron {
+  transform: rotate(180deg);
+}
+.turma-notice-body {
+  display: none;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color);
+}
+.turma-notice-item.expanded .turma-notice-body {
+  display: block;
 }
 
 .turma-notice-top {
