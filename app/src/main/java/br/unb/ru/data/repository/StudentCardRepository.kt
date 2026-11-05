@@ -496,8 +496,10 @@ class StudentCardRepository(private val context: Context) {
             val resp = client.newCall(req).execute()
             val html = resp.body?.string() ?: ""
 
-            parseStatementHtml(html, matricula)
-        } catch (_: Exception) {
+            val statement = parseStatementHtml(html, matricula)
+            saveStatement(statement)
+            statement
+        } catch (e: Exception) {
             getStatement(matricula)
         }
     }

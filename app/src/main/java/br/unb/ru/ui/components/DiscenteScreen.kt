@@ -60,44 +60,19 @@ fun DiscenteScreen(
     onDisconnect: () -> Unit,
     onCheckForUpdate: () -> Unit = {},
     isCheckingUpdate: Boolean = false,
+    onFlipToQr: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
     var showSyncDialog by remember { mutableStateOf(false) }
     var showDisconnectConfirm by remember { mutableStateOf(false) }
-    var isFlipped by remember { mutableStateOf(false) }
-
     // Fechar dialog ao concluir sincronização com sucesso
     LaunchedEffect(isSyncing, card.isConfigured, syncError) {
         if (!isSyncing && card.isConfigured && syncError == null) {
             showSyncDialog = false
         }
     }
-
-    // Aumento de brilho da tela quando girar para o QR Code da catraca
-    DisposableEffect(isFlipped) {
-        if (isFlipped && activity != null) {
-            val params = activity.window.attributes
-            val previousBrightness = params.screenBrightness
-            params.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
-            activity.window.attributes = params
-
-            onDispose {
-                params.screenBrightness = previousBrightness
-                activity.window.attributes = params
-            }
-        } else {
-            onDispose { }
-        }
-    }
-
-    // Rotação 3D da tela inteira
-    val rotation by animateFloatAsState(
-        targetValue = if (isFlipped) 180f else 0f,
-        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
-        label = "full_screen_flip"
-    )
 
     // Foto de perfil via URL em segundo plano
     var avatarBitmap by remember(card.fotoPerfilUrl) { mutableStateOf<Bitmap?>(null) }
@@ -137,25 +112,13 @@ fun DiscenteScreen(
         }
     }
 
-    Box(
+    Column(
         modifier = modifier
             .fillMaxSize()
-            .graphicsLayer {
-                rotationY = rotation
-                cameraDistance = 14f * density
-            }
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        if (rotation <= 90f) {
-            // ==========================================
-            // FRENTE: PAINEL DISCENTE COMPLETO
-            // ==========================================
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
                 // Cabeçalho da Aba Discente
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -179,26 +142,7 @@ fun DiscenteScreen(
                         )
                     }
 
-                    if (card.isConfigured) {
-                        IconButton(
-                            onClick = onRefreshStatement,
-                            enabled = !isRefreshingStatement && !isSyncing
-                        ) {
-                            if (isRefreshingStatement || isSyncing) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onBackground
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Outlined.Sync,
-                                    contentDescription = "Sincronizar dados",
-                                    tint = MaterialTheme.colorScheme.onBackground
-                                )
-                            }
-                        }
-                    }
+
                 }
 
                 if (!card.isConfigured) {
@@ -661,7 +605,7 @@ fun DiscenteScreen(
 
                             // Botão Girar para QR Code da Catraca (Gira a tela inteira)
                             OutlinedButton(
-                                onClick = { isFlipped = true },
+                                onClick = onFlipToQr,
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.fillMaxWidth(),
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
@@ -849,149 +793,6 @@ fun DiscenteScreen(
                     }
                 }
             }
-        } else {
-            // ==========================================
-            // VERSO: TELA INTEIRA GIRADA PARA O QR CODE DA CATRACA
-            // ==========================================
-            Surface(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        rotationY = 180f // Desespelha o verso
-                    }
-                    .clickable { isFlipped = false },
-                color = Color.White
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Topo: Indicador e Botão Voltar
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "LEITOR DA CATRACA",
-                            style = NotionTypography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF555555),
-                            letterSpacing = 0.5.sp
-                        )
-
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = Color(0xFFF1F1F1),
-                            border = BorderStroke(1.dp, Color(0xFFCCCCCC)),
-                            modifier = Modifier.clickable { isFlipped = false }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.RotateLeft,
-                                    contentDescription = null,
-                                    tint = Color(0xFF222222),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Voltar ao Saldo",
-                                    style = NotionTypography.labelSmall,
-                                    color = Color(0xFF222222),
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                    }
-
-                    // Centro: QR Code Oficial de Alta Resolução em moldura branca
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = Color.White,
-                            shadowElevation = 8.dp,
-                            border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
-                            modifier = Modifier.padding(8.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier.padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (qrBitmap != null) {
-                                    Image(
-                                        bitmap = qrBitmap.asImageBitmap(),
-                                        contentDescription = "QR Code Catraca",
-                                        modifier = Modifier.size(240.dp)
-                                    )
-                                } else {
-                                    Box(
-                                        modifier = Modifier.size(240.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(36.dp),
-                                            color = Color.Black
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = card.nome.ifBlank { "Estudante UnB" },
-                                style = NotionTypography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF111111),
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "Matrícula: ${card.matricula}",
-                                style = NotionTypography.bodyMedium,
-                                color = Color(0xFF555555)
-                            )
-                        }
-                    }
-
-                    // Rodapé: Indicador de Toque
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(0xFFF3F3F3)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.BrightnessHigh,
-                                contentDescription = null,
-                                tint = Color(0xFF333333),
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Brilho no máximo ativado • Toque para virar",
-                                style = NotionTypography.bodySmall,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF333333)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     // Dialog de Confirmação de Desconexão
     if (showDisconnectConfirm) {
@@ -1029,7 +830,6 @@ fun DiscenteScreen(
         )
     }
 
-    // Modal de Login/Sincronização com o SIGAA
     if (showSyncDialog) {
         var matInput by remember { mutableStateOf("") }
         var passInput by remember { mutableStateOf("") }

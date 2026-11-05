@@ -854,6 +854,7 @@ function setupDiscenteDashboard() {
     flipToQrBtn.onclick = (e) => {
       e.stopPropagation();
       flipper.classList.add('flipped');
+      document.body.classList.add('discente-flipped');
     };
   }
 
@@ -867,8 +868,8 @@ function setupDiscenteDashboard() {
   const flipBack = document.getElementById('discenteScreenBack') || document.querySelector('.ru-flip-back');
   if (flipBack && flipper) {
     flipBack.onclick = (e) => {
-      if (e.target.closest('#ruFlipToFrontBtn')) return;
       flipper.classList.remove('flipped');
+      document.body.classList.remove('discente-flipped');
     };
   }
 
@@ -1510,6 +1511,41 @@ function registerServiceWorker() {
 document.addEventListener('DOMContentLoaded', () => {
   if (navigator.storage && navigator.storage.persist) {
     navigator.storage.persist().catch(() => {});
+  }
+
+  
+  // Pull-to-refresh on Discente Tab
+  const discenteContainer = document.getElementById('viewDiscente');
+  if (discenteContainer) {
+    let dStartY = 0;
+    let dDistY = 0;
+    discenteContainer.addEventListener('touchstart', (e) => {
+      if (discenteContainer.scrollTop <= 2) {
+        dStartY = e.touches[0].clientY;
+      } else {
+        dStartY = 0;
+      }
+      dDistY = 0;
+    }, { passive: true });
+
+    discenteContainer.addEventListener('touchmove', (e) => {
+      if (!dStartY) return;
+      dDistY = e.touches[0].clientY - dStartY;
+    }, { passive: true });
+
+    discenteContainer.addEventListener('touchend', async () => {
+      if (dDistY > 70) {
+        const credsRaw = localStorage.getItem('ru_sigaa_creds');
+        if (credsRaw) {
+          try {
+            const creds = JSON.parse(credsRaw);
+            await executeSigaaSync(creds.matricula, creds.senha);
+          } catch (_) {}
+        }
+      }
+      dStartY = 0;
+      dDistY = 0;
+    });
   }
 
   initTheme();

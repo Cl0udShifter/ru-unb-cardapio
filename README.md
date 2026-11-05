@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/Cl0udShifter/ru-unb-cardapio/releases/latest"><img src="https://img.shields.io/github/v/release/Cl0udShifter/ru-unb-cardapio?label=Download%20APK&color=success" alt="Latest Release" /></a>
-  <a href="https://cl0udshifter.github.io/ru-unb-cardapio/"><img src="https://img.shields.io/badge/Web%20%2F%20iOS%20PWA-Online-success.svg" alt="Web / iOS PWA" /></a>
+  <a href="https://ru-unb-cardapio-git-testes-ru-unb-cardapio.vercel.app"><img src="https://img.shields.io/badge/Web%20%2F%20iOS%20PWA-Online-success.svg" alt="Web / iOS PWA" /></a>
   <a href="obtainium://add/https://github.com/Cl0udShifter/ru-unb-cardapio"><img src="https://img.shields.io/badge/Obtainium-Add%20App-blue.svg" alt="Obtainium" /></a>
   <a href="https://www.android.com/"><img src="https://img.shields.io/badge/Platform-Android-green.svg" alt="Platform" /></a>
   <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/Kotlin-1.9.22-purple.svg" alt="Kotlin" /></a>
@@ -32,7 +32,7 @@ Aplicativo para consulta do cardápio semanal dos Restaurantes Universitários d
 
 Baixe diretamente a versão estável pronta para instalar:
 
-**[Download RU-UnB.apk (Última Versão)](https://github.com/Cl0udShifter/ru-unb-cardapio/releases/latest/download/RU-UnB.apk)**
+**[Download RU-UnB-Testes.apk (Versão de Testes v1.2.0-test.4)](https://github.com/Cl0udShifter/ru-unb-cardapio/releases/download/v1.2.0-test.4/RU-UnB-Testes.apk)**\n\n*(Para a versão estável da branch principal, utilize o release estável [RU-UnB.apk](https://github.com/Cl0udShifter/ru-unb-cardapio/releases/latest/download/RU-UnB.apk))*
 
 1. Baixe o arquivo `RU-UnB.apk` no celular.
 2. Abra o arquivo baixado nas notificações ou no gerenciador de arquivos.

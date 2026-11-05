@@ -1,10 +1,17 @@
 package br.unb.ru.ui.screens
 
+import android.app.Activity
+import android.view.WindowManager
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -22,8 +29,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -38,14 +49,13 @@ import br.unb.ru.ui.components.CampusSelectorBottomSheet
 import br.unb.ru.ui.components.DaySelectorRail
 import br.unb.ru.ui.components.DiscenteScreen
 import br.unb.ru.ui.components.MealTopControl
-
 import br.unb.ru.ui.components.LunchDinnerCard
 import br.unb.ru.ui.components.MealBottomControl
 import br.unb.ru.ui.components.NotificationSettingsBottomSheet
 import br.unb.ru.ui.components.StudentCardScreen
 import br.unb.ru.ui.theme.NotionTypography
 import br.unb.ru.ui.viewmodel.MenuUiState
-
+import br.unb.ru.util.QrCodeGenerator
 
 enum class MainScreenTab {
     CARDAPIO,
@@ -79,9 +89,40 @@ fun MenuHomeScreen(
     onClearUpdateMessage: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val activity = context as? Activity
     val pullRefreshState = rememberPullToRefreshState()
     val snackbarHostState = remember { SnackbarHostState() }
     var currentTab by remember { mutableStateOf(MainScreenTab.CARDAPIO) }
+    var isDiscenteFlipped by remember { mutableStateOf(false) }
+
+    // Screen brightness control on flip
+    DisposableEffect(isDiscenteFlipped) {
+        if (isDiscenteFlipped && activity != null) {
+            val params = activity.window.attributes
+            val prevBrightness = params.screenBrightness
+            params.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
+            activity.window.attributes = params
+            onDispose {
+                params.screenBrightness = prevBrightness
+                activity.window.attributes = params
+            }
+        } else {
+            onDispose { }
+        }
+    }
+
+    val rotation by animateFloatAsState(
+        targetValue = if (isDiscenteFlipped) 180f else 0f,
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "global_screen_flip"
+    )
+
+    val qrBitmap = remember(state.studentCard.codigoQr) {
+        if (state.studentCard.codigoQr.isNotBlank()) {
+            QrCodeGenerator.generateQrBitmap(state.studentCard.codigoQr, sizePx = 800)
+        } else null
+    }
 
     LaunchedEffect(state.updateMessage) {
         state.updateMessage?.let { msg ->
@@ -92,79 +133,116 @@ fun MenuHomeScreen(
 
     if (pullRefreshState.isRefreshing) {
         LaunchedEffect(true) {
-            onRefresh()
+            if (currentTab == MainScreenTab.CARDAPIO) {
+                onRefresh()
+            } else {
+                onRefreshStatement()
+            }
         }
     }
-    LaunchedEffect(state.isLoading) {
-        if (!state.isLoading) {
+    val isBusy = if (currentTab == MainScreenTab.CARDAPIO) state.isLoading else state.isRefreshingStatement
+    LaunchedEffect(isBusy) {
+        if (!isBusy) {
             pullRefreshState.endRefresh()
         }
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                rotationY = rotation
+                cameraDistance = 14f * density
+            }
+    ) {
+        if (rotation <= 90f) {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            Column {
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
-                    thickness = 1.dp
-                )
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 0.dp,
-                    windowInsets = NavigationBarDefaults.windowInsets
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
                 ) {
-                NavigationBarItem(
-                    selected = currentTab == MainScreenTab.CARDAPIO,
-                    onClick = { currentTab = MainScreenTab.CARDAPIO },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.RestaurantMenu,
-                            contentDescription = "Cardápio"
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = "Cardápio",
-                            style = NotionTypography.labelSmall,
-                            fontWeight = if (currentTab == MainScreenTab.CARDAPIO) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.onBackground,
-                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        unselectedIconColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                        unselectedTextColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                        thickness = 1.dp
                     )
-                )
-                NavigationBarItem(
-                    selected = currentTab == MainScreenTab.DISCENTE,
-                    onClick = { currentTab = MainScreenTab.DISCENTE },
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.School,
-                            contentDescription = "Discente"
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = "Discente",
-                            style = NotionTypography.labelSmall,
-                            fontWeight = if (currentTab == MainScreenTab.DISCENTE) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.onBackground,
-                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        unselectedIconColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                        unselectedTextColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                    )
-                )
-            }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Cardápio
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clickable { currentTab = MainScreenTab.CARDAPIO },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                val isSelected = currentTab == MainScreenTab.CARDAPIO
+                                Icon(
+                                    imageVector = Icons.Outlined.RestaurantMenu,
+                                    contentDescription = "Cardápio",
+                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Cardápio",
+                                    style = NotionTypography.labelSmall.copy(fontSize = 11.sp),
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+
+                        // Discente
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clickable { currentTab = MainScreenTab.DISCENTE },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                val isSelected = currentTab == MainScreenTab.DISCENTE
+                                Icon(
+                                    imageVector = Icons.Outlined.School,
+                                    contentDescription = "Discente",
+                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Discente",
+                                    style = NotionTypography.labelSmall.copy(fontSize = 11.sp),
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     ) { innerPadding ->
@@ -274,13 +352,37 @@ fun MenuHomeScreen(
                 )
             }
 
-            // Seletor Compacto de Refeições no Topo (Apenas Ícones)
-            MealTopControl(
-                selectedMeal = state.selectedMeal,
-                onMealSelected = onMealSelected
-            )
+            // Sub-cabeçalho Integrado: Refeição & Horário à esquerda + Seletor de Refeições à direita
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = state.selectedMeal.title,
+                        style = NotionTypography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = when (state.selectedMeal) {
+                            MealType.CAFE -> "07h às 09h30"
+                            MealType.ALMOCO -> "11h às 14h30"
+                            MealType.JANTAR -> "17h às 19h30"
+                        },
+                        style = NotionTypography.labelSmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f)
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(6.dp))
+                MealTopControl(
+                    selectedMeal = state.selectedMeal,
+                    onMealSelected = onMealSelected
+                )
+            }
 
             // Swipeable and Scrollable Meal Card Area
             var totalDrag by remember { mutableFloatStateOf(0f) }
@@ -339,37 +441,7 @@ fun MenuHomeScreen(
                                     .verticalScroll(rememberScrollState())
                                     .padding(horizontal = 20.dp, vertical = 8.dp)
                             ) {
-                                // Day Header
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "${currentDay.diaSemana}, ${currentDay.data}",
-                                        style = NotionTypography.titleLarge,
-                                        color = MaterialTheme.colorScheme.onBackground
-                                    )
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text(
-                                            text = meal.title,
-                                            style = NotionTypography.titleSmall,
-                                            color = MaterialTheme.colorScheme.onBackground,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                        Text(
-                                            text = when (meal) {
-                                                MealType.CAFE -> "07h às 09h30"
-                                                MealType.ALMOCO -> "11h às 14h30"
-                                                MealType.JANTAR -> "17h às 19h30"
-                                            },
-                                            style = NotionTypography.labelSmall.copy(fontSize = 11.sp),
-                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f)
-                                        )
-                                    }
-                                }
+
 
                                 when (meal) {
                                     MealType.CAFE -> {
@@ -459,20 +531,108 @@ fun MenuHomeScreen(
             onSyncFromSigaa = onSyncCardFromSigaa,
             onRefreshStatement = onRefreshStatement,
             onDisconnect = onDisconnectCard,
+            onCheckForUpdate = onCheckForUpdate,
+            isCheckingUpdate = state.isCheckingUpdate,
+            onFlipToQr = { isDiscenteFlipped = true },
             modifier = Modifier.statusBarsPadding()
         )
     }
 
-        PullToRefreshContainer(
-            state = pullRefreshState,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .statusBarsPadding(),
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary
-        )
+        if (pullRefreshState.verticalOffset > 0f || pullRefreshState.isRefreshing) {
+            PullToRefreshContainer(
+                state = pullRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter),
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary
+            )
+        }
     } // Fechamento do Box outer
     } // Fechamento do Scaffold
+    } else {
+        // ==========================================
+        // VERSO: 100% TELA CHEIA QR CODE (Desespelhado a 180f)
+        // ==========================================
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { rotationY = 180f }
+                .clickable { isDiscenteFlipped = false },
+            color = Color.White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .systemBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // QR Code Grande (290dp)
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    shadowElevation = 8.dp,
+                    border = BorderStroke(1.dp, Color(0xFFE5E5E5))
+                ) {
+                    Box(
+                        modifier = Modifier.padding(18.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (qrBitmap != null) {
+                            Image(
+                                bitmap = qrBitmap.asImageBitmap(),
+                                contentDescription = "QR Code Catraca",
+                                modifier = Modifier.size(290.dp)
+                            )
+                        } else {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(40.dp),
+                                color = Color.Black
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = state.studentCard.nome.ifBlank { "Estudante UnB" },
+                    style = NotionTypography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF111111),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Matrícula: ${state.studentCard.matricula}",
+                    style = NotionTypography.bodyMedium,
+                    color = Color(0xFF666666)
+                )
+
+                Spacer(modifier = Modifier.height(36.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.TouchApp,
+                        contentDescription = null,
+                        tint = Color(0xFF888888),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Toque para virar",
+                        style = NotionTypography.bodySmall,
+                        color = Color(0xFF888888),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
+    } // Fechamento do Box outer 3D flip
 
     // BottomSheet de Notificações
     if (state.isSettingsOpen) {

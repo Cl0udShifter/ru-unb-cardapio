@@ -29,18 +29,13 @@ fun MealTopControl(
     onMealSelected: (MealType) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        contentAlignment = Alignment.Center
+    Surface(
+        modifier = modifier,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
+        shadowElevation = 1.dp
     ) {
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surface,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
-            shadowElevation = 1.dp
-        ) {
             Row(
                 modifier = Modifier.padding(3.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -83,5 +78,4 @@ fun MealTopControl(
                 }
             }
         }
-    }
 }
