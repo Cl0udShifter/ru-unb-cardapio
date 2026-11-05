@@ -47,6 +47,18 @@ class StudentCardRepository(private val context: Context) {
         private const val KEY_VALIDADE = "card_validade"
         private const val KEY_CODIGO_QR = "card_codigo_qr"
         private const val KEY_CONFIGURED = "card_configured"
+        private const val KEY_NIVEL = "card_nivel"
+        private const val KEY_STATUS = "card_status"
+        private const val KEY_SEMESTRE = "card_semestre"
+        private const val KEY_IRA = "card_ira"
+        private const val KEY_MP = "card_mp"
+        private const val KEY_CH_TOTAL = "card_ch_total"
+        private const val KEY_CH_OB_PEND = "card_ch_ob_pend"
+        private const val KEY_CH_OP_PEND = "card_ch_op_pend"
+        private const val KEY_CH_COMP_PEND = "card_ch_comp_pend"
+        private const val KEY_CH_CONCLUIDA = "card_ch_concluida"
+        private const val KEY_PCT_CONCLUIDO = "card_pct_concluido"
+        private const val KEY_FOTO_URL = "card_foto_url"
     }
 
     fun getStudentCard(): StudentCard {
@@ -60,7 +72,19 @@ class StudentCardRepository(private val context: Context) {
             curso = prefs.getString(KEY_CURSO, "") ?: "",
             vinculo = prefs.getString(KEY_VINCULO, "GRADUAÇÃO (REGULAR)") ?: "GRADUAÇÃO (REGULAR)",
             validade = prefs.getString(KEY_VALIDADE, "Março / 2027") ?: "Março / 2027",
-            codigoQr = prefs.getString(KEY_CODIGO_QR, "") ?: ""
+            codigoQr = prefs.getString(KEY_CODIGO_QR, "") ?: "",
+            nivel = prefs.getString(KEY_NIVEL, "GRADUAÇÃO") ?: "GRADUAÇÃO",
+            status = prefs.getString(KEY_STATUS, "ATIVO") ?: "ATIVO",
+            semestreAtual = prefs.getString(KEY_SEMESTRE, "2026.2") ?: "2026.2",
+            ira = prefs.getString(KEY_IRA, "--") ?: "--",
+            mediaPonderada = prefs.getString(KEY_MP, "--") ?: "--",
+            chTotal = prefs.getInt(KEY_CH_TOTAL, 0),
+            chObrigatoriaPendente = prefs.getInt(KEY_CH_OB_PEND, 0),
+            chOptativaPendente = prefs.getInt(KEY_CH_OP_PEND, 0),
+            chComplementarPendente = prefs.getInt(KEY_CH_COMP_PEND, 0),
+            chConcluida = prefs.getInt(KEY_CH_CONCLUIDA, 0),
+            percentualConcluido = prefs.getFloat(KEY_PCT_CONCLUIDO, 0f),
+            fotoPerfilUrl = prefs.getString(KEY_FOTO_URL, "") ?: ""
         )
     }
 
@@ -73,6 +97,18 @@ class StudentCardRepository(private val context: Context) {
             .putString(KEY_VINCULO, card.vinculo)
             .putString(KEY_VALIDADE, card.validade)
             .putString(KEY_CODIGO_QR, card.codigoQr)
+            .putString(KEY_NIVEL, card.nivel)
+            .putString(KEY_STATUS, card.status)
+            .putString(KEY_SEMESTRE, card.semestreAtual)
+            .putString(KEY_IRA, card.ira)
+            .putString(KEY_MP, card.mediaPonderada)
+            .putInt(KEY_CH_TOTAL, card.chTotal)
+            .putInt(KEY_CH_OB_PEND, card.chObrigatoriaPendente)
+            .putInt(KEY_CH_OP_PEND, card.chOptativaPendente)
+            .putInt(KEY_CH_COMP_PEND, card.chComplementarPendente)
+            .putInt(KEY_CH_CONCLUIDA, card.chConcluida)
+            .putFloat(KEY_PCT_CONCLUIDO, card.percentualConcluido)
+            .putString(KEY_FOTO_URL, card.fotoPerfilUrl)
             .apply()
     }
 
@@ -289,13 +325,62 @@ class StudentCardRepository(private val context: Context) {
             val qrPayload = decodeQrFromBitmap(bitmap)
                 ?: return@withContext Result.failure(Exception("QR Code não pôde ser decodificado do documento."))
 
+            val nivel = extractPattern(currentHtml, "<td>\\s*N[íi]vel:\\s*</td>\\s*<td>\\s*([^<]+)\\s*</td>").ifBlank { "GRADUAÇÃO" }
+            val status = extractPattern(currentHtml, "<td>\\s*Status:\\s*</td>\\s*<td>\\s*([^<]+)\\s*</td>").ifBlank { "ATIVO" }
+            val semestre = extractPattern(currentHtml, "Semestre\\s+atual:\\s*<strong>([^<]+)</strong>").ifBlank { "2026.2" }
+            val ira = extractPattern(currentHtml, "IRA:\\s*(?:</acronym>)?</td>\\s*<td[^>]*>(?:<div[^>]*>)?([\\d\\.,]+)").ifBlank { "--" }
+            val mp = extractPattern(currentHtml, "MP:\\s*(?:</acronym>)?</td>\\s*<td[^>]*>(?:<div[^>]*>)?([\\d\\.,]+)").ifBlank { "--" }
+
+            val chTotalStr = extractPattern(currentHtml, "CH\\.\\s*Total\\s*Curr[ií]culo\\s*</td>\\s*<td[^>]*>\\s*(\\d+)\\s*</td>")
+            val chObStr = extractPattern(currentHtml, "CH\\.\\s*Obrigat[oó]ria\\s*Pendente\\s*</td>\\s*<td[^>]*>\\s*(\\d+)\\s*</td>")
+            val chOpStr = extractPattern(currentHtml, "CH\\.\\s*Optativa\\s*Pendente\\s*</td>\\s*<td[^>]*>\\s*(\\d+)\\s*</td>")
+            val chCompStr = extractPattern(currentHtml, "CH\\.\\s*Complementar\\s*Pendente\\s*</td>\\s*<td[^>]*>\\s*(\\d+)\\s*</td>")
+
+            val chTotal = chTotalStr.toIntOrNull() ?: 0
+            val chOb = chObStr.toIntOrNull() ?: 0
+            val chOp = chOpStr.toIntOrNull() ?: 0
+            val chComp = chCompStr.toIntOrNull() ?: 0
+            val chConcluida = kotlin.math.max(0, chTotal - (chOb + chOp + chComp))
+            val pct = if (chTotal > 0) ((chConcluida.toFloat() / chTotal) * 100f) else 0f
+
+            var fotoUrl = ""
+            try {
+                val reqPerfil = Request.Builder()
+                    .url("https://sigaa.unb.br/sigaa/portais/discente/perfil.jsf")
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                    .build()
+                val respPerfil = client.newCall(reqPerfil).execute()
+                val perfilHtml = respPerfil.body?.string() ?: ""
+                val imgPattern = Pattern.compile("<img[^>]+src=[\"']([^\"']+)[\"']", Pattern.CASE_INSENSITIVE)
+                val mImg = imgPattern.matcher(perfilHtml)
+                while (mImg.find()) {
+                    val src = mImg.group(1) ?: ""
+                    if (src.contains("arquivos.unb.br") || src.contains("recuperarFoto") || src.lowercase().contains("foto")) {
+                        fotoUrl = src
+                        break
+                    }
+                }
+            } catch (_: Exception) {}
+
             val newCard = StudentCard(
                 nome = studentName.ifBlank { "ESTUDANTE UNB" },
                 matricula = matricula,
                 curso = studentCourse.ifBlank { "GRADUAÇÃO" },
                 vinculo = "GRADUAÇÃO (REGULAR)",
                 validade = "Março / 2027",
-                codigoQr = qrPayload
+                codigoQr = qrPayload,
+                nivel = nivel,
+                status = status,
+                semestreAtual = semestre,
+                ira = ira,
+                mediaPonderada = mp,
+                chTotal = chTotal,
+                chObrigatoriaPendente = chOb,
+                chOptativaPendente = chOp,
+                chComplementarPendente = chComp,
+                chConcluida = chConcluida,
+                percentualConcluido = pct,
+                fotoPerfilUrl = fotoUrl
             )
             saveStudentCard(newCard)
             saveCredentials(matricula, pass)
@@ -612,5 +697,14 @@ class StudentCardRepository(private val context: Context) {
         val matcher = pattern.matcher(html)
         if (matcher.find()) return matcher.group(1)
         return null
+    }
+
+    private fun extractPattern(html: String, regex: String): String {
+        val pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE)
+        val matcher = pattern.matcher(html)
+        if (matcher.find()) {
+            return matcher.group(1)?.trim() ?: ""
+        }
+        return ""
     }
 }

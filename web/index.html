@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="icons/favicon.png?v=4.1">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4.1">
   
-  <link rel="stylesheet" href="style.css?v=5.0">
+  <link rel="stylesheet" href="style.css?v=6.0">
 </head>
 <body>
   <div id="app">
@@ -30,12 +30,7 @@
       </div>
 
       <div class="header-icons">
-        <!-- Carteirinha Discente (Icons.Outlined.Badge 1:1) -->
-        <button id="openCarteirinhaBtn" class="header-icon-btn" title="Carteirinha do Estudante" aria-label="Carteirinha do Estudante">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M20 7h-5V4c0-1.1-.9-2-2-2h-2c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-9-3h2v5h-2V4zm9 16H4V9h5c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2h5v11zM12 12c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-4 5c0-1.33 2.67-2 4-2s4 .67 4 2v1H8v-1z"/>
-          </svg>
-        </button>
+
 
         <!-- Notificações (Icons.Outlined.NotificationsActive / NotificationsOff) -->
         <button id="openNotificationsBtn" class="header-icon-btn" title="Configurar Notificações" aria-label="Configurar Notificações">
@@ -69,63 +64,288 @@
       </div>
     </header>
 
-    <!-- Day Selector Rail (DaySelectorRail.kt 1:1) -->
-    <div class="day-rail-wrapper">
-      <div id="dayRail" class="day-rail">
-        <!-- Rendered dynamically: SEG, TER, QUA, QUI, SEX, SÁB, DOM + dia + dot -->
-      </div>
+    <!-- Views Container -->
+    <div id="viewsContainer" class="views-container">
+      
+      <!-- ABA 1: CARDÁPIO RU -->
+      <section id="viewCardapio" class="app-view active" aria-label="Visualização Cardápio">
+        <!-- Day Selector Rail (DaySelectorRail.kt 1:1) -->
+        <div class="day-rail-wrapper">
+          <div id="dayRail" class="day-rail">
+            <!-- Rendered dynamically: SEG, TER, QUA, QUI, SEX, SÁB, DOM + dia + dot -->
+          </div>
+        </div>
+
+        <!-- Seletor de Refeições Compacto no Topo (Apenas Ícones) -->
+        <div class="meal-top-control-wrapper">
+          <div class="meal-top-control" role="group" aria-label="Seleção de refeição">
+            <button class="meal-top-btn" data-meal="cafe" aria-label="Café da Manhã" title="Café da Manhã">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M 18.5 3.0 H 6.0 C 4.9 3.0 4.0 3.9 4.0 5.0 v 5.71 c 0.0 3.83 2.95 7.18 6.78 7.29 c 3.96 0.12 7.22 -3.06 7.22 -7.0 v -1.0 h 0.5 c 1.93 0.0 3.5 -1.57 3.5 -3.5 S 20.43 3.0 18.5 3.0 Z M 16.0 5.0 v 3.0 H 6.0 V 5.0 H 16.0 Z M 16.0 10.0 v 1.0 c 0.0 2.76 -2.24 5.0 -5.0 5.0 s -5.0 -2.24 -5.0 -5.0 v -1.0 M 18.5 8.0 H 18.0 V 5.0 h 0.5 C 19.33 5.0 20.0 5.67 20.0 6.5 S 19.33 8.0 18.5 8.0 Z M 4.0 19.0 h 16.0 v 2.0 H 4.0 V 19.0 Z"/></svg>
+            </button>
+            <button class="meal-top-btn" data-meal="almoco" aria-label="Almoço" title="Almoço">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M 16.0 6.0 v 8.0 h 3.0 v 8.0 h 2.0 L 21.0 2.0 c -2.76 0.0 -5.0 2.24 -5.0 4.0 Z M 11.0 9.0 L 9.0 9.0 L 9.0 2.0 L 7.0 2.0 v 7.0 L 5.0 9.0 L 5.0 2.0 L 3.0 2.0 v 7.0 c 0.0 2.21 1.79 4.0 4.0 4.0 v 9.0 h 2.0 v -9.0 c 2.21 0.0 4.0 -1.79 4.0 -4.0 L 13.0 2.0 h -2.0 v 7.0 Z"/></svg>
+            </button>
+            <button class="meal-top-btn active" data-meal="jantar" aria-label="Jantar" title="Jantar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M 6.4 7.0 C 6.06 7.55 6.0 7.97 6.0 8.38 C 6.0 9.15 7.0 11.0 7.0 12.0 c 0.0 0.95 -0.4 1.5 -0.4 1.5 H 5.1 c 0.0 0.0 0.4 -0.55 0.4 -1.5 c 0.0 -1.0 -1.0 -2.85 -1.0 -3.62 C 4.5 7.97 4.56 7.55 4.9 7.0 H 6.4 Z M 11.4 7.0 C 11.06 7.55 11.0 7.97 11.0 8.38 C 11.0 9.15 12.0 11.0 12.0 12.0 c 0.0 0.95 -0.4 1.5 -0.4 1.5 h 1.5 c 0.0 0.0 0.4 -0.55 0.4 -1.5 c 0.0 -1.0 -1.0 -2.85 -1.0 -3.62 c 0.0 -0.41 0.06 -0.83 0.4 -1.38 H 11.4 Z M 8.15 7.0 c -0.34 0.55 -0.4 0.97 -0.4 1.38 c 0.0 0.77 1.0 2.63 1.0 3.62 c 0.0 0.95 -0.4 1.5 -0.4 1.5 h 1.5 c 0.0 0.0 0.4 -0.55 0.4 -1.5 c 0.0 -1.0 -1.0 -2.85 -1.0 -3.62 c 0.0 -0.41 0.06 -0.83 0.4 -1.38 H 8.15 Z M 18.6 2.0 c -1.54 0.0 -2.81 1.16 -2.98 2.65 L 14.53 15.0 H 4.01 c -0.6 0.0 -1.09 0.53 -1.0 1.13 C 3.53 19.46 6.39 22.0 9.75 22.0 c 3.48 0.0 6.34 -2.73 6.71 -6.23 l 1.15 -10.87 C 17.66 4.39 18.08 4.0 18.6 4.0 c 0.55 0.0 1.0 0.45 1.0 1.0 c 0.0 0.3 -0.1 1.25 -0.1 1.25 l 1.97 0.25 c 0.0 0.0 0.13 -1.06 0.13 -1.5 C 21.6 3.35 20.25 2.0 18.6 2.0 Z M 9.75 20.0 c -1.94 0.0 -3.67 -1.23 -4.43 -3.0 h 8.78 h 0.01 C 13.39 18.78 11.69 20.0 9.75 20.0 Z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Main Content Area (MenuHomeScreen.kt 1:1) -->
+        <main class="main-content" id="mainContentSwipeArea">
+          <!-- Header do Dia (Data à esquerda, Refeição e Horário à direita) -->
+          <div class="meal-day-row">
+            <div id="currentDayHeader" class="meal-date-title">Sexta-feira, 30/10/2026</div>
+            <div class="meal-status-col">
+              <div id="mealTitleLabel" class="meal-type-title">Jantar</div>
+              <div id="mealHoursLabel" class="meal-hours">17h às 19h30</div>
+            </div>
+          </div>
+
+          <!-- Meal Card Container (MealSectionCard.kt 1:1) -->
+          <div id="mealCardContainer" class="notion-meal-card">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <!-- Callout: Mesa de apoio (MenuHomeScreen.kt 1:1) -->
+          <div class="mesa-apoio-card">
+            <div class="mesa-apoio-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+            </div>
+            <div>
+              <div class="mesa-apoio-title">Mesa de apoio</div>
+              <div class="mesa-apoio-desc">Água, café, açúcar, adoçante e temperos disponíveis no salão.</div>
+            </div>
+          </div>
+
+          <!-- Aviso formal do RU (MenuHomeScreen.kt 1:1) -->
+          <div class="ru-formal-notice">
+            Cardápio sujeito a alterações sem aviso prévio pela administração do RU.
+          </div>
+        </main>
+      </section>
+
+      <!-- ABA 2: PAINEL DISCENTE (DASHBOARD ACADÊMICO) -->
+      <section id="viewDiscente" class="app-view" aria-label="Visualização Discente">
+        <div class="discente-container" id="discentePullContainer">
+          
+          <!-- Cabeçalho do Painel -->
+          <div class="discente-topbar">
+            <div class="discente-title-col">
+              <h2 class="discente-main-title">Painel Discente</h2>
+              <div id="discenteLastSyncText" class="discente-sync-timestamp">Não conectado</div>
+            </div>
+            <button id="discenteSyncBtn" class="header-icon-btn" title="Sincronizar com SIGAA" aria-label="Sincronizar com SIGAA">
+              <svg id="discenteSyncIcon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M 17.65 6.35 C 16.2 4.9 14.21 4.0 12.0 4.0 c -4.42 0.0 -7.99 3.58 -7.99 8.0 s 3.57 8.0 7.99 8.0 c 3.73 0.0 6.84 -2.55 7.73 -6.0 h -2.08 c -0.82 2.33 -3.04 4.0 -5.65 4.0 c -3.31 0.0 -6.0 -2.69 -6.0 -6.0 s 2.69 -6.0 6.0 -6.0 c 1.66 0.0 3.14 0.69 4.22 1.78 L 13.0 11.0 h 7.0 V 4.0 l -2.35 2.35 Z"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- ESTADO 1: Desconectado / Esqueleto Placeholder -->
+          <div id="discenteDisconnectedState" class="discente-skeleton-wrapper">
+            <!-- Skeleton Card 1: Perfil -->
+            <div class="dashboard-card skeleton-card">
+              <div class="skeleton-avatar"></div>
+              <div class="skeleton-meta">
+                <div class="skeleton-bar title"></div>
+                <div class="skeleton-bar sub"></div>
+                <div class="skeleton-pill-row">
+                  <div class="skeleton-pill"></div>
+                  <div class="skeleton-pill"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Skeleton Card 2: Rendimento -->
+            <div class="dashboard-card skeleton-card">
+              <div class="skeleton-bar section-title"></div>
+              <div class="skeleton-grid-2">
+                <div class="skeleton-box"></div>
+                <div class="skeleton-box"></div>
+              </div>
+              <div class="skeleton-bar progress"></div>
+            </div>
+
+            <!-- Skeleton Card 3: RU -->
+            <div class="dashboard-card skeleton-card">
+              <div class="skeleton-bar section-title"></div>
+              <div class="skeleton-bar large"></div>
+            </div>
+
+            <!-- Botão de Sincronização Centralizado -->
+            <div class="discente-central-cta">
+              <button id="openSigaaSyncCtaBtn" class="primary-sync-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
+                </svg>
+                <span>Sincronizar com SIGAA</span>
+              </button>
+              <p class="central-cta-desc">Conecte sua matrícula para carregar seu IRA, horas do curso, carteirinha e saldo do RU.</p>
+            </div>
+          </div>
+
+          <!-- ESTADO 2: Conectado com Dados Oficiais -->
+          <div id="discenteConnectedState" class="discente-connected-wrapper" style="display: none;">
+            
+            <!-- Card 1: Perfil do Estudante -->
+            <div class="dashboard-card profile-card">
+              <div class="profile-header-row">
+                <div class="profile-avatar-container">
+                  <img id="discentePhotoImg" class="profile-photo-img" src="" alt="Foto Estudante" style="display: none;">
+                  <div id="discenteInitialsAvatar" class="profile-avatar-initials">UN</div>
+                </div>
+                <div class="profile-info-col">
+                  <h3 id="discenteNome" class="profile-student-name">Estudante UnB</h3>
+                  <div class="profile-matricula-txt">Matrícula: <strong id="discenteMatricula">--</strong></div>
+                  <div id="discenteCurso" class="profile-course-txt">Graduação</div>
+                  <div class="profile-tag-pills">
+                    <span id="discenteStatusBadge" class="profile-pill status">ATIVO</span>
+                    <span id="discenteNivelBadge" class="profile-pill">GRADUAÇÃO</span>
+                    <span id="discenteSemestreBadge" class="profile-pill semester">2026.2</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: Rendimento Acadêmico -->
+            <div class="dashboard-card metrics-card">
+              <div class="card-section-header">
+                <span class="card-section-title">Rendimento Acadêmico</span>
+                <span class="card-section-badge">SIGAA</span>
+              </div>
+
+              <!-- Caixas Lado a Lado: IRA e Média Ponderada -->
+              <div class="metrics-two-col">
+                <div class="metric-value-box">
+                  <span class="metric-box-label">IRA</span>
+                  <div id="discenteIraVal" class="metric-box-num highlight">--</div>
+                  <span class="metric-box-caption">Rendimento Geral</span>
+                </div>
+                <div class="metric-value-box">
+                  <span class="metric-box-label">Média Ponderada</span>
+                  <div id="discenteMpVal" class="metric-box-num">--</div>
+                  <span class="metric-box-caption">Com Reprovações</span>
+                </div>
+              </div>
+
+              <!-- Barra de Progresso de Integralização -->
+              <div class="progress-block">
+                <div class="progress-header-row">
+                  <span class="progress-header-label">Integralização do Curso</span>
+                  <span id="discentePctVal" class="progress-header-pct">0%</span>
+                </div>
+                <div class="progress-track-bg">
+                  <div id="discenteProgressBar" class="progress-track-fill" style="width: 0%;"></div>
+                </div>
+                <div class="progress-numbers-row">
+                  <span id="discenteHoursConcluidas">0h concluídas</span>
+                  <span id="discenteHoursTotal">de 0h exigidas</span>
+                </div>
+                <div id="discenteHoursDetails" class="progress-sub-breakdown">
+                  Obrigatórias pendentes: <strong id="discenteChOb">0h</strong> • Optativas: <strong id="discenteChOp">0h</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Restaurante Universitário (3D Flip Card) -->
+            <div class="ru-flip-wrapper" id="ruFlipWrapper">
+              <div class="ru-flip-inner" id="ruFlipInner">
+                
+                <!-- Frente: Saldo e Extrato Recente -->
+                <div class="ru-flip-face ru-flip-front dashboard-card">
+                  <div class="card-section-header">
+                    <div>
+                      <span class="card-section-title">Restaurante Universitário</span>
+                      <div class="ru-front-sub">Carteirinha Digital & Saldo</div>
+                    </div>
+                    <span class="card-section-badge active-badge">Ativo</span>
+                  </div>
+
+                  <div class="ru-balance-hero">
+                    <span class="ru-balance-title">Saldo Disponível</span>
+                    <div id="discenteRuSaldoVal" class="ru-balance-amount">R$ 0,00</div>
+                  </div>
+
+                  <!-- Botão para Girar e Exibir QR Code -->
+                  <button id="ruFlipToQrBtn" class="ru-flip-cta-btn" type="button">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <span>Girar para QR Code da Catraca</span>
+                  </button>
+
+                  <!-- Extrato Recente -->
+                  <div class="ru-statement-section">
+                    <div class="ru-statement-top">
+                      <span class="ru-statement-heading">Histórico de Consumo</span>
+                    </div>
+                    <div id="discenteMiniTransacoes" class="ru-statement-items">
+                      <!-- Renderizado via app.js -->
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Verso: QR Code em Alta Definição com Brilho Máximo -->
+                <div class="ru-flip-face ru-flip-back dashboard-card">
+                  <div class="ru-back-top-row">
+                    <span class="ru-back-hint">Aponte para o leitor de vidro</span>
+                    <button id="ruFlipToFrontBtn" class="ru-back-turn-btn" type="button" title="Voltar para o saldo">
+                      <span>Voltar</span> ✕
+                    </button>
+                  </div>
+
+                  <div class="ru-back-qr-frame">
+                    <img id="discenteQrImg" class="ru-back-qr-image" src="" alt="QR Code Catraca RU">
+                  </div>
+
+                  <div class="ru-back-meta">
+                    <div id="discenteBackNome" class="ru-back-student-name">Estudante UnB</div>
+                    <div id="discenteBackMatricula" class="ru-back-student-mat">Matrícula: --</div>
+                  </div>
+
+                  <div class="ru-back-notice-pill">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0z"/>
+                    </svg>
+                    <span>Brilho no máximo • Toque para virar</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Rodapé: Botão de Desconectar Conta -->
+            <div class="discente-disconnect-section">
+              <button id="discenteDisconnectBtn" class="discente-danger-btn" type="button">
+                Desconectar conta
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
     </div>
 
-    <!-- Main Content Area (MenuHomeScreen.kt 1:1) -->
-    <main class="main-content" id="mainContentSwipeArea">
-      <!-- Header do Dia (Data à esquerda, Refeição e Horário à direita) -->
-      <div class="meal-day-row">
-        <div id="currentDayHeader" class="meal-date-title">Sexta-feira, 30/10/2026</div>
-        <div class="meal-status-col">
-          <div id="mealTitleLabel" class="meal-type-title">Jantar</div>
-          <div id="mealHoursLabel" class="meal-hours">17h às 19h30</div>
-        </div>
-      </div>
-
-      <!-- Meal Card Container (MealSectionCard.kt 1:1) -->
-      <div id="mealCardContainer" class="notion-meal-card">
-        <!-- Rendered dynamically -->
-      </div>
-
-      <!-- Callout: Mesa de apoio (MenuHomeScreen.kt 1:1) -->
-      <div class="mesa-apoio-card">
-        <div class="mesa-apoio-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-          </svg>
-        </div>
-        <div>
-          <div class="mesa-apoio-title">Mesa de apoio</div>
-          <div class="mesa-apoio-desc">Água, café, açúcar, adoçante e temperos disponíveis no salão.</div>
-        </div>
-      </div>
-
-      <!-- Aviso formal do RU (MenuHomeScreen.kt 1:1) -->
-      <div class="ru-formal-notice">
-        Cardápio sujeito a alterações sem aviso prévio pela administração do RU.
-      </div>
-    </main>
-
-    <!-- Floating Bottom Control (MealBottomControl.kt 1:1) -->
-    <nav class="bottom-floating-control" aria-label="Seleção de refeição">
-      <button class="meal-control-btn" data-meal="cafe">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M 18.5 3.0 H 6.0 C 4.9 3.0 4.0 3.9 4.0 5.0 v 5.71 c 0.0 3.83 2.95 7.18 6.78 7.29 c 3.96 0.12 7.22 -3.06 7.22 -7.0 v -1.0 h 0.5 c 1.93 0.0 3.5 -1.57 3.5 -3.5 S 20.43 3.0 18.5 3.0 Z M 16.0 5.0 v 3.0 H 6.0 V 5.0 H 16.0 Z M 16.0 10.0 v 1.0 c 0.0 2.76 -2.24 5.0 -5.0 5.0 s -5.0 -2.24 -5.0 -5.0 v -1.0 M 18.5 8.0 H 18.0 V 5.0 h 0.5 C 19.33 5.0 20.0 5.67 20.0 6.5 S 19.33 8.0 18.5 8.0 Z M 4.0 19.0 h 16.0 v 2.0 H 4.0 V 19.0 Z"/></svg>
-        <span>Café</span>
+    <!-- Barra de Navegação Inferior Global (Bottom Navigation) -->
+    <nav class="app-bottom-nav" aria-label="Navegação principal">
+      <button id="navCardapioBtn" class="bottom-nav-item active" data-tab="cardapio" type="button">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>
+        </svg>
+        <span>Cardápio</span>
       </button>
-      <button class="meal-control-btn" data-meal="almoco">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M 16.0 6.0 v 8.0 h 3.0 v 8.0 h 2.0 L 21.0 2.0 c -2.76 0.0 -5.0 2.24 -5.0 4.0 Z M 11.0 9.0 L 9.0 9.0 L 9.0 2.0 L 7.0 2.0 v 7.0 L 5.0 9.0 L 5.0 2.0 L 3.0 2.0 v 7.0 c 0.0 2.21 1.79 4.0 4.0 4.0 v 9.0 h 2.0 v -9.0 c 2.21 0.0 4.0 -1.79 4.0 -4.0 L 13.0 2.0 h -2.0 v 7.0 Z"/></svg>
-        <span>Almoço</span>
-      </button>
-      <button class="meal-control-btn active" data-meal="jantar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M 6.4 7.0 C 6.06 7.55 6.0 7.97 6.0 8.38 C 6.0 9.15 7.0 11.0 7.0 12.0 c 0.0 0.95 -0.4 1.5 -0.4 1.5 H 5.1 c 0.0 0.0 0.4 -0.55 0.4 -1.5 c 0.0 -1.0 -1.0 -2.85 -1.0 -3.62 C 4.5 7.97 4.56 7.55 4.9 7.0 H 6.4 Z M 11.4 7.0 C 11.06 7.55 11.0 7.97 11.0 8.38 C 11.0 9.15 12.0 11.0 12.0 12.0 c 0.0 0.95 -0.4 1.5 -0.4 1.5 h 1.5 c 0.0 0.0 0.4 -0.55 0.4 -1.5 c 0.0 -1.0 -1.0 -2.85 -1.0 -3.62 c 0.0 -0.41 0.06 -0.83 0.4 -1.38 H 11.4 Z M 8.15 7.0 c -0.34 0.55 -0.4 0.97 -0.4 1.38 c 0.0 0.77 1.0 2.63 1.0 3.62 c 0.0 0.95 -0.4 1.5 -0.4 1.5 h 1.5 c 0.0 0.0 0.4 -0.55 0.4 -1.5 c 0.0 -1.0 -1.0 -2.85 -1.0 -3.62 c 0.0 -0.41 0.06 -0.83 0.4 -1.38 H 8.15 Z M 18.6 2.0 c -1.54 0.0 -2.81 1.16 -2.98 2.65 L 14.53 15.0 H 4.01 c -0.6 0.0 -1.09 0.53 -1.0 1.13 C 3.53 19.46 6.39 22.0 9.75 22.0 c 3.48 0.0 6.34 -2.73 6.71 -6.23 l 1.15 -10.87 C 17.66 4.39 18.08 4.0 18.6 4.0 c 0.55 0.0 1.0 0.45 1.0 1.0 c 0.0 0.3 -0.1 1.25 -0.1 1.25 l 1.97 0.25 c 0.0 0.0 0.13 -1.06 0.13 -1.5 C 21.6 3.35 20.25 2.0 18.6 2.0 Z M 9.75 20.0 c -1.94 0.0 -3.67 -1.23 -4.43 -3.0 h 8.78 h 0.01 C 13.39 18.78 11.69 20.0 9.75 20.0 Z"/></svg>
-        <span>Jantar</span>
+      <button id="navDiscenteBtn" class="bottom-nav-item" data-tab="discente" type="button">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/>
+        </svg>
+        <span>Discente</span>
       </button>
     </nav>
 
@@ -543,6 +763,6 @@
   <script src="zxing.min.js"></script>
   <script src="jsqr.min.js"></script>
   <script src="qrcode.min.js?v=4.1"></script>
-  <script src="app.js?v=5.4"></script>
+  <script src="app.js?v=6.0"></script>
 </body>
 </html>

@@ -105,24 +105,77 @@ def sync_with_urllib(matricula, senha):
             break
         attempts += 1
 
-    # 4. Extrair Nome e Curso do Discente
+    # 4. Extrair Dados do Discente e Indicadores Acadêmicos
+    clean_html = html.unescape(current_html)
     nome = ''
     curso = ''
-    m_name = re.search(r'<b>([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)+)</b>', current_html, re.I)
+    m_name = re.search(r'<b>([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)+)</b>', clean_html, re.I) or \
+             re.search(r'<small>([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)+)</small>', clean_html, re.I)
     if m_name:
         nome = m_name.group(1).strip()
-    else:
-        m_name2 = re.search(r'<small>([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)+)</small>', current_html, re.I)
-        if m_name2:
-            nome = m_name2.group(1).strip()
 
-    m_course = re.search(r'<td[^>]*>([A-ZÀ-Ú\s]+(?:/ENE|/FT|/UnB|/FAU|/FS|/IB|/IQ|/IH|/IP|/FACE|/FD|/FE)[^<]*)</td>', current_html, re.I)
+    m_course = re.search(r'<td[^>]*>([A-ZÀ-Ú\s]+(?:/ENE|/FT|/UnB|/FAU|/FS|/IB|/IQ|/IH|/IP|/FACE|/FD|/FE)[^<]*)</td>', clean_html, re.I) or \
+               re.search(r'Curso:\s*</b>\s*([^<]+)', clean_html, re.I)
     if m_course:
         curso = m_course.group(1).strip().split('/')[0].strip()
-    else:
-        m_course2 = re.search(r'Curso:\s*</b>\s*([^<]+)', current_html, re.I)
-        if m_course2:
-            curso = m_course2.group(1).strip()
+
+    # Nível e Status
+    nivel = 'GRADUAÇÃO'
+    m_niv = re.search(r'<td>\s*N[íi]vel:\s*</td>\s*<td>\s*([^<]+)\s*</td>', clean_html, re.I)
+    if m_niv:
+        nivel = m_niv.group(1).strip()
+
+    status_discente = 'ATIVO'
+    m_st = re.search(r'<td>\s*Status:\s*</td>\s*<td>\s*([^<]+)\s*</td>', clean_html, re.I)
+    if m_st:
+        status_discente = m_st.group(1).strip()
+
+    # Semestre atual
+    semestre_atual = '2026.2'
+    m_sem = re.search(r'Semestre\s+atual:\s*<strong>([^<]+)</strong>', clean_html, re.I)
+    if m_sem:
+        semestre_atual = m_sem.group(1).strip()
+
+    # IRA e Média Ponderada
+    ira = '--'
+    m_ira = re.search(r'IRA:\s*</acronym></td>\s*<td[^>]*><div[^>]*>([\d\.,]+)</div>', clean_html, re.I) or \
+            re.search(r'IRA:\s*</td>\s*<td[^>]*><div[^>]*>([\d\.,]+)</div>', clean_html, re.I) or \
+            re.search(r'IRA:\s*</td>\s*<td[^>]*>([\d\.,]+)', clean_html, re.I)
+    if m_ira:
+        ira = m_ira.group(1).strip()
+
+    media_ponderada = '--'
+    m_mp = re.search(r'MP:\s*</acronym></td>\s*<td[^>]*><div[^>]*>([\d\.,]+)</div>', clean_html, re.I) or \
+           re.search(r'MP:\s*</td>\s*<td[^>]*><div[^>]*>([\d\.,]+)</div>', clean_html, re.I)
+    if m_mp:
+        media_ponderada = m_mp.group(1).strip()
+
+    # Carga Horária e Integralização
+    m_ob = re.search(r'CH\.\s*Obrigat[oó]ria\s*Pendente\s*</td>\s*<td[^>]*>\s*(\d+)\s*</td>', clean_html, re.I)
+    m_op = re.search(r'CH\.\s*Optativa\s*Pendente\s*</td>\s*<td[^>]*>\s*(\d+)\s*</td>', clean_html, re.I)
+    m_tot = re.search(r'CH\.\s*Total\s*Curr[ií]culo\s*</td>\s*<td[^>]*>\s*(\d+)\s*</td>', clean_html, re.I)
+    m_comp = re.search(r'CH\.\s*Complementar\s*Pendente\s*</td>\s*<td[^>]*>\s*(\d+)\s*</td>', clean_html, re.I)
+
+    ch_total = int(m_tot.group(1)) if m_tot else 0
+    ch_ob_pend = int(m_ob.group(1)) if m_ob else 0
+    ch_op_pend = int(m_op.group(1)) if m_op else 0
+    ch_comp_pend = int(m_comp.group(1)) if m_comp else 0
+    ch_concluida = max(0, ch_total - (ch_ob_pend + ch_op_pend + ch_comp_pend)) if ch_total > 0 else 0
+    pct_concluido = round((ch_concluida / ch_total) * 100, 1) if ch_total > 0 else 0.0
+
+    # Foto do perfil via perfil.jsf
+    foto_perfil_url = ''
+    try:
+        req_p = urllib.request.Request('https://sigaa.unb.br/sigaa/portais/discente/perfil.jsf', headers=headers)
+        r_p = opener.open(req_p, timeout=12)
+        p_html = r_p.read().decode('latin-1', errors='ignore')
+        for m in re.finditer(r'<img[^>]+src=["\']([^"\']+)["\']', p_html, re.I):
+            src = m.group(1)
+            if 'arquivos.unb.br' in src or 'recuperarFoto' in src or 'foto' in src.lower():
+                foto_perfil_url = src
+                break
+    except Exception:
+        pass
 
     # 5. Emitir Carteirinha PDF e Extrair Imagem do QR Code
     vs_m = re.search(r'name=["\']javax\.faces\.ViewState["\'][^>]+value=["\']([^"\']*)["\']', current_html, re.I)
@@ -230,10 +283,23 @@ def sync_with_urllib(matricula, senha):
         'nome': nome or 'Estudante UnB',
         'matricula': matricula,
         'curso': curso or 'GRADUAÇÃO',
+        'nivel': nivel,
+        'status': status_discente,
+        'semestreAtual': semestre_atual,
+        'ira': ira,
+        'mediaPonderada': media_ponderada,
+        'chTotal': ch_total,
+        'chObrigatoriaPendente': ch_ob_pend,
+        'chOptativaPendente': ch_op_pend,
+        'chComplementarPendente': ch_comp_pend,
+        'chConcluida': ch_concluida,
+        'percentualConcluido': pct_concluido,
+        'fotoPerfilUrl': foto_perfil_url,
         'validade': 'Março / 2027',
         'codigoQr': codigo_qr,
         'qrImageBase64': qr_base64,
         'saldo': saldo_atual,
+        'saldoAnterior': saldo_anterior,
         'transacoes': transacoes
     }
 

@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
@@ -35,12 +36,21 @@ import br.unb.ru.ui.components.AppUpdateDialog
 import br.unb.ru.ui.components.BreakfastCard
 import br.unb.ru.ui.components.CampusSelectorBottomSheet
 import br.unb.ru.ui.components.DaySelectorRail
+import br.unb.ru.ui.components.DiscenteScreen
+import br.unb.ru.ui.components.MealTopControl
+
 import br.unb.ru.ui.components.LunchDinnerCard
 import br.unb.ru.ui.components.MealBottomControl
 import br.unb.ru.ui.components.NotificationSettingsBottomSheet
 import br.unb.ru.ui.components.StudentCardScreen
 import br.unb.ru.ui.theme.NotionTypography
 import br.unb.ru.ui.viewmodel.MenuUiState
+
+
+enum class MainScreenTab {
+    CARDAPIO,
+    DISCENTE
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +81,7 @@ fun MenuHomeScreen(
 ) {
     val pullRefreshState = rememberPullToRefreshState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var currentTab by remember { mutableStateOf(MainScreenTab.CARDAPIO) }
 
     LaunchedEffect(state.updateMessage) {
         state.updateMessage?.let { msg ->
@@ -95,11 +106,62 @@ fun MenuHomeScreen(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            MealBottomControl(
-                selectedMeal = state.selectedMeal,
-                onMealSelected = onMealSelected,
-                modifier = Modifier.navigationBarsPadding()
-            )
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp,
+                modifier = Modifier.border(
+                    BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                )
+            ) {
+                NavigationBarItem(
+                    selected = currentTab == MainScreenTab.CARDAPIO,
+                    onClick = { currentTab = MainScreenTab.CARDAPIO },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Outlined.RestaurantMenu,
+                            contentDescription = "Cardápio"
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = "Cardápio",
+                            style = NotionTypography.labelSmall,
+                            fontWeight = if (currentTab == MainScreenTab.CARDAPIO) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.onBackground,
+                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        unselectedIconColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        unselectedTextColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    )
+                )
+                NavigationBarItem(
+                    selected = currentTab == MainScreenTab.DISCENTE,
+                    onClick = { currentTab = MainScreenTab.DISCENTE },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Outlined.School,
+                            contentDescription = "Discente"
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = "Discente",
+                            style = NotionTypography.labelSmall,
+                            fontWeight = if (currentTab == MainScreenTab.DISCENTE) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.onBackground,
+                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        unselectedIconColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        unselectedTextColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    )
+                )
+            }
         }
     ) { innerPadding ->
         Box(
@@ -108,11 +170,12 @@ fun MenuHomeScreen(
                 .padding(innerPadding)
                 .nestedScroll(pullRefreshState.nestedScrollConnection)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-            ) {
+            if (currentTab == MainScreenTab.CARDAPIO) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
+                ) {
             // Header
             Row(
                 modifier = Modifier
@@ -152,14 +215,7 @@ fun MenuHomeScreen(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Botão Carteirinha Discente / QR Catraca
-                    IconButton(onClick = onOpenCard) {
-                        Icon(
-                            imageVector = Icons.Outlined.Badge,
-                            contentDescription = "Carteirinha do Estudante",
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
+
 
                     // Botão Notificações / Configurações
                     IconButton(onClick = onOpenSettings) {
@@ -214,7 +270,13 @@ fun MenuHomeScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            // Seletor Compacto de Refeições no Topo (Apenas Ícones)
+            MealTopControl(
+                selectedMeal = state.selectedMeal,
+                onMealSelected = onMealSelected
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
 
             // Swipeable and Scrollable Meal Card Area
             var totalDrag by remember { mutableFloatStateOf(0f) }
@@ -382,6 +444,20 @@ fun MenuHomeScreen(
                 }
             } // Fechamento do Box de gestos
         } // Fechamento do Column principal
+    } else {
+        DiscenteScreen(
+            card = state.studentCard,
+            statement = state.statement,
+            isSyncing = state.isSyncingCard,
+            isRefreshingStatement = state.isRefreshingStatement,
+            syncProgressMessage = state.syncProgressMessage,
+            syncError = state.cardSyncError,
+            onSyncFromSigaa = onSyncCardFromSigaa,
+            onRefreshStatement = onRefreshStatement,
+            onDisconnect = onDisconnectCard,
+            modifier = Modifier.statusBarsPadding()
+        )
+    }
 
         PullToRefreshContainer(
             state = pullRefreshState,

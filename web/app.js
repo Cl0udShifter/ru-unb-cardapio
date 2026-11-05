@@ -500,7 +500,7 @@ function renderCleanRow(label, val) {
 }
 
 function updateMealBottomBar() {
-  document.querySelectorAll('.meal-control-btn').forEach(btn => {
+  document.querySelectorAll('.meal-top-btn, .meal-control-btn').forEach(btn => {
     const m = btn.getAttribute('data-meal');
     if (m === appState.meal) {
       btn.classList.add('active');
@@ -566,7 +566,7 @@ function setupNotificationsModal() {
   const overlay = document.getElementById('notificationsSheetOverlay');
   const openBtn = document.getElementById('openNotificationsBtn');
 
-  openBtn.onclick = () => {
+  if (openBtn) openBtn.onclick = () => {
     populateNotificationSettingsUI();
     overlay.classList.add('open');
   };
@@ -693,12 +693,342 @@ function saveNotificationsConfig() {
 let qrCodeInstance = null;
 let turnstileQrInstance = null;
 
+
+// ==========================================================================
+// MÓDULO 1: PAINEL DISCENTE & NAVEGAÇÃO GLOBAL (Bottom Navigation & 3D Flip Card)
+// ==========================================================================
+
+async function executeSigaaSync(mat, pass) {
+  const isVercelHost = window.location.hostname.endsWith('vercel.app') || (window.location.hostname === 'localhost' && window.location.port !== '');
+  const apiUrl = window.SIGAA_API_URL || (isVercelHost ? '/api' : 'https://ru-unb-cardapio-3zjv.vercel.app/api');
+
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ matricula: mat, senha: pass })
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (response.ok && data && data.success) {
+    let decodedQr = data.codigoQr || `${mat.padEnd(16, '0')}`;
+    if (data.qrImageBase64 && typeof jsQR !== 'undefined') {
+      try {
+        const tempImg = new Image();
+        tempImg.src = data.qrImageBase64;
+        await new Promise((resolve) => { tempImg.onload = resolve; tempImg.onerror = resolve; });
+        const canvas = document.createElement('canvas');
+        canvas.width = tempImg.naturalWidth || 250;
+        canvas.height = tempImg.naturalHeight || 250;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(tempImg, 0, 0);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const decoded = jsQR(imgData.data, canvas.width, canvas.height);
+        if (decoded && decoded.data) {
+          decodedQr = decoded.data;
+        }
+      } catch (_) {}
+    }
+
+    appState.studentCard = {
+      isConfigured: true,
+      nome: data.nome || 'Estudante UnB',
+      matricula: data.matricula || mat,
+      curso: data.curso || 'GRADUAÇÃO',
+      nivel: data.nivel || 'GRADUAÇÃO',
+      status: data.status || 'ATIVO',
+      semestreAtual: data.semestreAtual || '2026.2',
+      ira: data.ira || '--',
+      mediaPonderada: data.mediaPonderada || '--',
+      chTotal: data.chTotal || 0,
+      chObrigatoriaPendente: data.chObrigatoriaPendente || 0,
+      chOptativaPendente: data.chOptativaPendente || 0,
+      chComplementarPendente: data.chComplementarPendente || 0,
+      chConcluida: data.chConcluida || 0,
+      percentualConcluido: data.percentualConcluido != null ? Number(data.percentualConcluido) : 0,
+      fotoPerfilUrl: data.fotoPerfilUrl || '',
+      validade: data.validade || 'Março / 2027',
+      codigoQr: decodedQr,
+      qrImageBase64: data.qrImageBase64 || '',
+      saldo: data.saldo || 'R$ 0,00'
+    };
+
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const timeStr = `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+
+    const existingStmt = JSON.parse(localStorage.getItem('ru_statement') || '{}');
+    const existingTrans = existingStmt.transacoes || [];
+    const newTrans = data.transacoes || [];
+    const mergedMap = new Map();
+    existingTrans.forEach(t => {
+      t.descricao = decodeHtmlEntities(t.descricao);
+      mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t);
+    });
+    newTrans.forEach(t => {
+      t.descricao = decodeHtmlEntities(t.descricao);
+      mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t);
+    });
+    const mergedList = Array.from(mergedMap.values());
+
+    appState.statement = {
+      saldoAtual: data.saldo || 'R$ 0,00',
+      saldoAnterior: data.saldoAnterior || data.saldo || 'R$ 0,00',
+      ultimaAtualizacao: timeStr,
+      transacoes: mergedList
+    };
+
+    localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
+    localStorage.setItem('ru_statement', JSON.stringify(appState.statement));
+    localStorage.setItem('ru_sigaa_creds', JSON.stringify({ matricula: mat, senha: pass }));
+
+    renderDiscenteDashboard();
+    return { success: true };
+  } else {
+    return { success: false, error: (data && data.error) ? data.error : 'Falha na autenticação com o SIGAA.' };
+  }
+}
+
+function setupDiscenteDashboard() {
+  const navCardapioBtn = document.getElementById('navCardapioBtn');
+  const navDiscenteBtn = document.getElementById('navDiscenteBtn');
+  const viewCardapio = document.getElementById('viewCardapio');
+  const viewDiscente = document.getElementById('viewDiscente');
+
+  if (navCardapioBtn && navDiscenteBtn && viewCardapio && viewDiscente) {
+    navCardapioBtn.onclick = () => {
+      navCardapioBtn.classList.add('active');
+      navDiscenteBtn.classList.remove('active');
+      viewCardapio.classList.add('active');
+      viewDiscente.classList.remove('active');
+      viewCardapio.style.display = 'block';
+      viewDiscente.style.display = 'none';
+    };
+
+    navDiscenteBtn.onclick = () => {
+      navDiscenteBtn.classList.add('active');
+      navCardapioBtn.classList.remove('active');
+      viewDiscente.classList.add('active');
+      viewCardapio.classList.remove('active');
+      viewCardapio.style.display = 'none';
+      viewDiscente.style.display = 'block';
+      renderDiscenteDashboard();
+    };
+  }
+
+  const ctaBtn = document.getElementById('openSigaaSyncCtaBtn');
+  if (ctaBtn) {
+    ctaBtn.onclick = openSigaaModal;
+  }
+
+  const syncBtn = document.getElementById('discenteSyncBtn');
+  if (syncBtn) {
+    syncBtn.onclick = async () => {
+      const credsRaw = localStorage.getItem('ru_sigaa_creds');
+      if (!credsRaw) {
+        openSigaaModal();
+        return;
+      }
+      const icon = document.getElementById('discenteSyncIcon');
+      if (icon) icon.style.animation = 'spin 0.8s linear infinite';
+      try {
+        const creds = JSON.parse(credsRaw);
+        await executeSigaaSync(creds.matricula, creds.senha);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (icon) icon.style.animation = 'none';
+      }
+    };
+  }
+
+  const flipInner = document.getElementById('ruFlipInner');
+  const flipToQrBtn = document.getElementById('ruFlipToQrBtn');
+  const flipToFrontBtn = document.getElementById('ruFlipToFrontBtn');
+
+  if (flipToQrBtn && flipInner) {
+    flipToQrBtn.onclick = (e) => {
+      e.stopPropagation();
+      flipInner.classList.add('flipped');
+    };
+  }
+
+  if (flipToFrontBtn && flipInner) {
+    flipToFrontBtn.onclick = (e) => {
+      e.stopPropagation();
+      flipInner.classList.remove('flipped');
+    };
+  }
+
+  const flipBack = document.querySelector('.ru-flip-back');
+  if (flipBack && flipInner) {
+    flipBack.onclick = (e) => {
+      if (e.target.closest('#ruFlipToFrontBtn')) return;
+      flipInner.classList.remove('flipped');
+    };
+  }
+
+  const disconnectBtn = document.getElementById('discenteDisconnectBtn');
+  if (disconnectBtn) {
+    disconnectBtn.onclick = () => {
+      if (confirm('Deseja realmente desconectar sua conta do SIGAA deste dispositivo?')) {
+        appState.studentCard = { isConfigured: false };
+        appState.statement = null;
+        localStorage.removeItem('ru_student_card');
+        localStorage.removeItem('ru_statement');
+        localStorage.removeItem('ru_sigaa_creds');
+        renderDiscenteDashboard();
+      }
+    };
+  }
+}
+
+function renderDiscenteDashboard() {
+  const isConfigured = appState.studentCard && appState.studentCard.isConfigured;
+  const disconnectedState = document.getElementById('discenteDisconnectedState');
+  const connectedState = document.getElementById('discenteConnectedState');
+  const lastSyncText = document.getElementById('discenteLastSyncText');
+
+  if (!isConfigured) {
+    if (disconnectedState) disconnectedState.style.display = 'block';
+    if (connectedState) connectedState.style.display = 'none';
+    if (lastSyncText) lastSyncText.textContent = 'Não conectado';
+    return;
+  }
+
+  if (disconnectedState) disconnectedState.style.display = 'none';
+  if (connectedState) connectedState.style.display = 'block';
+
+  const card = appState.studentCard;
+  const stmt = appState.statement;
+
+  if (lastSyncText) {
+    lastSyncText.textContent = 'Atualizado em ' + (stmt?.ultimaAtualizacao || 'Hoje');
+  }
+
+  // Card 1: Perfil
+  const nameEl = document.getElementById('discenteNome');
+  const matEl = document.getElementById('discenteMatricula');
+  const cursoEl = document.getElementById('discenteCurso');
+  const statusBadge = document.getElementById('discenteStatusBadge');
+  const nivelBadge = document.getElementById('discenteNivelBadge');
+  const semestreBadge = document.getElementById('discenteSemestreBadge');
+  const photoImg = document.getElementById('discentePhotoImg');
+  const initialsAvatar = document.getElementById('discenteInitialsAvatar');
+
+  if (nameEl) nameEl.textContent = card.nome || 'Estudante UnB';
+  if (matEl) matEl.textContent = 'Matrícula: ' + (card.matricula || '--');
+  if (cursoEl) cursoEl.textContent = card.curso || 'Graduação';
+  if (statusBadge) statusBadge.textContent = card.status || 'ATIVO';
+  if (nivelBadge) nivelBadge.textContent = card.nivel || 'GRADUAÇÃO';
+  if (semestreBadge) semestreBadge.textContent = card.semestreAtual || '2026.2';
+
+  const names = (card.nome || 'UnB').trim().split(/\s+/);
+  const initials = names.length > 1 ? (names[0][0] + names[names.length - 1][0]).toUpperCase() : names[0].substring(0, 2).toUpperCase();
+  if (initialsAvatar) initialsAvatar.textContent = initials;
+
+  if (photoImg && initialsAvatar) {
+    if (card.fotoPerfilUrl) {
+      photoImg.src = card.fotoPerfilUrl;
+      photoImg.style.display = 'block';
+      initialsAvatar.style.display = 'none';
+      photoImg.onerror = () => {
+        photoImg.style.display = 'none';
+        initialsAvatar.style.display = 'flex';
+      };
+    } else {
+      photoImg.style.display = 'none';
+      initialsAvatar.style.display = 'flex';
+    }
+  }
+
+  // Card 2: Rendimento
+  const iraEl = document.getElementById('discenteIraVal');
+  const mpEl = document.getElementById('discenteMpVal');
+  const pctEl = document.getElementById('discentePctVal');
+  const progressFill = document.getElementById('discenteProgressBar');
+  const chConcluidaEl = document.getElementById('discenteHoursConcluidas');
+  const chTotalEl = document.getElementById('discenteHoursTotal');
+  const chObEl = document.getElementById('discenteChOb');
+  const chOpEl = document.getElementById('discenteChOp');
+
+  if (iraEl) iraEl.textContent = card.ira || '--';
+  if (mpEl) mpEl.textContent = card.mediaPonderada || '--';
+
+  const pct = card.percentualConcluido != null ? Number(card.percentualConcluido) : 0;
+  if (pctEl) pctEl.textContent = pct.toFixed(1) + '%';
+  if (progressFill) progressFill.style.width = Math.min(100, Math.max(0, pct)) + '%';
+
+  const chConcluidas = card.chConcluida != null ? card.chConcluida : 0;
+  const chTotal = card.chTotal != null ? card.chTotal : 0;
+  if (chConcluidaEl) chConcluidaEl.textContent = chConcluidas + 'h';
+  if (chTotalEl) chTotalEl.textContent = chTotal + 'h';
+
+  if (chObEl) chObEl.textContent = (card.chObrigatoriaPendente || 0) + 'h';
+  if (chOpEl) chOpEl.textContent = (card.chOptativaPendente || 0) + 'h';
+
+  // Card 3: RU Flip Card
+  const saldoEl = document.getElementById('discenteRuSaldoVal');
+  if (saldoEl) {
+    saldoEl.textContent = stmt?.saldoAtual || card.saldo || 'R$ 0,00';
+  }
+
+  const transContainer = document.getElementById('discenteMiniTransacoes');
+  if (transContainer) {
+    transContainer.innerHTML = '';
+    const trans = stmt?.transacoes || [];
+    if (trans.length === 0) {
+      transContainer.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);padding:6px 0;text-align:center;">Nenhuma transação recente registrada</div>';
+    } else {
+      trans.slice(0, 4).forEach(t => {
+        const row = document.createElement('div');
+        row.className = 'ru-statement-row';
+        row.innerHTML = `
+          <div>
+            <div class="ru-statement-desc">${escapeHtml(decodeHtmlEntities(t.descricao))}</div>
+            <div class="ru-statement-date">${escapeHtml(t.dataHora)}</div>
+          </div>
+          <div class="ru-statement-val">${escapeHtml(t.valor)}</div>
+        `;
+        transContainer.appendChild(row);
+      });
+    }
+  }
+
+  // QR Code Catraca (Back)
+  const qrImg = document.getElementById('discenteQrImg');
+  if (qrImg) {
+    if (card.qrImageBase64) {
+      qrImg.src = card.qrImageBase64;
+      qrImg.style.display = 'block';
+    } else if (card.codigoQr) {
+      const tempDiv = document.createElement('div');
+      renderZxingQRCode(tempDiv, card.codigoQr, 200);
+      const canvas = tempDiv.querySelector('canvas');
+      if (canvas) {
+        qrImg.src = canvas.toDataURL('image/png');
+        qrImg.style.display = 'block';
+      }
+    }
+  }
+
+  const backNome = document.getElementById('discenteBackNome');
+  const backMat = document.getElementById('discenteBackMatricula');
+  if (backNome) backNome.textContent = card.nome || 'Estudante UnB';
+  if (backMat) backMat.textContent = 'Matrícula: ' + (card.matricula || '--');
+}
+
+
 function setupCarteirinhaModal() {
   const modal = document.getElementById('carteirinhaModal');
   const openBtn = document.getElementById('openCarteirinhaBtn');
   const closeBtn = document.getElementById('closeCarteirinhaBtn');
 
-  openBtn.onclick = () => {
+  if (openBtn) openBtn.onclick = () => {
     renderCarteirinhaModal();
     modal.classList.add('open');
   };
@@ -902,90 +1232,16 @@ function setupSigaaDialog() {
       return;
     }
 
-    statusMsg.className = 'sigaa-status-msg';
+        statusMsg.className = 'sigaa-status-msg';
     statusMsg.style.display = 'block';
     statusMsg.textContent = 'Conectando ao SSO UnB...';
     confirmBtn.disabled = true;
     confirmBtn.style.opacity = '0.7';
 
-    const isVercelHost = window.location.hostname.endsWith('vercel.app') || (window.location.hostname === 'localhost' && window.location.port !== '');
-    const apiUrl = window.SIGAA_API_URL || (isVercelHost ? '/api' : 'https://ru-unb-cardapio-3zjv.vercel.app/api');
-
     try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matricula: mat, senha: pass })
-      });
-
-      const data = await response.json().catch(() => null);
-
-      if (response.ok && data && data.success) {
-        statusMsg.textContent = 'Carteirinha sincronizada com sucesso!';
-
-        let decodedQr = data.codigoQr || `${mat.padEnd(16, '0')}`;
-        if (data.qrImageBase64 && typeof jsQR !== 'undefined') {
-          try {
-            const tempImg = new Image();
-            tempImg.src = data.qrImageBase64;
-            await new Promise((resolve) => { tempImg.onload = resolve; tempImg.onerror = resolve; });
-            const canvas = document.createElement('canvas');
-            canvas.width = tempImg.naturalWidth || 250;
-            canvas.height = tempImg.naturalHeight || 250;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(tempImg, 0, 0);
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const decoded = jsQR(imgData.data, canvas.width, canvas.height);
-            if (decoded && decoded.data) {
-              decodedQr = decoded.data;
-            }
-          } catch (_) {}
-        }
-
-        appState.studentCard = {
-          isConfigured: true,
-          nome: data.nome || 'Estudante UnB',
-          matricula: data.matricula || mat,
-          curso: data.curso || 'GRADUAÇÃO',
-          validade: data.validade || 'Março / 2027',
-          codigoQr: decodedQr,
-          qrImageBase64: data.qrImageBase64 || '',
-          saldo: data.saldo || 'R$ 0,00'
-        };
-
-        const now = new Date();
-        const dd = String(now.getDate()).padStart(2, '0');
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const yyyy = now.getFullYear();
-        const hh = String(now.getHours()).padStart(2, '0');
-        const min = String(now.getMinutes()).padStart(2, '0');
-        const timeStr = `${dd}/${mm}/${yyyy} ${hh}:${min}`;
-
-        const existingStmt = JSON.parse(localStorage.getItem('ru_statement') || '{}');
-        const existingTrans = existingStmt.transacoes || [];
-        const newTrans = data.transacoes || [];
-        const mergedMap = new Map();
-        existingTrans.forEach(t => {
-          t.descricao = decodeHtmlEntities(t.descricao);
-          mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t);
-        });
-        newTrans.forEach(t => {
-          t.descricao = decodeHtmlEntities(t.descricao);
-          mergedMap.set(`${t.dataHora}|${t.descricao}|${t.valor}`, t);
-        });
-        const mergedList = Array.from(mergedMap.values());
-
-        appState.statement = {
-          saldoAtual: data.saldo || 'R$ 0,00',
-          saldoAnterior: data.saldoAnterior || data.saldo || 'R$ 0,00',
-          ultimaAtualizacao: timeStr,
-          transacoes: mergedList
-        };
-
-        localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
-        localStorage.setItem('ru_statement', JSON.stringify(appState.statement));
-        localStorage.setItem('ru_sigaa_creds', JSON.stringify({ matricula: mat, senha: pass }));
-
+      const res = await executeSigaaSync(mat, pass);
+      if (res.success) {
+        statusMsg.textContent = 'Carteirinha e dados sincronizados com sucesso!';
         setTimeout(() => {
           overlay.classList.remove('open');
           statusMsg.style.display = 'none';
@@ -994,10 +1250,11 @@ function setupSigaaDialog() {
           confirmBtn.disabled = false;
           confirmBtn.style.opacity = '1';
           renderCarteirinhaModal();
+          renderDiscenteDashboard();
         }, 600);
       } else {
         statusMsg.className = 'sigaa-status-msg error';
-        statusMsg.textContent = (data && data.error) ? data.error : 'Matrícula ou senha incorretas.';
+        statusMsg.textContent = res.error || 'Matrícula ou senha incorretas.';
         confirmBtn.disabled = false;
         confirmBtn.style.opacity = '1';
       }
@@ -1007,6 +1264,8 @@ function setupSigaaDialog() {
       confirmBtn.disabled = false;
       confirmBtn.style.opacity = '1';
     }
+    return;
+
   };
 }
 
@@ -1265,8 +1524,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Bottom Floating Tabs
-  document.querySelectorAll('.meal-control-btn').forEach(btn => {
+  // Meal Selector Buttons (Top & Bottom)
+  document.querySelectorAll('.meal-top-btn, .meal-control-btn').forEach(btn => {
     btn.onclick = () => {
       appState.meal = btn.getAttribute('data-meal');
       renderHomeScreen();
@@ -1276,6 +1535,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setupCampusModal();
   setupNotificationsModal();
   setupCarteirinhaModal();
+  setupDiscenteDashboard();
+  renderDiscenteDashboard();
   setupSwipeGestures();
 
   loadMenu();
