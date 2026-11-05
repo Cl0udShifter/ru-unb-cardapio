@@ -2252,6 +2252,7 @@ body.discente-flipped .app-bottom-nav {
   padding: 5px;
   z-index: 100;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
+  touch-action: manipulation;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   transition: opacity 0.25s ease, transform 0.25s ease;
@@ -2268,7 +2269,8 @@ body.discente-flipped .app-bottom-nav {
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: background-color 0.18s ease, color 0.18s ease, transform 0.12s ease;
+  transition: background-color 0.08s ease, color 0.08s ease, transform 0.06s ease;
+  touch-action: manipulation;
   user-select: none;
 }
 

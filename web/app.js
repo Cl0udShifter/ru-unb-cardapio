@@ -794,30 +794,53 @@ async function executeSigaaSync(mat, pass) {
 
 function setupDiscenteDashboard() {
   const navCardapioBtn = document.getElementById('navCardapioBtn');
+  const navAulasBtn = document.getElementById('navAulasBtn');
   const navDiscenteBtn = document.getElementById('navDiscenteBtn');
   const viewCardapio = document.getElementById('viewCardapio');
+  const viewAulas = document.getElementById('viewAulas');
   const viewDiscente = document.getElementById('viewDiscente');
 
-  if (navCardapioBtn && navDiscenteBtn && viewCardapio && viewDiscente) {
-    navCardapioBtn.onclick = () => {
-      navCardapioBtn.classList.add('active');
-      navDiscenteBtn.classList.remove('active');
-      viewCardapio.classList.add('active');
-      viewDiscente.classList.remove('active');
-      viewCardapio.style.display = 'block';
-      viewDiscente.style.display = 'none';
-    };
+  function switchGlobalTab(tab) {
+    [navCardapioBtn, navAulasBtn, navDiscenteBtn].forEach(b => b && b.classList.remove('active'));
+    [viewCardapio, viewAulas, viewDiscente].forEach(v => {
+      if (v) {
+        v.classList.remove('active');
+        v.style.display = 'none';
+      }
+    });
 
-    navDiscenteBtn.onclick = () => {
+    if (tab === 'cardapio' && navCardapioBtn && viewCardapio) {
+      navCardapioBtn.classList.add('active');
+      viewCardapio.classList.add('active');
+      viewCardapio.style.display = 'block';
+    } else if (tab === 'aulas' && navAulasBtn && viewAulas) {
+      navAulasBtn.classList.add('active');
+      viewAulas.classList.add('active');
+      viewAulas.style.display = 'block';
+      if (typeof renderAulasScreen === 'function') renderAulasScreen();
+    } else if (tab === 'discente' && navDiscenteBtn && viewDiscente) {
       navDiscenteBtn.classList.add('active');
-      navCardapioBtn.classList.remove('active');
       viewDiscente.classList.add('active');
-      viewCardapio.classList.remove('active');
-      viewCardapio.style.display = 'none';
       viewDiscente.style.display = 'block';
       renderDiscenteDashboard();
+    }
+  }
+
+  function bindInstantTab(btn, tab) {
+    if (!btn) return;
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      switchGlobalTab(tab);
+    });
+    btn.onclick = (e) => {
+      e.preventDefault();
+      switchGlobalTab(tab);
     };
   }
+
+  bindInstantTab(navCardapioBtn, 'cardapio');
+  bindInstantTab(navAulasBtn, 'aulas');
+  bindInstantTab(navDiscenteBtn, 'discente');
 
   const ctaBtn = document.getElementById('openSigaaSyncCtaBtn');
   if (ctaBtn) {

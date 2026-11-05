@@ -3,6 +3,8 @@ package br.unb.ru.ui.screens
 import android.app.Activity
 import android.view.WindowManager
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.FastOutLinearInEasing
@@ -36,6 +38,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -194,14 +197,14 @@ fun MenuHomeScreen(
                         targetState = currentTab,
                         transitionSpec = {
                             if (initialState.ordinal < targetState.ordinal) {
-                                (slideInHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { width -> (width * 0.25f).toInt() } + fadeIn(animationSpec = tween(180)))
-                                    .togetherWith(slideOutHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { width -> -(width * 0.25f).toInt() } + fadeOut(animationSpec = tween(140)))
+                                (slideInHorizontally(animationSpec = tween(120, easing = FastOutSlowInEasing)) { width -> (width * 0.12f).toInt() } + fadeIn(animationSpec = tween(90)))
+                                    .togetherWith(slideOutHorizontally(animationSpec = tween(120, easing = FastOutSlowInEasing)) { width -> -(width * 0.12f).toInt() } + fadeOut(animationSpec = tween(70)))
                             } else {
-                                (slideInHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { width -> -(width * 0.25f).toInt() } + fadeIn(animationSpec = tween(180)))
-                                    .togetherWith(slideOutHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { width -> (width * 0.25f).toInt() } + fadeOut(animationSpec = tween(140)))
+                                (slideInHorizontally(animationSpec = tween(120, easing = FastOutSlowInEasing)) { width -> -(width * 0.12f).toInt() } + fadeIn(animationSpec = tween(90)))
+                                    .togetherWith(slideOutHorizontally(animationSpec = tween(120, easing = FastOutSlowInEasing)) { width -> (width * 0.12f).toInt() } + fadeOut(animationSpec = tween(70)))
                             }
                         },
-                        label = "tab_smooth_transition",
+                        label = "tab_instant_transition",
                         modifier = Modifier.fillMaxSize()
                     ) { tab ->
                         if (tab == MainScreenTab.CARDAPIO) {
@@ -497,12 +500,12 @@ fun MenuHomeScreen(
                             val isCardapio = currentTab == MainScreenTab.CARDAPIO
                             val cardapioBg by animateColorAsState(
                                 targetValue = if (isCardapio) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                animationSpec = tween(durationMillis = 180),
+                                animationSpec = tween(durationMillis = 80),
                                 label = "tab_cardapio_bg"
                             )
                             val cardapioIconColor by animateColorAsState(
                                 targetValue = if (isCardapio) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                animationSpec = tween(durationMillis = 180),
+                                animationSpec = tween(durationMillis = 80),
                                 label = "tab_cardapio_icon"
                             )
                             Box(
@@ -510,7 +513,13 @@ fun MenuHomeScreen(
                                     .size(width = 64.dp, height = 42.dp)
                                     .clip(CircleShape)
                                     .background(cardapioBg)
-                                    .clickable { currentTab = MainScreenTab.CARDAPIO },
+                                    .pointerInput(Unit) {
+                                        awaitEachGesture {
+                                            val down = awaitFirstDown(requireUnconsumed = false)
+                                            currentTab = MainScreenTab.CARDAPIO
+                                            down.consume()
+                                        }
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -525,12 +534,12 @@ fun MenuHomeScreen(
                             val isAulas = currentTab == MainScreenTab.AULAS
                             val aulasBg by animateColorAsState(
                                 targetValue = if (isAulas) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                animationSpec = tween(durationMillis = 180),
+                                animationSpec = tween(durationMillis = 80),
                                 label = "tab_aulas_bg"
                             )
                             val aulasIconColor by animateColorAsState(
                                 targetValue = if (isAulas) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                animationSpec = tween(durationMillis = 180),
+                                animationSpec = tween(durationMillis = 80),
                                 label = "tab_aulas_icon"
                             )
                             Box(
@@ -538,7 +547,13 @@ fun MenuHomeScreen(
                                     .size(width = 64.dp, height = 42.dp)
                                     .clip(CircleShape)
                                     .background(aulasBg)
-                                    .clickable { currentTab = MainScreenTab.AULAS },
+                                    .pointerInput(Unit) {
+                                        awaitEachGesture {
+                                            val down = awaitFirstDown(requireUnconsumed = false)
+                                            currentTab = MainScreenTab.AULAS
+                                            down.consume()
+                                        }
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -553,12 +568,12 @@ fun MenuHomeScreen(
                             val isDiscente = currentTab == MainScreenTab.DISCENTE
                             val discenteBg by animateColorAsState(
                                 targetValue = if (isDiscente) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                animationSpec = tween(durationMillis = 180),
+                                animationSpec = tween(durationMillis = 80),
                                 label = "tab_discente_bg"
                             )
                             val discenteIconColor by animateColorAsState(
                                 targetValue = if (isDiscente) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                animationSpec = tween(durationMillis = 180),
+                                animationSpec = tween(durationMillis = 80),
                                 label = "tab_discente_icon"
                             )
                             Box(
@@ -566,7 +581,13 @@ fun MenuHomeScreen(
                                     .size(width = 64.dp, height = 42.dp)
                                     .clip(CircleShape)
                                     .background(discenteBg)
-                                    .clickable { currentTab = MainScreenTab.DISCENTE },
+                                    .pointerInput(Unit) {
+                                        awaitEachGesture {
+                                            val down = awaitFirstDown(requireUnconsumed = false)
+                                            currentTab = MainScreenTab.DISCENTE
+                                            down.consume()
+                                        }
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
