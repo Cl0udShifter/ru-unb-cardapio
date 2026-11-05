@@ -116,8 +116,12 @@ class AppUpdateRepository(private val context: Context) {
 
     fun isNewerVersion(current: String, latest: String): Boolean {
         if (latest.isBlank()) return false
-        val currParts = current.removePrefix("v").removePrefix("V").split("-", limit = 2)
-        val latestParts = latest.removePrefix("v").removePrefix("V").split("-", limit = 2)
+        val cleanCurrent = current.removePrefix("v").removePrefix("V").trim()
+        val cleanLatest = latest.removePrefix("v").removePrefix("V").trim()
+        if (cleanCurrent == cleanLatest) return false
+
+        val currParts = cleanCurrent.split("-", limit = 2)
+        val latestParts = cleanLatest.split("-", limit = 2)
 
         val currSegments = currParts[0].split(".").mapNotNull { it.toIntOrNull() }
         val latestSegments = latestParts[0].split(".").mapNotNull { it.toIntOrNull() }
@@ -133,11 +137,18 @@ class AppUpdateRepository(private val context: Context) {
         val currSuffix = currParts.getOrNull(1) ?: ""
         val latestSuffix = latestParts.getOrNull(1) ?: ""
 
-        val regexDigits = Regex("""\\d+""")
+        if (currSuffix.isNotEmpty() && latestSuffix.isEmpty()) return true
+        if (currSuffix.isEmpty() && latestSuffix.isNotEmpty()) return false
+
+        val regexDigits = Regex("""\d+""")
         val currTestNum = regexDigits.findAll(currSuffix).lastOrNull()?.value?.toIntOrNull() ?: 0
         val latestTestNum = regexDigits.findAll(latestSuffix).lastOrNull()?.value?.toIntOrNull() ?: 0
 
-        return latestTestNum > currTestNum
+        if (latestTestNum != currTestNum) {
+            return latestTestNum > currTestNum
+        }
+
+        return cleanLatest > cleanCurrent
     }
 
 
