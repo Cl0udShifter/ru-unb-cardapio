@@ -323,13 +323,111 @@ def sync_with_urllib(matricula, senha):
                                         'fim': fim,
                                         'horarioFormatado': f'{inicio} - {fim}'
                                     })
+                td0 = tds[0] if len(tds) >= 1 else ''
+                codigo = ''
+                turma = ''
+                docente = ''
+                carga_horaria = ''
+
+                td0_clean = re.sub(r'<a[^>]*>.*?</a>', '', td0, flags=re.DOTALL)
+                code_m = re.search(r'\(([A-Z0-9_]{4,10})\s*-\s*([^\)]+)\)', td0_clean)
+                if code_m:
+                    codigo = code_m.group(1).strip()
+                    turma = code_m.group(2).strip()
+
+                ch_m = re.search(r'\((\d+h)\)', td0, re.I)
+                if ch_m:
+                    carga_horaria = ch_m.group(1).strip()
+                else:
+                    ch_m2 = re.search(r'(\d+)\s*h(?:oras)?', td0, re.I)
+                    if ch_m2:
+                        carga_horaria = f"{ch_m2.group(1).strip()}h"
+
+                sub_m = re.search(r'<span[^>]*class=["']subTexto["'][^>]*>(.*?)</span>', td0, re.DOTALL | re.I)
+                if sub_m:
+                    raw_doc = html.unescape(re.sub(r'<[^>]+>', '', sub_m.group(1))).strip()
+                    docente = re.sub(r'\(\d+h\)', '', raw_doc).strip()
+                elif 'Docente:' in td0 or 'Professor:' in td0:
+                    doc_m = re.search(r'(?:Docente|Professor):\s*([^<]+)', td0, re.I)
+                    if doc_m:
+                        docente = html.unescape(doc_m.group(1)).strip()
+
+                pct_freq = None
+                faltas = 0
+                pct_ministradas = None
+                aulas_ministradas_texto = ''
+                noticias = []
+
+                if turma_id and view_state:
+                    try:
+                        tv_payload = {
+                            'form_acessarTurmaVirtual': 'form_acessarTurmaVirtual',
+                            'form_acessarTurmaVirtual:frontEndIdTurma': turma_id,
+                            'javax.faces.ViewState': view_state
+                        }
+                        req_tv = urllib.request.Request(
+                            'https://sigaa.unb.br/sigaa/portais/discente/discente.jsf',
+                            data=urllib.parse.urlencode(tv_payload).encode('utf-8'),
+                            headers=headers
+                        )
+                        r_tv = opener.open(req_tv, timeout=6)
+                        tv_html = r_tv.read().decode('latin-1', errors='ignore')
+
+                        m_aulas = re.search(r'Aulas\s+Ministradas:\s*(?:<strong>)?\s*([0-9]+\s*(?:de\s*[0-9]+)?(?:\s*\([0-9\.,]+%\))?)', tv_html, re.I)
+                        if m_aulas:
+                            aulas_ministradas_texto = m_aulas.group(1).strip()
+                            m_pct = re.search(r'([0-9\.,]+)%', aulas_ministradas_texto)
+                            if m_pct:
+                                pct_ministradas = float(m_pct.group(1).replace(',', '.'))
+
+                        m_freq = re.search(r'Frequ[êe]ncia:\s*(?:<strong>)?\s*([0-9\.,]+)%', tv_html, re.I)
+                        if m_freq:
+                            pct_freq = float(m_freq.group(1).replace(',', '.'))
+
+                        m_faltas = re.search(r'Faltas:\s*(?:<strong>)?\s*([0-9]+)', tv_html, re.I)
+                        if m_faltas:
+                            faltas = int(m_faltas.group(1))
+
+                        for not_match in re.finditer(r'<tr[^>]*class=["'](?:linhaNoticia|odd|even)["'][^>]*>(.*?)</tr>', tv_html, re.DOTALL | re.I):
+                            row_c = not_match.group(1)
+                            date_m = re.search(r'(\d{2}/\d{2}/\d{4})', row_c)
+                            title_m = re.search(r'<a[^>]*>(.*?)</a>', row_c, re.DOTALL)
+                            if title_m:
+                                n_titulo = html.unescape(re.sub(r'<[^>]+>', '', title_m.group(1))).strip()
+                                n_data = date_m.group(1) if date_m else ''
+                                anexos = []
+                                for att_m in re.finditer(r'<a[^>]+href=["']([^"']*(?:verArquivo|downloadArquivo)[^"']*)["'][^>]*>(.*?)</a>', row_c, re.I):
+                                    att_url = att_m.group(1)
+                                    if not att_url.startswith('http'):
+                                        att_url = 'https://sigaa.unb.br' + att_url
+                                    att_name = html.unescape(re.sub(r'<[^>]+>', '', att_m.group(2))).strip() or 'Baixar anexo'
+                                    anexos.append({'nome': att_name, 'url': att_url})
+                                if n_titulo:
+                                    noticias.append({
+                                        'titulo': n_titulo,
+                                        'data': n_data,
+                                        'conteudo': '',
+                                        'anexos': anexos
+                                    })
+                    except Exception as e_tv:
+                        print(f"Erro ao consultar Turma Virtual para {nome_disc}:", e_tv)
+
                 if nome_disc:
                     disciplinas.append({
                         'nome': nome_disc,
                         'turmaId': turma_id,
+                        'codigo': codigo,
+                        'turma': turma,
+                        'docente': docente,
+                        'cargaHoraria': carga_horaria,
                         'local': local,
                         'horarioRaw': horario_raw,
-                        'horarios': horarios
+                        'horarios': horarios,
+                        'faltas': faltas,
+                        'percentualFrequencia': pct_freq,
+                        'percentualAulasMinistradas': pct_ministradas,
+                        'aulasMinistradasTexto': aulas_ministradas_texto,
+                        'noticias': noticias
                     })
     except Exception as e:
         print('Erro ao extrair disciplinas:', e)

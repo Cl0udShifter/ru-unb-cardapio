@@ -7,8 +7,11 @@ import android.os.ParcelFileDescriptor
 import br.unb.ru.data.model.RestaurantStatement
 import br.unb.ru.data.model.StudentCard
 import br.unb.ru.data.model.TransactionItem
+import br.unb.ru.data.model.ClassNotice
+import br.unb.ru.data.model.ClassNoticeAttachment
 import br.unb.ru.data.model.ClassSchedule
 import br.unb.ru.data.model.ClassTime
+import br.unb.ru.data.model.ClassTopic
 import com.google.gson.Gson
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.DecodeHintType
@@ -408,8 +411,9 @@ class StudentCardRepository(private val context: Context) {
             saveCredentials(matricula, pass)
 
             // 6. Extrair Disciplinas e Grade de Aulas
-            onProgress("Lendo grade de disciplinas e horários...")
-            val classes = parseClassesFromHtml(currentHtml)
+            onProgress("Lendo turmas e grade de horários...")
+            val rawClasses = parseClassesFromHtml(currentHtml)
+            val classes = enrichClassesFromTurmaVirtual(client, currentHtml, rawClasses, onProgress)
             saveClasses(classes)
 
             // 7. Consultar Extrato do Restaurante Universitário
@@ -848,16 +852,150 @@ class StudentCardRepository(private val context: Context) {
                     }
                 }
 
+                val td0 = if (tds.isNotEmpty()) tds[0] else ""
+                var codigo = ""
+                var turma = ""
+                var docente = ""
+                var cargaHoraria = ""
+
+                val td0Clean = td0.replace(Regex("<a[^>]*>.*?</a>", RegexOption.DOT_MATCHES_ALL), "")
+                val codeTurmaM = Pattern.compile("\\(([A-Z0-9_]{4,10})\\s*-\\s*([^\\)]+)\\)").matcher(td0Clean)
+                if (codeTurmaM.find()) {
+                    codigo = codeTurmaM.group(1)?.trim() ?: ""
+                    turma = codeTurmaM.group(2)?.trim() ?: ""
+                }
+
+                val chM = Pattern.compile("\\((\\d+h)\\)", Pattern.CASE_INSENSITIVE).matcher(td0)
+                if (chM.find()) {
+                    cargaHoraria = chM.group(1)?.trim() ?: ""
+                } else {
+                    val chM2 = Pattern.compile("(\\d+)\\s*h(?:oras)?", Pattern.CASE_INSENSITIVE).matcher(td0)
+                    if (chM2.find()) {
+                        cargaHoraria = "${chM2.group(1)?.trim()}h"
+                    }
+                }
+
+                val subM = Pattern.compile("<span[^>]*class=[\"']subTexto[\"'][^>]*>(.*?)</span>", Pattern.DOTALL or Pattern.CASE_INSENSITIVE).matcher(td0)
+                if (subM.find()) {
+                    val rawDoc = decodeHtmlEntities(subM.group(1)?.replace(Regex("<[^>]+>"), "") ?: "").trim()
+                    docente = rawDoc.replace(Regex("\\(\\d+h\\)"), "").trim()
+                } else if (td0.contains("Docente:", ignoreCase = true) || td0.contains("Professor:", ignoreCase = true)) {
+                    val docM = Pattern.compile("(?:Docente|Professor):\\s*([^<]+)", Pattern.CASE_INSENSITIVE).matcher(td0)
+                    if (docM.find()) {
+                        docente = decodeHtmlEntities(docM.group(1)?.trim() ?: "")
+                    }
+                }
+
                 list.add(ClassSchedule(
                     nome = nome,
                     local = local,
                     horarioRaw = horarioRaw,
                     turmaId = turmaId,
+                    codigo = codigo,
+                    turma = turma,
+                    docente = docente,
+                    cargaHoraria = cargaHoraria,
                     horarios = horarios
                 ))
             }
         } catch (_: Exception) {}
         return list
+    }
+
+
+    private fun enrichClassesFromTurmaVirtual(
+        client: OkHttpClient,
+        portalHtml: String,
+        classes: List<ClassSchedule>,
+        onProgress: (String) -> Unit
+    ): List<ClassSchedule> {
+        if (classes.isEmpty()) return classes
+        val viewState = extractValue(portalHtml, "javax.faces.ViewState") ?: return classes
+        val enriched = mutableListOf<ClassSchedule>()
+
+        for (c in classes) {
+            if (c.turmaId.isBlank()) {
+                enriched.add(c)
+                continue
+            }
+            try {
+                onProgress("Consultando turma ${c.codigo.ifBlank { c.nome.take(15) }}...")
+                val body = FormBody.Builder()
+                    .add("form_acessarTurmaVirtual", "form_acessarTurmaVirtual")
+                    .add("form_acessarTurmaVirtual:frontEndIdTurma", c.turmaId)
+                    .add("javax.faces.ViewState", viewState)
+                    .build()
+
+                val req = Request.Builder()
+                    .url("https://sigaa.unb.br/sigaa/portais/discente/discente.jsf")
+                    .post(body)
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                    .build()
+
+                val resp = client.newCall(req).execute()
+                val tvHtml = resp.body?.string() ?: ""
+
+                var pctFreq: Float? = null
+                var faltas = 0
+                var pctMinistradas: Float? = null
+                var ministradasTexto = ""
+                val noticias = mutableListOf<ClassNotice>()
+
+                val mMinistradas = Pattern.compile("Aulas\\s+Ministradas:\\s*(?:<strong>)?\\s*([0-9]+\\s*(?:de\\s*[0-9]+)?(?:\\s*\\([0-9\\.,]+%\\))?)", Pattern.CASE_INSENSITIVE).matcher(tvHtml)
+                if (mMinistradas.find()) {
+                    ministradasTexto = mMinistradas.group(1)?.trim() ?: ""
+                    val mPct = Pattern.compile("([0-9\\.,]+)%").matcher(ministradasTexto)
+                    if (mPct.find()) {
+                        pctMinistradas = mPct.group(1)?.replace(',', '.')?.toFloatOrNull()
+                    }
+                }
+
+                val mFreq = Pattern.compile("Frequ[êe]ncia:\\s*(?:<strong>)?\\s*([0-9\\.,]+)%", Pattern.CASE_INSENSITIVE).matcher(tvHtml)
+                if (mFreq.find()) {
+                    pctFreq = mFreq.group(1)?.replace(',', '.')?.toFloatOrNull()
+                }
+
+                val mFaltas = Pattern.compile("Faltas:\\s*(?:<strong>)?\\s*([0-9]+)", Pattern.CASE_INSENSITIVE).matcher(tvHtml)
+                if (mFaltas.find()) {
+                    faltas = mFaltas.group(1)?.toIntOrNull() ?: 0
+                }
+
+                val mNoticias = Pattern.compile("<tr[^>]*class=[\"'](?:linhaNoticia|odd|even)[\"'][^>]*>(.*?)</tr>", Pattern.DOTALL or Pattern.CASE_INSENSITIVE).matcher(tvHtml)
+                while (mNoticias.find()) {
+                    val rowHtml = mNoticias.group(1) ?: continue
+                    val mDate = Pattern.compile("(\\d{2}/\\d{2}/\\d{4})").matcher(rowHtml)
+                    val mTitle = Pattern.compile("<a[^>]*>(.*?)</a>", Pattern.DOTALL).matcher(rowHtml)
+                    if (mTitle.find()) {
+                        val titulo = decodeHtmlEntities(mTitle.group(1)?.replace(Regex("<[^>]+>"), "") ?: "").trim()
+                        val data = if (mDate.find()) mDate.group(1) ?: "" else ""
+                        val anexos = mutableListOf<ClassNoticeAttachment>()
+                        val mAtt = Pattern.compile("<a[^>]+href=[\"']([^\"']*(?:verArquivo|downloadArquivo)[^\"']*)[\"'][^>]*>(.*?)</a>", Pattern.CASE_INSENSITIVE).matcher(rowHtml)
+                        while (mAtt.find()) {
+                            var attUrl = mAtt.group(1) ?: ""
+                            if (!attUrl.startsWith("http")) {
+                                attUrl = "https://sigaa.unb.br$attUrl"
+                            }
+                            val attName = decodeHtmlEntities(mAtt.group(2)?.replace(Regex("<[^>]+>"), "") ?: "").trim().ifBlank { "Baixar anexo" }
+                            anexos.add(ClassNoticeAttachment(attName, attUrl))
+                        }
+                        if (titulo.isNotBlank()) {
+                            noticias.add(ClassNotice(titulo, data, "", anexos))
+                        }
+                    }
+                }
+
+                enriched.add(c.copy(
+                    faltas = faltas,
+                    percentualFrequencia = pctFreq,
+                    percentualAulasMinistradas = pctMinistradas,
+                    aulasMinistradasTexto = ministradasTexto,
+                    noticias = noticias
+                ))
+            } catch (_: Exception) {
+                enriched.add(c)
+            }
+        }
+        return enriched
     }
 
 }

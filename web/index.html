@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="icons/favicon.png?v=4.1">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4.1">
   
-  <link rel="stylesheet" href="style.css?v=7.6">
+  <link rel="stylesheet" href="style.css?v=7.7">
 </head>
 <body>
   <div id="app">
@@ -313,15 +313,40 @@
           </div>
         </div>
       </section>
-      <!-- Aba Aulas (Módulo 2: Grade Horária e Aulas de Hoje) -->
+      <!-- Aba Aulas (Módulo 2 e 3: Grade Horária, Aulas de Hoje e Turmas do Semestre) -->
       <section id="viewAulas" class="tab-view" style="display: none;">
         <div class="aulas-container">
           <div class="aulas-header">
-            <h1 class="aulas-title">Aulas & Grade</h1>
-            <p class="aulas-subhead">Semestre 2026.2 • Horário Oficial</p>
+            <h1 class="aulas-title">Aulas & Turmas</h1>
+            <p class="aulas-subhead">Semestre 2026.2 • Horário Oficial e Turmas</p>
           </div>
-          <div class="aulas-day-rail" id="aulasDayRail"></div>
-          <div id="aulasContentList" class="aulas-list"></div>
+
+          <!-- Segmented Toggle: Aulas do Dia vs Turmas do Semestre -->
+          <div class="aulas-segmented-control" id="aulasSegmentedControl">
+            <button class="aulas-segment-btn active" id="btnAulasTabDia" type="button" data-segment="dia">Aulas do Dia</button>
+            <button class="aulas-segment-btn" id="btnAulasTabTurmas" type="button" data-segment="turmas">
+              <span>Turmas do Semestre</span>
+              <span class="segment-counter-badge" id="turmasCountBadge" style="display: none;">0</span>
+            </button>
+          </div>
+
+          <!-- Subview 1: Aulas do Dia -->
+          <div id="subviewAulasDia" class="aulas-subview">
+            <div class="aulas-day-rail" id="aulasDayRail"></div>
+            <div id="aulasContentList" class="aulas-list"></div>
+          </div>
+
+          <!-- Subview 2: Turmas do Semestre -->
+          <div id="subviewAulasTurmas" class="aulas-subview" style="display: none;">
+            <div class="turmas-summary-card" id="turmasSummaryCard">
+              <div class="turmas-summary-meta">
+                <span class="turmas-summary-label">Grade Ativa</span>
+                <span class="turmas-summary-count" id="turmasSummaryCount">0 turmas matriculadas</span>
+              </div>
+              <span class="turmas-summary-badge">Matrícula Regular</span>
+            </div>
+            <div id="turmasContentList" class="turmas-list"></div>
+          </div>
         </div>
       </section>
 
@@ -760,6 +785,6 @@
   <script src="zxing.min.js"></script>
   <script src="jsqr.min.js"></script>
   <script src="qrcode.min.js?v=4.1"></script>
-  <script src="app.js?v=7.6"></script>
+  <script src="app.js?v=7.7"></script>
 </body>
 </html>

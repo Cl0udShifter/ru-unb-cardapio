@@ -1591,13 +1591,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 let currentSelectedAulasDia = null;
+let currentAulasSegment = 'dia';
 
 function getTodayDiaNum() {
   const d = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
   return (d >= 1 && d <= 6) ? d : 1;
 }
 
+function setupAulasSegmentedControl() {
+  const btnDia = document.getElementById('btnAulasTabDia');
+  const btnTurmas = document.getElementById('btnAulasTabTurmas');
+  const viewDia = document.getElementById('subviewAulasDia');
+  const viewTurmas = document.getElementById('subviewAulasTurmas');
+  if (!btnDia || !btnTurmas || !viewDia || !viewTurmas) return;
+
+  const switchToSegment = (seg) => {
+    currentAulasSegment = seg;
+    if (seg === 'dia') {
+      btnDia.classList.add('active');
+      btnTurmas.classList.remove('active');
+      viewDia.style.display = 'flex';
+      viewTurmas.style.display = 'none';
+      renderAulasDoDia();
+    } else {
+      btnTurmas.classList.add('active');
+      btnDia.classList.remove('active');
+      viewTurmas.style.display = 'flex';
+      viewDia.style.display = 'none';
+      renderTurmasList();
+    }
+  };
+
+  btnDia.onpointerdown = (e) => {
+    e.preventDefault();
+    switchToSegment('dia');
+  };
+  btnTurmas.onpointerdown = (e) => {
+    e.preventDefault();
+    switchToSegment('turmas');
+  };
+}
+
 function renderAulasScreen() {
+  setupAulasSegmentedControl();
+
+  const countBadge = document.getElementById('turmasCountBadge');
+  const classes = appState.disciplinas || [];
+  if (countBadge) {
+    if (classes.length > 0) {
+      countBadge.textContent = classes.length;
+      countBadge.style.display = 'inline-block';
+    } else {
+      countBadge.style.display = 'none';
+    }
+  }
+
+  if (currentAulasSegment === 'turmas') {
+    renderTurmasList();
+  } else {
+    renderAulasDoDia();
+  }
+}
+
+function renderAulasDoDia() {
   const dayRail = document.getElementById('aulasDayRail');
   const listEl = document.getElementById('aulasContentList');
   if (!dayRail || !listEl) return;
@@ -1616,7 +1672,6 @@ function renderAulasScreen() {
     { num: 6, label: 'SÁB' }
   ];
 
-  // Render Day Rail
   dayRail.innerHTML = diasSemana.map(d => {
     const isActive = d.num === currentSelectedAulasDia;
     const isToday = d.num === todayNum;
@@ -1629,13 +1684,13 @@ function renderAulasScreen() {
   }).join('');
 
   dayRail.querySelectorAll('.aulas-day-chip').forEach(chip => {
-    chip.onclick = () => {
+    chip.onpointerdown = (e) => {
+      e.preventDefault();
       currentSelectedAulasDia = parseInt(chip.getAttribute('data-dia'), 10);
-      renderAulasScreen();
+      renderAulasDoDia();
     };
   });
 
-  // Not connected state
   if (!appState.studentCard || !appState.studentCard.isConfigured) {
     listEl.innerHTML = `
       <div class="discente-card not-connected-card" style="text-align: center; padding: 32px 20px;">
@@ -1663,7 +1718,6 @@ function renderAulasScreen() {
     return;
   }
 
-  // Filter classes for selected day
   const classes = appState.disciplinas || [];
   const aulasDoDia = [];
   classes.forEach(c => {
@@ -1688,7 +1742,6 @@ function renderAulasScreen() {
     return;
   }
 
-  // Render class cards
   listEl.innerHTML = aulasDoDia.map(({ disciplina, time }) => {
     const outros = (disciplina.horarios || []).filter(h => h.dia !== currentSelectedAulasDia);
     return `
@@ -1706,14 +1759,15 @@ function renderAulasScreen() {
           <span>${disciplina.local || 'Sala não informada'}</span>
         </div>
         <div class="aula-details-panel">
-          ${disciplina.horarioRaw ? `<div class="aula-detail-item"><strong>Código SIGAA:</strong> ${disciplina.horarioRaw}</div>` : ''}
+          ${(disciplina.codigo || disciplina.turma) ? `<div class="aula-detail-item"><strong>Turma:</strong> ${disciplina.codigo} • Turma ${disciplina.turma}</div>` : ''}
+          ${disciplina.docente ? `<div class="aula-detail-item"><strong>Docente:</strong> ${disciplina.docente}</div>` : ''}
+          ${disciplina.horarioRaw ? `<div class="aula-detail-item"><strong>Código Horário:</strong> ${disciplina.horarioRaw}</div>` : ''}
           ${outros.length > 0 ? `
             <div class="aula-detail-item">
-              <strong>Outros horários:</strong><br/>
+              <strong>Outros horários na semana:</strong><br/>
               ${outros.map(o => `• ${o.diaNome}: ${o.horarioFormatado}`).join('<br/>')}
             </div>
           ` : ''}
-
         </div>
       </div>
     `;
@@ -1725,5 +1779,138 @@ function renderAulasScreen() {
     };
   });
 }
+
+function renderTurmasList() {
+  const listEl = document.getElementById('turmasContentList');
+  const countEl = document.getElementById('turmasSummaryCount');
+  if (!listEl) return;
+
+  const classes = appState.disciplinas || [];
+  if (countEl) {
+    countEl.textContent = `${classes.length} turmas matriculadas`;
+  }
+
+  if (classes.length === 0) {
+    listEl.innerHTML = `
+      <div class="discente-card" style="text-align: center; padding: 36px 20px;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color: var(--text-secondary); opacity: 0.5; margin-bottom: 12px;">
+          <path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/>
+        </svg>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Nenhuma turma encontrada</h3>
+        <p style="font-size: 13px; color: var(--text-secondary);">Sincronize sua conta com o SIGAA para listar as disciplinas do semestre.</p>
+      </div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = classes.map((c, idx) => {
+    const pctMinistradas = typeof c.percentualAulasMinistradas === 'number' ? c.percentualAulasMinistradas : 0;
+    const textoMinistradas = c.aulasMinistradasTexto || (pctMinistradas > 0 ? `${Math.round(pctMinistradas)}% ministradas` : 'Aulas em andamento');
+    const pctFreq = typeof c.percentualFrequencia === 'number' ? c.percentualFrequencia : 100;
+    const faltasCount = typeof c.faltas === 'number' ? c.faltas : 0;
+    const textoFreq = typeof c.percentualFrequencia === 'number' ? `${Math.round(pctFreq)}% • ${faltasCount} falta(s)` : '100% de presença';
+    const isWarningFreq = pctFreq < 75;
+
+    const weeklySchedule = (c.horarios || []).map(h => `${(h.diaNome || '').slice(0, 3)} ${h.horarioFormatado}`).join(' • ');
+    const notices = c.noticias || [];
+
+    return `
+      <div class="turma-card" id="turmaCard_${idx}">
+        <div class="turma-header-badges">
+          <div class="turma-chips-row">
+            ${(c.codigo || c.turma) ? `<span class="turma-code-pill">${c.codigo || 'UNB'} • T${c.turma || '01'}</span>` : ''}
+            ${c.cargaHoraria ? `<span class="turma-ch-pill">${c.cargaHoraria}</span>` : ''}
+          </div>
+          ${c.horarioRaw ? `<span class="turma-horario-raw">${c.horarioRaw}</span>` : ''}
+        </div>
+
+        <div class="turma-name">${c.nome}</div>
+
+        ${c.docente ? `
+          <div class="turma-info-row">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>${c.docente}</span>
+          </div>
+        ` : ''}
+
+        <div class="turma-info-row">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          <span>${c.local || 'Sala não informada'}</span>
+        </div>
+
+        ${weeklySchedule ? `
+          <div class="turma-info-row">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <span>${weeklySchedule}</span>
+          </div>
+        ` : ''}
+
+        <!-- Bloco de Métricas: Aulas Ministradas & Frequência -->
+        <div class="turma-metrics-box">
+          <div class="metric-line">
+            <div class="metric-line-header">
+              <span class="metric-line-label">Aulas ministradas</span>
+              <span class="metric-line-val">${textoMinistradas}</span>
+            </div>
+            <div class="metric-bar-track">
+              <div class="metric-bar-fill" style="width: ${Math.min(100, Math.max(0, pctMinistradas))}%;"></div>
+            </div>
+          </div>
+
+          <div class="metric-line">
+            <div class="metric-line-header">
+              <span class="metric-line-label">Frequência</span>
+              <span class="metric-line-val ${isWarningFreq ? 'warning' : ''}">${textoFreq}</span>
+            </div>
+            <div class="metric-bar-track">
+              <div class="metric-bar-fill ${isWarningFreq ? 'warning' : ''}" style="width: ${Math.min(100, Math.max(0, pctFreq))}%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accordion: Avisos da Turma Virtual -->
+        <button class="turma-accordion-toggle" type="button" onclick="toggleTurmaNotices(${idx})">
+          <div class="turma-accordion-left">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            <span>Avisos da Turma Virtual</span>
+            ${notices.length > 0 ? `<span class="segment-counter-badge">${notices.length}</span>` : ''}
+          </div>
+          <svg class="turma-accordion-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+
+        <div class="turma-notices-panel">
+          ${notices.length === 0 ? `
+            <div style="font-size: 12px; color: var(--text-secondary); padding: 4px 0;">Nenhum aviso publicado pelo docente até o momento.</div>
+          ` : notices.map(aviso => `
+            <div class="turma-notice-item">
+              <div class="turma-notice-top">
+                <div class="turma-notice-title">${aviso.titulo}</div>
+                ${aviso.data ? `<span class="turma-notice-date">${aviso.data}</span>` : ''}
+              </div>
+              ${aviso.conteudo ? `<div class="turma-notice-content">${aviso.conteudo}</div>` : ''}
+              ${(aviso.anexos || []).length > 0 ? `
+                <div style="margin-top: 6px;">
+                  ${aviso.anexos.map(anexo => `
+                    <a class="turma-attachment-btn" href="${anexo.url}" target="_blank" rel="noopener noreferrer" download>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                      <span>${anexo.nome}</span>
+                    </a>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.toggleTurmaNotices = function(idx) {
+  const card = document.getElementById(`turmaCard_${idx}`);
+  if (card) {
+    card.classList.toggle('notices-expanded');
+  }
+};
 
 
