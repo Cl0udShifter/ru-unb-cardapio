@@ -12,6 +12,9 @@ import br.unb.ru.data.model.ClassNoticeAttachment
 import br.unb.ru.data.model.ClassSchedule
 import br.unb.ru.data.model.ClassTime
 import br.unb.ru.data.model.ClassTopic
+import br.unb.ru.data.model.AcademicDiscipline
+import br.unb.ru.data.model.AcademicHistory
+import br.unb.ru.data.model.AcademicSemester
 import com.google.gson.Gson
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.DecodeHintType
@@ -37,7 +40,8 @@ import java.util.regex.Pattern
 data class SyncResult(
     val card: StudentCard,
     val statement: RestaurantStatement,
-    val classes: List<ClassSchedule> = emptyList()
+    val classes: List<ClassSchedule> = emptyList(),
+    val history: AcademicHistory = AcademicHistory()
 )
 
 class StudentCardRepository(private val context: Context) {
@@ -66,6 +70,7 @@ class StudentCardRepository(private val context: Context) {
         private const val KEY_PCT_CONCLUIDO = "card_pct_concluido"
         private const val KEY_FOTO_URL = "card_foto_url"
         private const val KEY_DISCIPLINAS = "card_disciplinas"
+        private const val KEY_ACADEMIC_HISTORY = "card_academic_history"
     }
 
     fun getStudentCard(): StudentCard {
@@ -121,6 +126,10 @@ class StudentCardRepository(private val context: Context) {
 
     fun clearStudentCard() {
         clearCredentials()
+        try {
+            val file = File(context.filesDir, "historico_escolar.pdf")
+            if (file.exists()) file.delete()
+        } catch (_: Exception) {}
         prefs.edit().clear().apply()
     }
 
@@ -463,13 +472,40 @@ class StudentCardRepository(private val context: Context) {
             val classes = enrichClassesFromTurmaVirtual(client, currentHtml, rawClasses, onProgress)
             saveClasses(classes)
 
-            // 7. Consultar Extrato do Restaurante Universitário
+            // 7. Baixar Histórico Escolar Oficial em PDF
+            onProgress("Baixando histórico escolar oficial...")
+            var academicHistory = AcademicHistory()
+            try {
+                val histBody = FormBody.Builder()
+                    .add("menu:form_menu_discente", "menu:form_menu_discente")
+                    .add("id", formId)
+                    .add("jscook_action", "menu_form_menu_discente_discente_menu:A]#{ portalDiscente.historico }")
+                    .add("javax.faces.ViewState", viewState)
+                    .build()
+
+                val histReq = Request.Builder()
+                    .url("https://sigaa.unb.br/sigaa/portais/discente/discente.jsf")
+                    .post(histBody)
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                    .build()
+
+                val histResp = client.newCall(histReq).execute()
+                val histPdfBytes = histResp.body?.bytes() ?: byteArrayOf()
+                if (histPdfBytes.size > 1000 && histPdfBytes.take(4).toByteArray().contentEquals("%PDF".toByteArray())) {
+                    saveHistoryPdf(histPdfBytes)
+                    val texts = extractTextFromPdfBytes(histPdfBytes)
+                    academicHistory = parseAcademicHistory(texts, matricula, studentCourse, ira)
+                    saveAcademicHistory(academicHistory)
+                }
+            } catch (_: Exception) {}
+
+            // 8. Consultar Extrato do Restaurante Universitário
             onProgress("Consultando saldo e extrato do RU...")
             val statement = fetchStatementFromPortal(client, currentHtml, matricula)
             saveStatement(statement)
 
             onProgress("Pronto!")
-            Result.success(SyncResult(card = newCard, statement = statement, classes = classes))
+            Result.success(SyncResult(card = newCard, statement = statement, classes = classes, history = academicHistory))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -1189,5 +1225,204 @@ class StudentCardRepository(private val context: Context) {
             }
         }
         return enriched
+    }
+
+    fun getAcademicHistory(): AcademicHistory {
+        val json = prefs.getString(KEY_ACADEMIC_HISTORY, null) ?: return AcademicHistory()
+        return try {
+            val hist = gson.fromJson(json, AcademicHistory::class.java)
+            val pdfExists = getHistoryPdfFile() != null
+            hist.copy(pdfAvailable = pdfExists)
+        } catch (_: Exception) {
+            AcademicHistory()
+        }
+    }
+
+    fun saveAcademicHistory(history: AcademicHistory) {
+        val json = gson.toJson(history)
+        prefs.edit().putString(KEY_ACADEMIC_HISTORY, json).apply()
+    }
+
+    fun saveHistoryPdf(pdfBytes: ByteArray) {
+        try {
+            val file = File(context.filesDir, "historico_escolar.pdf")
+            FileOutputStream(file).use { it.write(pdfBytes) }
+        } catch (_: Exception) {}
+    }
+
+    fun getHistoryPdfFile(): File? {
+        val file = File(context.filesDir, "historico_escolar.pdf")
+        return if (file.exists() && file.length() > 0) file else null
+    }
+
+    fun extractTextFromPdfBytes(pdfBytes: ByteArray): List<String> {
+        val texts = mutableListOf<String>()
+        val streamBytes = "stream".toByteArray(Charsets.US_ASCII)
+        val endStreamBytes = "endstream".toByteArray(Charsets.US_ASCII)
+
+        var idx = 0
+        while (idx < pdfBytes.size) {
+            val sPos = indexOfBytes(pdfBytes, streamBytes, idx)
+            if (sPos == -1) break
+
+            var start = sPos + 6
+            while (start < pdfBytes.size && (pdfBytes[start] == '\r'.code.toByte() || pdfBytes[start] == '\n'.code.toByte())) {
+                start++
+            }
+
+            val ePos = indexOfBytes(pdfBytes, endStreamBytes, start)
+            if (ePos == -1) break
+
+            var end = ePos
+            while (end > start && (pdfBytes[end - 1] == '\r'.code.toByte() || pdfBytes[end - 1] == '\n'.code.toByte())) {
+                end--
+            }
+
+            if (end > start) {
+                try {
+                    val inflater = java.util.zip.Inflater()
+                    inflater.setInput(pdfBytes, start, end - start)
+                    val buffer = ByteArray(8192)
+                    val bos = java.io.ByteArrayOutputStream()
+                    while (!inflater.finished()) {
+                        val count = inflater.inflate(buffer)
+                        if (count == 0 && inflater.needsInput()) break
+                        bos.write(buffer, 0, count)
+                    }
+                    inflater.end()
+                    val decompressed = String(bos.toByteArray(), java.nio.charset.StandardCharsets.ISO_8859_1)
+                    val p = Pattern.compile("""\((.*?)\)Tj""")
+                    val m = p.matcher(decompressed)
+                    while (m.find()) {
+                        m.group(1)?.let {
+                            texts.add(it.replace("\\(", "(").replace("\\)", ")").replace("\\\\", "\\"))
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
+            idx = ePos + 9
+        }
+        return texts
+    }
+
+    private fun indexOfBytes(source: ByteArray, target: ByteArray, fromIndex: Int): Int {
+        if (target.isEmpty() || fromIndex >= source.size) return -1
+        outer@ for (i in fromIndex..(source.size - target.size)) {
+            for (j in target.indices) {
+                if (source[i + j] != target[j]) continue@outer
+            }
+            return i
+        }
+        return -1
+    }
+
+    fun parseAcademicHistory(
+        texts: List<String>,
+        matricula: String,
+        curso: String,
+        ira: String
+    ): AcademicHistory {
+        var startPos = 0
+        for (i in texts.indices) {
+            if (texts[i].contains("Componentes Curriculares Cursados")) {
+                startPos = i + 1
+                break
+            }
+        }
+
+        val allItems = mutableListOf<Triple<String, String, AcademicDiscipline>>()
+        val semPattern = Pattern.compile("""^20\d{2}\.[1-2]$""")
+        val codePattern = Pattern.compile("""^[A-Z]{3}\d{4}$""")
+
+        var i = startPos
+        while (i < texts.size) {
+            val t = texts[i].trim()
+            if (semPattern.matcher(t).matches()) {
+                val semAno = t
+                var codeIdx = -1
+                val searchLimit = kotlin.math.min(texts.size, i + 15)
+                for (j in (i + 1) until searchLimit) {
+                    if (codePattern.matcher(texts[j].trim()).matches()) {
+                        codeIdx = j
+                        break
+                    }
+                }
+
+                if (codeIdx != -1) {
+                    val code = texts[codeIdx].trim()
+                    val nome = if (i + 1 < texts.size) texts[i + 1].trim() else ""
+                    var sit = ""
+                    var turma = ""
+                    var docente = ""
+
+                    for (k in (i + 2) until codeIdx) {
+                        val tok = texts[k].trim()
+                        if (tok in listOf("APR", "REP", "REPF", "TRANC", "MATR", "DISP", "CUMP")) {
+                            sit = tok
+                            if (k - 1 >= i + 2) {
+                                turma = texts[k - 1].trim()
+                            }
+                            val docList = (i + 2 until k - 1).map { texts[it].trim() }
+                            docente = docList.joinToString(" ")
+                        }
+                    }
+
+                    val chRaw = if (codeIdx + 1 < texts.size) texts[codeIdx + 1].trim() else ""
+                    val freqRaw = if (codeIdx + 2 < texts.size) texts[codeIdx + 2].trim() else ""
+                    var mencaoRaw = if (codeIdx + 3 < texts.size) texts[codeIdx + 3].trim() else ""
+                    if (mencaoRaw in listOf("*", "---", "--", "")) mencaoRaw = "-"
+
+                    val chFormatted = if (chRaw.all { it.isDigit() } && chRaw.isNotBlank()) "${chRaw}h" else chRaw
+
+                    val disc = AcademicDiscipline(
+                        codigo = code,
+                        nome = nome,
+                        turma = turma,
+                        situacao = sit,
+                        docente = docente,
+                        cargaHoraria = chFormatted,
+                        frequencia = freqRaw,
+                        mencao = mencaoRaw
+                    )
+                    allItems.add(Triple(semAno, code, disc))
+                    i = codeIdx + 3
+                }
+            }
+            i++
+        }
+
+        val groupedSemesters = allItems.groupBy { it.first }
+            .map { (anoPeriodo, list) ->
+                AcademicSemester(
+                    anoPeriodo = anoPeriodo,
+                    disciplinas = list.map { it.third }
+                )
+            }
+            .sortedByDescending { it.anoPeriodo }
+
+        var totalApr = 0
+        var totalRep = 0
+        var totalMatr = 0
+        for ((_, _, disc) in allItems) {
+            when {
+                disc.isAprovado -> totalApr++
+                disc.isReprovado -> totalRep++
+                disc.isCursando -> totalMatr++
+            }
+        }
+
+        val curM = texts.firstOrNull { it.contains("6351") || Regex("""\d{4}/\d""").containsMatchIn(it) } ?: "6351/1"
+
+        return AcademicHistory(
+            matricula = matricula,
+            curso = curso,
+            curriculo = curM,
+            ira = ira,
+            semestres = groupedSemesters,
+            totalAprovadas = totalApr,
+            totalReprovadas = totalRep,
+            totalCursando = totalMatr,
+            pdfAvailable = getHistoryPdfFile() != null
+        )
     }
 }

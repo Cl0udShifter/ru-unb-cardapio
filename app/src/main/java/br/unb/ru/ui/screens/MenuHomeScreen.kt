@@ -58,6 +58,7 @@ import br.unb.ru.ui.components.BreakfastCard
 import br.unb.ru.ui.components.CampusSelectorBottomSheet
 import br.unb.ru.ui.components.DaySelectorRail
 import br.unb.ru.ui.components.DiscenteScreen
+import br.unb.ru.ui.components.HistoricoFluxogramaScreen
 import br.unb.ru.ui.components.AulasScreen
 import br.unb.ru.ui.components.MealTopControl
 import br.unb.ru.ui.components.LunchDinnerCard
@@ -99,6 +100,7 @@ fun MenuHomeScreen(
     onConfirmUpdate: () -> Unit = {},
     onDismissUpdate: () -> Unit = {},
     onClearUpdateMessage: () -> Unit = {},
+    onGetHistoryPdf: () -> java.io.File? = { null },
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -107,6 +109,7 @@ fun MenuHomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var currentTab by remember { mutableStateOf(MainScreenTab.CARDAPIO) }
     var isDiscenteFlipped by remember { mutableStateOf(false) }
+    var showHistorico by rememberSaveable { mutableStateOf(false) }
 
     val discenteScrollState = rememberSaveable(saver = ScrollState.Saver) { ScrollState(0) }
 
@@ -132,6 +135,29 @@ fun MenuHomeScreen(
                 params.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
                 activity.window.attributes = params
             }
+        }
+    }
+
+    fun openHistoryPdf() {
+        val file = onGetHistoryPdf()
+        if (file != null && file.exists()) {
+            try {
+                val uri = androidx.core.content.FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    file
+                )
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "application/pdf")
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(android.content.Intent.createChooser(intent, "Histórico Escolar Oficial"))
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(context, "Nenhum visualizador de PDF encontrado.", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            android.widget.Toast.makeText(context, "Arquivo PDF não encontrado. Sincronize com o SIGAA.", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -187,6 +213,16 @@ fun MenuHomeScreen(
                 containerColor = MaterialTheme.colorScheme.background,
                 snackbarHost = { SnackbarHost(snackbarHostState) }
             ) { innerPadding ->
+                if (showHistorico) {
+                    HistoricoFluxogramaScreen(
+                        history = state.academicHistory,
+                        flowSemesters = state.flowSemesters,
+                        card = state.studentCard,
+                        onBack = { showHistorico = false },
+                        onOpenPdf = { openHistoryPdf() },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -464,6 +500,7 @@ fun MenuHomeScreen(
                             onCheckForUpdate = onCheckForUpdate,
                             isCheckingUpdate = state.isCheckingUpdate,
                             onFlipToQr = { isDiscenteFlipped = true },
+                            onOpenHistorico = { showHistorico = true },
                             scrollState = discenteScrollState,
                             modifier = Modifier.statusBarsPadding()
                         )
@@ -599,6 +636,7 @@ fun MenuHomeScreen(
                             }
                         }
                     }
+                }
                 }
             }
         }

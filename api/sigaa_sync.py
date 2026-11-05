@@ -28,6 +28,150 @@ def rgb_to_png(width, height, raw_rgb):
     png += struct.pack('>I', 0) + b'IEND' + iend_crc
     return png
 
+
+REDES_6351_1 = [
+    # 1º Semestre
+    {'codigo': 'ENE0026', 'nome': 'Introdução à Eng. de Redes', 'ch': '30h', 'semestre': 1},
+    {'codigo': 'ENE0334', 'nome': 'Computação para Engenharia', 'ch': '60h', 'semestre': 1},
+    {'codigo': 'MAT0025', 'nome': 'Cálculo 1', 'ch': '90h', 'semestre': 1},
+    {'codigo': 'MAT0031', 'nome': 'Introdução à Álgebra Linear', 'ch': '60h', 'semestre': 1},
+    {'codigo': 'IFD0171', 'nome': 'Física 1', 'ch': '60h', 'semestre': 1},
+    {'codigo': 'IFD0173', 'nome': 'Física 1 Experimental', 'ch': '30h', 'semestre': 1},
+
+    # 2º Semestre
+    {'codigo': 'MAT0026', 'nome': 'Cálculo 2', 'ch': '90h', 'semestre': 2},
+    {'codigo': 'EST0023', 'nome': 'Probabilidade e Estatística', 'ch': '60h', 'semestre': 2},
+    {'codigo': 'ENE0013', 'nome': 'Algoritmos e Estrutura de Dados', 'ch': '60h', 'semestre': 2},
+    {'codigo': 'ENE0039', 'nome': 'Sistemas Digitais', 'ch': '60h', 'semestre': 2},
+    {'codigo': 'ENE0040', 'nome': 'Laboratório de Sistemas Digitais', 'ch': '30h', 'semestre': 2},
+    {'codigo': 'IQD0125', 'nome': 'Química Geral Teórica', 'ch': '60h', 'semestre': 2},
+
+    # 3º Semestre
+    {'codigo': 'MAT0027', 'nome': 'Cálculo 3', 'ch': '90h', 'semestre': 3},
+    {'codigo': 'IFD0175', 'nome': 'Física 2', 'ch': '60h', 'semestre': 3},
+    {'codigo': 'IFD0177', 'nome': 'Física 2 Experimental', 'ch': '60h', 'semestre': 3},
+    {'codigo': 'ENE0274', 'nome': 'Fundamentos de Redes', 'ch': '60h', 'semestre': 3},
+    {'codigo': 'ENE0066', 'nome': 'Introdução aos Circuitos Elétricos', 'ch': '30h', 'semestre': 3},
+    {'codigo': 'ENE0282', 'nome': 'Laboratório de Circuitos Elétricos', 'ch': '30h', 'semestre': 3},
+
+    # 4º Semestre
+    {'codigo': 'ENE0304', 'nome': 'Circuitos Elétricos', 'ch': '60h', 'semestre': 4},
+    {'codigo': 'ENE0067', 'nome': 'Sinais e Sistemas em Tempo Contínuo', 'ch': '60h', 'semestre': 4},
+    {'codigo': 'ENE0015', 'nome': 'Fundamentos de Redes 2', 'ch': '60h', 'semestre': 4},
+    {'codigo': 'ENE0011', 'nome': 'Laboratório de Redes', 'ch': '30h', 'semestre': 4},
+    {'codigo': 'ENE0022', 'nome': 'Projeto Transversal em Redes 1', 'ch': '60h', 'semestre': 4},
+    {'codigo': 'ENE0276', 'nome': 'Metodologia e Desenv. de Software', 'ch': '60h', 'semestre': 4},
+
+    # 5º Semestre
+    {'codigo': 'ENE0177', 'nome': 'Eletromagnetismo 1', 'ch': '60h', 'semestre': 5},
+    {'codigo': 'ENE0068', 'nome': 'Sinais e Sistemas em Tempo Discreto', 'ch': '60h', 'semestre': 5},
+    {'codigo': 'ENE0056', 'nome': 'Sistemas Microprocessados', 'ch': '60h', 'semestre': 5},
+    {'codigo': 'ENE0058', 'nome': 'Lab. de Sistemas Microprocessados', 'ch': '30h', 'semestre': 5},
+    {'codigo': 'ENE0025', 'nome': 'Protocolos de Transporte e Roteamento', 'ch': '60h', 'semestre': 5},
+    {'codigo': 'ENE0352', 'nome': 'Redes Locais', 'ch': '60h', 'semestre': 5},
+
+    # 6º Semestre
+    {'codigo': 'ENE0045', 'nome': 'Eletrônica', 'ch': '60h', 'semestre': 6},
+    {'codigo': 'ENE0046', 'nome': 'Laboratório de Eletrônica', 'ch': '30h', 'semestre': 6},
+    {'codigo': 'ENE0091', 'nome': 'Sistemas Operacionais de Redes', 'ch': '60h', 'semestre': 6},
+    {'codigo': 'ENE0016', 'nome': 'Gerência de Redes e Sistemas', 'ch': '60h', 'semestre': 6},
+    {'codigo': 'ENE0090', 'nome': 'Segurança de Redes', 'ch': '60h', 'semestre': 6},
+    {'codigo': 'ENE0017', 'nome': 'Avaliação de Desempenho de Redes', 'ch': '60h', 'semestre': 6},
+
+    # 7º Semestre
+    {'codigo': 'ENE0306', 'nome': 'Princípios de Comunicação', 'ch': '60h', 'semestre': 7},
+    {'codigo': 'ENE0295', 'nome': 'Lab. de Princípios de Comunicação', 'ch': '30h', 'semestre': 7},
+    {'codigo': 'ENE0353', 'nome': 'Antenas em Redes de Comunicações', 'ch': '60h', 'semestre': 7},
+    {'codigo': 'ENE0089', 'nome': 'Cabeamento Estruturado', 'ch': '60h', 'semestre': 7},
+    {'codigo': 'ENE0088', 'nome': 'Sistemas de Informação Distribuídos', 'ch': '60h', 'semestre': 7},
+    {'codigo': 'ECL0014', 'nome': 'Ciências do Ambiente', 'ch': '30h', 'semestre': 7},
+
+    # 8º Semestre
+    {'codigo': 'ENE0064', 'nome': 'Redes Sem Fio', 'ch': '60h', 'semestre': 8},
+    {'codigo': 'ENE0211', 'nome': 'Teoria da Informação', 'ch': '60h', 'semestre': 8},
+    {'codigo': 'ENE0024', 'nome': 'Projeto Transversal em Redes 2', 'ch': '60h', 'semestre': 8},
+    {'codigo': 'EPR0068', 'nome': 'Organização Industrial', 'ch': '60h', 'semestre': 8},
+    {'codigo': 'ECO0019', 'nome': 'Introdução à Economia', 'ch': '60h', 'semestre': 8},
+    {'codigo': 'FDD0155', 'nome': 'Noções de Direito', 'ch': '60h', 'semestre': 8},
+
+    # 9º Semestre
+    {'codigo': 'ENE0027', 'nome': 'Projeto Final de Graduação 1', 'ch': '60h', 'semestre': 9},
+    {'codigo': 'ENE0028', 'nome': 'Estágio Supervisionado', 'ch': '120h', 'semestre': 9},
+    {'codigo': 'EPR0059', 'nome': 'Higiene e Segurança do Trabalho', 'ch': '30h', 'semestre': 9},
+    {'codigo': 'SOL0042', 'nome': 'Introdução à Sociologia', 'ch': '60h', 'semestre': 9},
+
+    # 10º Semestre
+    {'codigo': 'ENE0029', 'nome': 'Projeto Final de Graduação 2', 'ch': '120h', 'semestre': 10}
+]
+
+def resolve_flow_semesters(all_items, curso):
+    is_redes = 'REDES' in (curso or '').upper()
+    courses = REDES_6351_1 if is_redes else []
+    if not courses:
+        seen = {}
+        sem_idx = 1
+        for item in all_items:
+            code = item['codigo'].strip().upper()
+            if code and code not in seen:
+                seen[code] = {
+                    'codigo': code,
+                    'nome': item['nome'],
+                    'ch': item['cargaHoraria'] or '60h',
+                    'semestre': min(10, sem_idx)
+                }
+                sem_idx += 1
+        courses = list(seen.values())
+
+    approved = {}
+    enrolled = {}
+    for item in all_items:
+        code = item['codigo'].strip().upper()
+        if item.get('isAprovado'):
+            approved[code] = item
+        elif item.get('isCursando'):
+            enrolled[code] = item
+
+    sem_map = {i: [] for i in range(1, 11)}
+    for c in courses:
+        code = c['codigo'].strip().upper()
+        s_num = max(1, min(10, c.get('semestre', 1)))
+        if code in approved:
+            app_item = approved[code]
+            sem_map[s_num].append({
+                'codigo': c['codigo'],
+                'nome': c['nome'],
+                'ch': c['ch'],
+                'status': 'CONCLUIDA',
+                'mencaoObtida': app_item.get('mencao') or 'AP',
+                'periodoCursado': app_item.get('anoPeriodo')
+            })
+        elif code in enrolled:
+            enr_item = enrolled[code]
+            sem_map[s_num].append({
+                'codigo': c['codigo'],
+                'nome': c['nome'],
+                'ch': c['ch'],
+                'status': 'EM_ANDAMENTO',
+                'periodoCursado': enr_item.get('anoPeriodo')
+            })
+        else:
+            sem_map[s_num].append({
+                'codigo': c['codigo'],
+                'nome': c['nome'],
+                'ch': c['ch'],
+                'status': 'PENDENTE'
+            })
+
+    result = []
+    for i in range(1, 11):
+        if sem_map[i]:
+            result.append({
+                'nivel': i,
+                'titulo': f'{i}º Semestre',
+                'materias': sem_map[i]
+            })
+    return result
+
 def sync_with_urllib(matricula, senha):
     cj = http.cookiejar.CookieJar()
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
@@ -229,6 +373,119 @@ def sync_with_urllib(matricula, senha):
                         pass
     except Exception as e:
         print('Erro ao gerar/extrair imagem do QR code:', e)
+
+
+    # 5.1 Histórico Escolar Oficial em PDF e Fluxograma
+    historico = {
+        'matricula': matricula,
+        'curso': curso or 'GRADUAÇÃO',
+        'curriculo': '6351/1',
+        'ira': ira,
+        'semestres': [],
+        'totalAprovadas': 0,
+        'totalReprovadas': 0,
+        'totalCursando': 0,
+        'pdfBase64': ''
+    }
+    flow_semesters = []
+    try:
+        hist_body = {
+            'menu:form_menu_discente': 'menu:form_menu_discente',
+            'id': form_id,
+            'jscook_action': 'menu_form_menu_discente_discente_menu:A]#{ portalDiscente.historico }',
+            'javax.faces.ViewState': view_state
+        }
+        p_hist = urllib.parse.urlencode(hist_body).encode('utf-8')
+        req_hist = urllib.request.Request('https://sigaa.unb.br/sigaa/portais/discente/discente.jsf', data=p_hist, headers=headers)
+        r_hist = opener.open(req_hist, timeout=25)
+        h_pdf_bytes = r_hist.read()
+        if len(h_pdf_bytes) > 1000 and h_pdf_bytes.startswith(b'%PDF'):
+            historico['pdfBase64'] = base64.b64encode(h_pdf_bytes).decode('ascii')
+            h_texts = []
+            h_matches = list(re.finditer(b'stream[\r\n]+', h_pdf_bytes))
+            for hm in h_matches:
+                h_start = hm.end()
+                h_end = h_pdf_bytes.find(b'endstream', h_start)
+                if h_end != -1:
+                    h_chunk = h_pdf_bytes[h_start:h_end].rstrip(b'\r\n')
+                    try:
+                        h_dec = zlib.decompress(h_chunk).decode('iso-8859-1', errors='ignore')
+                        for ht in re.findall(r'\((.*?)\)Tj', h_dec):
+                            h_texts.append(ht.replace(r'\(', '(').replace(r'\)', ')').replace(r'\\', '\\'))
+                    except Exception:
+                        pass
+
+            h_start_pos = 0
+            for hi, ht in enumerate(h_texts):
+                if 'Componentes Curriculares Cursados' in ht:
+                    h_start_pos = hi + 1
+                    break
+
+            all_history_items = []
+            hi = h_start_pos
+            while hi < len(h_texts):
+                ht = h_texts[hi].strip()
+                if re.match(r'^20\d{2}\.[1-2]$', ht):
+                    sem_ano = ht
+                    code_idx = -1
+                    for hj in range(hi + 1, min(len(h_texts), hi + 15)):
+                        if re.match(r'^[A-Z]{3}\d{4}$', h_texts[hj].strip()):
+                            code_idx = hj
+                            break
+                    if code_idx != -1:
+                        code = h_texts[code_idx].strip()
+                        nome = h_texts[hi + 1].strip() if hi + 1 < len(h_texts) else ''
+                        sit = ''
+                        turma_str = ''
+                        docente_str = ''
+                        for hk in range(hi + 2, code_idx):
+                            tok = h_texts[hk].strip()
+                            if tok in ['APR', 'REP', 'REPF', 'TRANC', 'MATR', 'DISP', 'CUMP']:
+                                sit = tok
+                                if hk - 1 >= hi + 2:
+                                    turma_str = h_texts[hk - 1].strip()
+                                doc_parts = [h_texts[hd].strip() for hd in range(hi + 2, hk - 1)]
+                                docente_str = ' '.join(doc_parts)
+
+                        ch_str = h_texts[code_idx + 1].strip() if code_idx + 1 < len(h_texts) else ''
+                        freq_str = h_texts[code_idx + 2].strip() if code_idx + 2 < len(h_texts) else ''
+                        mencao_str = h_texts[code_idx + 3].strip() if code_idx + 3 < len(h_texts) else ''
+                        if mencao_str in ['*', '---', '--', '']:
+                            mencao_str = '-'
+                        ch_fmt = f'{ch_str}h' if ch_str.isdigit() else ch_str
+
+                        all_history_items.append({
+                            'anoPeriodo': sem_ano,
+                            'codigo': code,
+                            'nome': nome,
+                            'turma': turma_str,
+                            'situacao': sit,
+                            'docente': docente_str,
+                            'cargaHoraria': ch_fmt,
+                            'frequencia': freq_str,
+                            'mencao': mencao_str,
+                            'isAprovado': sit in ['APR', 'AP', 'DISP', 'CUMP'],
+                            'isCursando': sit == 'MATR'
+                        })
+                        hi = code_idx + 3
+                hi += 1
+
+            sem_map = {}
+            for item in all_history_items:
+                s = item['anoPeriodo']
+                if s not in sem_map:
+                    sem_map[s] = []
+                sem_map[s].append(item)
+
+            sorted_sems = sorted(sem_map.keys(), reverse=True)
+            historico['semestres'] = [{'anoPeriodo': s, 'disciplinas': sem_map[s]} for s in sorted_sems]
+            historico['totalAprovadas'] = sum(1 for item in all_history_items if item['isAprovado'])
+            historico['totalReprovadas'] = sum(1 for item in all_history_items if item['situacao'] in ['REP', 'REPF'])
+            historico['totalCursando'] = sum(1 for item in all_history_items if item['isCursando'])
+
+            flow_semesters = resolve_flow_semesters(all_history_items, curso)
+    except Exception as e:
+        print('Erro ao obter histórico escolar em PDF:', e)
 
     # 6. Consultar Extrato do Restaurante Universitário
     saldo_atual = 'R$ 0,00'
@@ -578,7 +835,9 @@ def sync_with_urllib(matricula, senha):
         'qrImageBase64': qr_base64,
         'saldo': saldo_atual,
         'saldoAnterior': saldo_anterior,
-        'transacoes': transacoes
+        'transacoes': transacoes,
+        'historico': historico,
+        'flowSemesters': flow_semesters
     }
 
 def full_sigaa_sync(matricula, senha):

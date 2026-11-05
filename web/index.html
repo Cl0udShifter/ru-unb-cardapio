@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="icons/favicon.png?v=4.1">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4.1">
   
-  <link rel="stylesheet" href="style.css?v=8.1">
+  <link rel="stylesheet" href="style.css?v=8.2">
 </head>
 <body>
   <div id="app">
@@ -243,6 +243,25 @@
                     <div id="discenteHoursDetails" class="progress-sub-breakdown">
                       Pendentes: Obrigatórias: <strong id="discenteChOb">0h</strong> • Optativas: <strong id="discenteChOp">0h</strong>
                     </div>
+                  </div>
+                </div>
+
+                <!-- Card: Histórico & Fluxograma -->
+                <div class="dashboard-card action-nav-card" id="btnOpenHistorico">
+                  <div class="action-nav-row">
+                    <div class="action-nav-icon-box">
+                      <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                        <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                      </svg>
+                    </div>
+                    <div class="action-nav-info">
+                      <div class="action-nav-title">Histórico & Fluxograma</div>
+                      <div class="action-nav-sub">Disciplinas cursadas, menções e fluxo</div>
+                    </div>
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-nav-chevron">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
                   </div>
                 </div>
 
@@ -782,9 +801,112 @@
     </div>
   </div>
 
+
+    <!-- MODAL / TELA DE HISTÓRICO & FLUXOGRAMA -->
+    <div id="historicoModal" class="full-screen-modal" style="display: none;">
+      <div class="modal-header">
+        <button id="btnCloseHistorico" class="modal-back-btn" aria-label="Voltar">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
+        <div class="modal-header-text">
+          <h2 class="modal-title">Histórico & Fluxograma</h2>
+          <div id="historicoCursoSubtitle" class="modal-subtitle">Engenharia de Redes de Comunicação</div>
+        </div>
+        <button id="btnDownloadOfficialPdf" class="modal-action-btn" title="Baixar PDF Oficial" style="display: none;">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="segmented-control modal-tabs">
+        <button id="tabBtnHistorico" class="segmented-btn active">Histórico Escolar</button>
+        <button id="tabBtnFluxograma" class="segmented-btn">Fluxograma</button>
+      </div>
+
+      <div class="modal-scroll-content">
+        <!-- ABA 1: HISTÓRICO ESCOLAR -->
+        <div id="tabContentHistorico" class="tab-pane active">
+          <div class="dashboard-card metrics-card" id="historySummaryCard">
+            <div class="card-section-header">
+              <span class="card-section-title">RESUMO ACADÊMICO</span>
+              <span id="historyCurriculoBadge" class="card-section-badge">Currículo 6351/1</span>
+            </div>
+            <div class="history-metrics-grid">
+              <div class="metric-value-box">
+                <span class="metric-box-label">IRA</span>
+                <div id="histIraVal" class="metric-box-num">--</div>
+              </div>
+              <div class="metric-value-box">
+                <span class="metric-box-label">Integralizado</span>
+                <div id="histPctVal" class="metric-box-num">--%</div>
+              </div>
+              <div class="metric-value-box">
+                <span class="metric-box-label">Aprovadas</span>
+                <div id="histAprovadasVal" class="metric-box-num">--</div>
+              </div>
+              <div class="metric-value-box">
+                <span class="metric-box-label">Cursando</span>
+                <div id="histCursandoVal" class="metric-box-num">--</div>
+              </div>
+            </div>
+            <div id="histPdfBanner" class="pdf-download-banner" style="display: none;">
+              <button id="btnBannerDownloadPdf" class="btn-primary-dark">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="12" y1="18" x2="12" y2="12"></line>
+                  <line x1="9" y1="15" x2="15" y2="15"></line>
+                </svg>
+                <span>Abrir PDF Oficial Autenticado</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="historySemestersList" class="history-semesters-list">
+            <!-- Semestres preenchidos via JS -->
+          </div>
+        </div>
+
+        <!-- ABA 2: FLUXOGRAMA -->
+        <div id="tabContentFluxograma" class="tab-pane" style="display: none;">
+          <div class="dashboard-card metrics-card">
+            <div class="card-section-header">
+              <span class="card-section-title">FLUXOGRAMA CURRICULAR</span>
+              <span class="card-section-badge" id="flowCurriculoBadge">10 Semestres</span>
+            </div>
+            <div class="flow-header-info">
+              <div id="flowCourseName" class="flow-course-title">Engenharia de Redes de Comunicação</div>
+              <div class="flow-progress-bar-row">
+                <span id="flowDoneCountLabel">0 de 0 obrigatórias concluídas</span>
+                <span id="flowDonePctLabel">0%</span>
+              </div>
+              <div class="progress-track-bg">
+                <div id="flowProgressBar" class="progress-track-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+            <div class="flow-legend-row">
+              <div class="flow-legend-item"><span class="legend-dot dot-done"></span> Concluídas</div>
+              <div class="flow-legend-item"><span class="legend-dot dot-current"></span> Cursando</div>
+              <div class="flow-legend-item"><span class="legend-dot dot-pending"></span> Pendentes</div>
+            </div>
+          </div>
+
+          <div id="flowSemestersList" class="flow-semesters-list">
+            <!-- Níveis 1 a 10 preenchidos via JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
   <script src="zxing.min.js"></script>
   <script src="jsqr.min.js"></script>
   <script src="qrcode.min.js?v=4.1"></script>
-  <script src="app.js?v=8.1"></script>
+  <script src="app.js?v=8.2"></script>
 </body>
 </html>

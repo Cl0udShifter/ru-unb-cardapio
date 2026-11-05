@@ -64,7 +64,8 @@ class MainActivity : ComponentActivity() {
                     onCheckForUpdate = { viewModel.checkForUpdate(force = true) },
                     onConfirmUpdate = { viewModel.downloadAndInstallUpdate() },
                     onDismissUpdate = { viewModel.dismissUpdateDialog() },
-                    onClearUpdateMessage = { viewModel.clearUpdateMessage() }
+                    onClearUpdateMessage = { viewModel.clearUpdateMessage() },
+                    onGetHistoryPdf = { viewModel.getHistoryPdfFile() }
                 )
             }
         }

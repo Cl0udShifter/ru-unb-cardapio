@@ -67,7 +67,9 @@ let appState = {
     dietPreference: 'padrao'
   },
   studentCard: getInitialStudentCard(),
-  statement: getInitialStatement()
+  statement: getInitialStatement(),
+  historico: JSON.parse(localStorage.getItem('ru_sigaa_historico') || 'null'),
+  flowSemesters: JSON.parse(localStorage.getItem('ru_sigaa_flow') || '[]')
 };
 
 function detectCurrentMeal() {
@@ -781,6 +783,14 @@ async function executeSigaaSync(mat, pass) {
       appState.disciplinas = data.disciplinas;
       localStorage.setItem('ru_sigaa_disciplinas', JSON.stringify(appState.disciplinas));
     }
+    if (data.historico) {
+      appState.historico = data.historico;
+      localStorage.setItem('ru_sigaa_historico', JSON.stringify(appState.historico));
+    }
+    if (data.flowSemesters) {
+      appState.flowSemesters = data.flowSemesters;
+      localStorage.setItem('ru_sigaa_flow', JSON.stringify(appState.flowSemesters));
+    }
     localStorage.setItem('ru_student_card', JSON.stringify(appState.studentCard));
     localStorage.setItem('ru_statement', JSON.stringify(appState.statement));
     localStorage.setItem('ru_sigaa_creds', JSON.stringify({ matricula: mat, senha: pass }));
@@ -1223,11 +1233,18 @@ function setupCarteirinhaModal() {
       localStorage.removeItem('ru_student_card');
     localStorage.removeItem('ru_sigaa_disciplinas');
     appState.disciplinas = [];
+      localStorage.removeItem('ru_sigaa_historico');
+      localStorage.removeItem('ru_sigaa_flow');
+      appState.historico = null;
+      appState.flowSemesters = [];
       localStorage.removeItem('ru_statement');
       localStorage.removeItem('ru_sigaa_creds');
       renderCarteirinhaModal();
     }
   };
+
+  // Setup Histórico & Fluxograma Modal
+  setupHistoricoModal();
 
   // SIGAA Dialog Setup
   setupSigaaDialog();
@@ -1933,3 +1950,227 @@ window.toggleNoticeItem = function(cardIdx, noticeIdx) {
 };
 
 
+
+// ========================================================
+// MÓDULO 4: HISTÓRICO & FLUXOGRAMA MODAL LOGIC
+// ========================================================
+function setupHistoricoModal() {
+  const modal = document.getElementById('historicoModal');
+  const btnOpen = document.getElementById('btnOpenHistorico');
+  const btnClose = document.getElementById('btnCloseHistorico');
+  const tabBtnHist = document.getElementById('tabBtnHistorico');
+  const tabBtnFlow = document.getElementById('tabBtnFluxograma');
+  const contentHist = document.getElementById('tabContentHistorico');
+  const contentFlow = document.getElementById('tabContentFluxograma');
+  const btnDownloadPdf = document.getElementById('btnDownloadOfficialPdf');
+  const btnBannerPdf = document.getElementById('btnBannerDownloadPdf');
+
+  if (btnOpen) {
+    btnOpen.onclick = () => {
+      renderHistoricoModal();
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    };
+  }
+
+  if (btnClose) {
+    btnClose.onclick = () => {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    };
+  }
+
+  if (tabBtnHist && tabBtnFlow) {
+    tabBtnHist.onclick = () => {
+      tabBtnHist.classList.add('active');
+      tabBtnFlow.classList.remove('active');
+      contentHist.style.display = 'block';
+      contentFlow.style.display = 'none';
+    };
+
+    tabBtnFlow.onclick = () => {
+      tabBtnFlow.classList.add('active');
+      tabBtnHist.classList.remove('active');
+      contentHist.style.display = 'none';
+      contentFlow.style.display = 'block';
+    };
+  }
+
+  const triggerDownload = () => {
+    const hist = appState.historico;
+    if (hist && hist.pdfBase64) {
+      const byteCharacters = atob(hist.pdfBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `historico_escolar_${hist.matricula || 'unb'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } else {
+      alert('PDF do histórico não disponível. Sincronize com o SIGAA.');
+    }
+  };
+
+  if (btnDownloadPdf) btnDownloadPdf.onclick = triggerDownload;
+  if (btnBannerPdf) btnBannerPdf.onclick = triggerDownload;
+}
+
+function renderHistoricoModal() {
+  const card = appState.studentCard;
+  const hist = appState.historico;
+  const flow = appState.flowSemesters;
+
+  const subEl = document.getElementById('historicoCursoSubtitle');
+  if (subEl) subEl.textContent = card.curso || 'Graduação UnB';
+
+  const btnPdfTop = document.getElementById('btnDownloadOfficialPdf');
+  const bannerPdf = document.getElementById('histPdfBanner');
+  const hasPdf = hist && !!hist.pdfBase64;
+  if (btnPdfTop) btnPdfTop.style.display = hasPdf ? 'flex' : 'none';
+  if (bannerPdf) bannerPdf.style.display = hasPdf ? 'block' : 'none';
+
+  // 1. Resumo Histórico
+  const iraEl = document.getElementById('histIraVal');
+  const pctEl = document.getElementById('histPctVal');
+  const aprEl = document.getElementById('histAprovadasVal');
+  const curEl = document.getElementById('histCursandoVal');
+  const badgeCur = document.getElementById('historyCurriculoBadge');
+
+  if (iraEl) iraEl.textContent = (hist && hist.ira) ? hist.ira : (card.ira || '--');
+  if (pctEl) pctEl.textContent = `${card.percentualConcluido || 0}%`;
+  if (aprEl) aprEl.textContent = (hist && hist.totalAprovadas != null) ? hist.totalAprovadas : '--';
+  if (curEl) curEl.textContent = (hist && hist.totalCursando != null) ? hist.totalCursando : '--';
+  if (badgeCur && hist && hist.curriculo) badgeCur.textContent = `Currículo ${hist.curriculo}`;
+
+  // 2. Lista de Semestres do Histórico
+  const semListEl = document.getElementById('historySemestersList');
+  if (semListEl) {
+    if (!hist || !hist.semestres || hist.semestres.length === 0) {
+      semListEl.innerHTML = `
+        <div style="text-align: center; padding: 32px 16px; color: var(--text-secondary);">
+          <p style="font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Histórico não sincronizado</p>
+          <p style="font-size: 13px;">Conecte sua conta do SIGAA na aba Estudante para baixar automaticamente seu histórico oficial.</p>
+        </div>
+      `;
+    } else {
+      semListEl.innerHTML = hist.semestres.map(sem => {
+        const discCards = (sem.disciplinas || []).map(disc => {
+          let badgeClass = 'muted';
+          let badgeText = disc.mencao || '-';
+          if (disc.isCursando) {
+            badgeClass = 'cursando';
+            badgeText = 'Cursando';
+          } else if (['SS', 'MS', 'MM', 'AP'].includes(disc.mencao)) {
+            badgeClass = 'success';
+          } else if (disc.situacao === 'TRANC') {
+            badgeText = 'TR';
+          } else if (disc.situacao) {
+            badgeText = disc.situacao;
+          }
+
+          return `
+            <div class="discipline-history-card">
+              <div style="flex: 1; min-width: 0;">
+                <div class="discipline-code-row">
+                  <span>${escapeHtml(disc.codigo)}</span>
+                  ${disc.cargaHoraria ? `<span>• ${escapeHtml(disc.cargaHoraria)}</span>` : ''}
+                  ${disc.frequencia && disc.frequencia !== '--' ? `<span>• ${escapeHtml(disc.frequencia)}% freq.</span>` : ''}
+                </div>
+                <div class="discipline-name-txt">${escapeHtml(disc.nome)}</div>
+                ${disc.docente ? `<div class="discipline-doc-txt">${escapeHtml(disc.docente)}</div>` : ''}
+              </div>
+              <div class="mencao-badge ${badgeClass}">${escapeHtml(badgeText)}</div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="history-semester-block">
+            <div class="history-semester-header">
+              <div class="history-semester-title">${escapeHtml(sem.anoPeriodo)}</div>
+              <div class="history-semester-count">${(sem.disciplinas || []).length} disciplinas</div>
+            </div>
+            ${discCards}
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // 3. Fluxograma Curricular (10 Semestres)
+  const flowCourseEl = document.getElementById('flowCourseName');
+  if (flowCourseEl) flowCourseEl.textContent = card.curso || 'Engenharia de Redes de Comunicação';
+
+  const flowListEl = document.getElementById('flowSemestersList');
+  if (flowListEl) {
+    if (!flow || flow.length === 0) {
+      flowListEl.innerHTML = `
+        <div style="text-align: center; padding: 32px 16px; color: var(--text-secondary);">
+          <p style="font-size: 13px;">Fluxograma não disponível. Sincronize seu histórico com o SIGAA.</p>
+        </div>
+      `;
+    } else {
+      let totalFlow = 0;
+      let doneFlow = 0;
+      flow.forEach(sem => {
+        (sem.materias || []).forEach(m => {
+          totalFlow++;
+          if (m.status === 'CONCLUIDA') doneFlow++;
+        });
+      });
+
+      const flowCountLabel = document.getElementById('flowDoneCountLabel');
+      const flowPctLabel = document.getElementById('flowDonePctLabel');
+      const flowBar = document.getElementById('flowProgressBar');
+      const pct = totalFlow > 0 ? Math.round((doneFlow / totalFlow) * 100) : 0;
+
+      if (flowCountLabel) flowCountLabel.textContent = `${doneFlow} de ${totalFlow} obrigatórias concluídas`;
+      if (flowPctLabel) flowPctLabel.textContent = `${pct}%`;
+      if (flowBar) flowBar.style.width = `${pct}%`;
+
+      flowListEl.innerHTML = flow.map(sem => {
+        const matTotal = (sem.materias || []).length;
+        const matDone = (sem.materias || []).filter(m => m.status === 'CONCLUIDA').length;
+
+        const subCards = (sem.materias || []).map(subj => {
+          const isDone = subj.status === 'CONCLUIDA';
+          const isCurr = subj.status === 'EM_ANDAMENTO';
+          const badgeTxt = isDone ? (subj.mencaoObtida ? `Concluída (${subj.mencaoObtida})` : 'Concluída') : (isCurr ? 'Cursando' : 'Pendente');
+          const badgeCls = isDone ? 'success' : (isCurr ? 'cursando' : 'muted');
+
+          return `
+            <div class="flow-subject-card" style="${isCurr ? 'border-color: var(--border-color);' : ''}">
+              <div style="flex: 1; min-width: 0;">
+                <div class="flow-code-row">
+                  <span>${escapeHtml(subj.codigo)}</span>
+                  <span>• ${escapeHtml(subj.ch)}</span>
+                  ${subj.periodoCursado ? `<span>• ${escapeHtml(subj.periodoCursado)}</span>` : ''}
+                </div>
+                <div class="flow-name-txt">${escapeHtml(subj.nome)}</div>
+              </div>
+              <div class="mencao-badge ${badgeCls}">${escapeHtml(badgeTxt)}</div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="flow-semester-block">
+            <div class="flow-semester-header">
+              <div class="flow-semester-title">${escapeHtml(sem.titulo)}</div>
+              <div class="flow-semester-count">${matDone} / ${matTotal} concluídas</div>
+            </div>
+            ${subCards}
+          </div>
+        `;
+      }).join('');
+    }
+  }
+}

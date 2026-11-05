@@ -11,6 +11,9 @@ import br.unb.ru.data.model.MealType
 import br.unb.ru.data.model.RestaurantStatement
 import br.unb.ru.data.model.StudentCard
 import br.unb.ru.data.model.ClassSchedule
+import br.unb.ru.data.model.AcademicHistory
+import br.unb.ru.data.model.CurriculumMatrix
+import br.unb.ru.data.model.FlowSemester
 import br.unb.ru.data.model.WeeklyMenu
 import br.unb.ru.data.repository.AppUpdateRepository
 import br.unb.ru.data.repository.MenuRepository
@@ -43,6 +46,8 @@ data class MenuUiState(
     val studentCard: StudentCard = StudentCard(),
     val statement: RestaurantStatement = RestaurantStatement(),
     val classes: List<ClassSchedule> = emptyList(),
+    val academicHistory: AcademicHistory = AcademicHistory(),
+    val flowSemesters: List<FlowSemester> = emptyList(),
     val isSyncingCard: Boolean = false,
     val isRefreshingStatement: Boolean = false,
     val syncProgressMessage: String? = null,
@@ -91,6 +96,8 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
             RestaurantStatement()
         }
         val savedClasses = cardRepository.getClasses()
+        val savedHistory = cardRepository.getAcademicHistory()
+        val flowSemesters = CurriculumMatrix.resolveFlow(savedHistory)
 
         // 4. Carregar campus selecionado
         val savedCampus = repository.getSelectedCampus()
@@ -102,6 +109,8 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
                 studentCard = savedCard,
                 statement = savedStatement,
                 classes = savedClasses,
+                academicHistory = savedHistory,
+                flowSemesters = flowSemesters,
                 selectedCampus = savedCampus
             )
         }
@@ -228,6 +237,8 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
                             studentCard = syncResult.card,
                             statement = syncResult.statement,
                             classes = syncResult.classes,
+                            academicHistory = syncResult.history,
+                            flowSemesters = CurriculumMatrix.resolveFlow(syncResult.history),
                             cardSyncError = null
                         )
                     }
@@ -251,7 +262,9 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
             it.copy(
                 studentCard = StudentCard(),
                 statement = RestaurantStatement(),
-                classes = emptyList()
+                classes = emptyList(),
+                academicHistory = AcademicHistory(),
+                flowSemesters = emptyList()
             )
         }
     }
@@ -386,4 +399,6 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
     fun clearUpdateMessage() {
         _uiState.update { it.copy(updateMessage = null) }
     }
+
+    fun getHistoryPdfFile(): File? = cardRepository.getHistoryPdfFile()
 }
