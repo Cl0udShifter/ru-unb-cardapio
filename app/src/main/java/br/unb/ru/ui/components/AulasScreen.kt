@@ -28,8 +28,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import br.unb.ru.data.model.ClassNotice
-import br.unb.ru.data.model.ClassNoticeAttachment
 import br.unb.ru.data.model.ClassSchedule
 import br.unb.ru.data.model.ClassTime
 import br.unb.ru.ui.theme.NotionTypography
@@ -81,9 +79,9 @@ fun AulasScreen(
 
     val aulasDoDia = remember(classes, selectedDia) {
         classes.mapNotNull { c ->
-            val time = c.horarios.firstOrNull { it.dia == selectedDia }
+            val time = c.horariosSafe.firstOrNull { it.dia == selectedDia }
             if (time != null) Pair(c, time) else null
-        }.sortedBy { it.second.inicio }
+        }.sortedBy { it.second.inicioSafe }
     }
 
     LazyColumn(
@@ -266,7 +264,6 @@ fun AulasScreen(
             }
         } else if (selectedTab == "dia") {
             // TAB 1: AULAS DO DIA
-            // Seletor de Dias da Semana (Seg a Sáb)
             item {
                 Row(
                     modifier = Modifier
@@ -368,7 +365,10 @@ fun AulasScreen(
                     }
                 }
             } else {
-                items(aulasDoDia, key = { "${it.first.nome}_${it.second.inicio}" }) { (disciplina, time) ->
+                items(
+                    aulasDoDia,
+                    key = { "${it.first.nomeSafe}_${it.second.inicioSafe}_${it.second.dia}" }
+                ) { (disciplina, time) ->
                     ClassCardItem(
                         disciplina = disciplina,
                         currentTime = time,
@@ -378,7 +378,6 @@ fun AulasScreen(
             }
         } else {
             // TAB 2: TURMAS DO SEMESTRE (MÓDULO 3)
-            // Resumo do Semestre
             item {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
@@ -454,7 +453,10 @@ fun AulasScreen(
                     }
                 }
             } else {
-                items(classes, key = { it.nome + it.codigo + it.turma }) { disciplina ->
+                items(
+                    classes,
+                    key = { "${it.nomeSafe}_${it.codigoSafe}_${it.turmaSafe}" }
+                ) { disciplina ->
                     SemesterTurmaCardItem(disciplina = disciplina)
                 }
             }
@@ -473,7 +475,7 @@ private fun ClassCardItem(
     currentTime: ClassTime,
     selectedDia: Int
 ) {
-    var isExpanded by rememberSaveable { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(false) }
     val rotation by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f, label = "card_expand_arrow")
 
     Surface(
@@ -502,7 +504,7 @@ private fun ClassCardItem(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = currentTime.horarioFormatado,
+                        text = currentTime.horarioFormatadoSafe,
                         style = NotionTypography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
@@ -523,7 +525,7 @@ private fun ClassCardItem(
 
             // Nome da Disciplina
             Text(
-                text = disciplina.nome,
+                text = disciplina.nomeSafe,
                 style = NotionTypography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -545,7 +547,7 @@ private fun ClassCardItem(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = disciplina.local.ifBlank { "Sala não informada" },
+                    text = disciplina.localSafe.ifBlank { "Sala não informada" },
                     style = NotionTypography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f)
                 )
@@ -560,7 +562,7 @@ private fun ClassCardItem(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    if (disciplina.codigo.isNotBlank() || disciplina.turma.isNotBlank()) {
+                    if (disciplina.codigoSafe.isNotBlank() || disciplina.turmaSafe.isNotBlank()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "Turma:",
@@ -570,7 +572,7 @@ private fun ClassCardItem(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "${disciplina.codigo} • Turma ${disciplina.turma}",
+                                text = "${disciplina.codigoSafe} • Turma ${disciplina.turmaSafe}",
                                 style = NotionTypography.bodySmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onBackground
@@ -579,7 +581,7 @@ private fun ClassCardItem(
                         Spacer(modifier = Modifier.height(4.dp))
                     }
 
-                    if (disciplina.docente.isNotBlank()) {
+                    if (disciplina.docenteSafe.isNotBlank()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "Docente:",
@@ -589,7 +591,7 @@ private fun ClassCardItem(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = disciplina.docente,
+                                text = disciplina.docenteSafe,
                                 style = NotionTypography.bodySmall,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f)
                             )
@@ -597,7 +599,7 @@ private fun ClassCardItem(
                         Spacer(modifier = Modifier.height(4.dp))
                     }
 
-                    if (disciplina.horarioRaw.isNotBlank()) {
+                    if (disciplina.horarioRawSafe.isNotBlank()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "Código Horário:",
@@ -607,7 +609,7 @@ private fun ClassCardItem(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = disciplina.horarioRaw,
+                                text = disciplina.horarioRawSafe,
                                 style = NotionTypography.bodySmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onBackground
@@ -616,7 +618,7 @@ private fun ClassCardItem(
                         Spacer(modifier = Modifier.height(6.dp))
                     }
 
-                    val outrosHorarios = disciplina.horarios.filter { it.dia != selectedDia }
+                    val outrosHorarios = disciplina.horariosSafe.filter { it.dia != selectedDia }
                     if (outrosHorarios.isNotEmpty()) {
                         Text(
                             text = "Outros horários na semana:",
@@ -638,7 +640,7 @@ private fun ClassCardItem(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "${outro.diaNome}: ${outro.horarioFormatado}",
+                                    text = "${outro.diaNomeSafe}: ${outro.horarioFormatadoSafe}",
                                     style = NotionTypography.bodySmall,
                                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
                                 )
@@ -653,7 +655,7 @@ private fun ClassCardItem(
 
 @Composable
 private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
-    var isExpanded by rememberSaveable { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(false) }
     val rotation by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f, label = "turma_expand")
     val context = LocalContext.current
 
@@ -675,13 +677,13 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (disciplina.codigo.isNotBlank() || disciplina.turma.isNotBlank()) {
+                    if (disciplina.codigoSafe.isNotBlank() || disciplina.turmaSafe.isNotBlank()) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
                         ) {
                             Text(
-                                text = "${disciplina.codigo.ifBlank { "UNB" }} • T${disciplina.turma.ifBlank { "01" }}",
+                                text = "${disciplina.codigoSafe.ifBlank { "UNB" }} • T${disciplina.turmaSafe.ifBlank { "01" }}",
                                 style = NotionTypography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onBackground,
@@ -690,13 +692,13 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                         }
                     }
 
-                    if (disciplina.cargaHoraria.isNotBlank()) {
+                    if (disciplina.cargaHorariaSafe.isNotBlank()) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         ) {
                             Text(
-                                text = disciplina.cargaHoraria,
+                                text = disciplina.cargaHorariaSafe,
                                 style = NotionTypography.labelSmall,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
@@ -706,9 +708,9 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                     }
                 }
 
-                if (disciplina.horarioRaw.isNotBlank()) {
+                if (disciplina.horarioRawSafe.isNotBlank()) {
                     Text(
-                        text = disciplina.horarioRaw,
+                        text = disciplina.horarioRawSafe,
                         style = NotionTypography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
@@ -720,7 +722,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
 
             // Nome da Disciplina
             Text(
-                text = disciplina.nome,
+                text = disciplina.nomeSafe,
                 style = NotionTypography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -730,7 +732,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
             Spacer(modifier = Modifier.height(8.dp))
 
             // Docente
-            if (disciplina.docente.isNotBlank()) {
+            if (disciplina.docenteSafe.isNotBlank()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
@@ -743,7 +745,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = disciplina.docente,
+                        text = disciplina.docenteSafe,
                         style = NotionTypography.bodyMedium,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                         maxLines = 1,
@@ -766,14 +768,14 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = disciplina.local.ifBlank { "Sala não informada" },
+                    text = disciplina.localSafe.ifBlank { "Sala não informada" },
                     style = NotionTypography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f)
                 )
             }
 
             // Horários da Semana
-            if (disciplina.horarios.isNotEmpty()) {
+            if (disciplina.horariosSafe.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -786,7 +788,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    val weeklyText = disciplina.horarios.joinToString(" • ") { "${it.diaNome.take(3)} ${it.horarioFormatado}" }
+                    val weeklyText = disciplina.horariosSafe.joinToString(" • ") { "${it.diaNomeSafe.take(3)} ${it.horarioFormatadoSafe}" }
                     Text(
                         text = weeklyText,
                         style = NotionTypography.bodySmall,
@@ -808,7 +810,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     // 1. Aulas Ministradas
                     val pctMinistradas = disciplina.percentualAulasMinistradas ?: 0f
-                    val textoMinistradas = disciplina.aulasMinistradasTexto.ifBlank {
+                    val textoMinistradas = disciplina.aulasMinistradasTextoSafe.ifBlank {
                         if (pctMinistradas > 0) "${pctMinistradas.toInt()}% ministradas" else "Aulas em andamento"
                     }
 
@@ -914,7 +916,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onBackground
                         )
-                        if (disciplina.noticias.isNotEmpty()) {
+                        if (disciplina.noticiasSafe.isNotEmpty()) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
@@ -922,7 +924,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                                 modifier = Modifier.padding(1.dp)
                             ) {
                                 Text(
-                                    text = "${disciplina.noticias.size}",
+                                    text = "${disciplina.noticiasSafe.size}",
                                     style = NotionTypography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.background,
@@ -951,7 +953,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                     )
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    if (disciplina.noticias.isEmpty()) {
+                    if (disciplina.noticiasSafe.isEmpty()) {
                         Text(
                             text = "Nenhum aviso publicado pelo docente até o momento.",
                             style = NotionTypography.bodySmall,
@@ -959,7 +961,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                             modifier = Modifier.padding(vertical = 4.dp)
                         )
                     } else {
-                        disciplina.noticias.forEach { aviso ->
+                        disciplina.noticiasSafe.forEach { aviso ->
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
@@ -975,35 +977,35 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = aviso.titulo,
+                                            text = aviso.tituloSafe,
                                             style = NotionTypography.bodyMedium,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onBackground,
                                             modifier = Modifier.weight(1f)
                                         )
-                                        if (aviso.data.isNotBlank()) {
+                                        if (aviso.dataSafe.isNotBlank()) {
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
-                                                text = aviso.data,
+                                                text = aviso.dataSafe,
                                                 style = NotionTypography.labelSmall,
                                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                                             )
                                         }
                                     }
 
-                                    if (aviso.conteudo.isNotBlank()) {
+                                    if (aviso.conteudoSafe.isNotBlank()) {
                                         Spacer(modifier = Modifier.height(6.dp))
                                         Text(
-                                            text = aviso.conteudo,
+                                            text = aviso.conteudoSafe,
                                             style = NotionTypography.bodySmall,
                                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f)
                                         )
                                     }
 
                                     // Anexos para download
-                                    if (aviso.anexos.isNotEmpty()) {
+                                    if (aviso.anexosSafe.isNotEmpty()) {
                                         Spacer(modifier = Modifier.height(8.dp))
-                                        aviso.anexos.forEach { anexo ->
+                                        aviso.anexosSafe.forEach { anexo ->
                                             Surface(
                                                 shape = RoundedCornerShape(8.dp),
                                                 color = MaterialTheme.colorScheme.surface,
@@ -1014,7 +1016,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                                                     .clip(RoundedCornerShape(8.dp))
                                                     .clickable {
                                                         try {
-                                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(anexo.url))
+                                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(anexo.urlSafe))
                                                             context.startActivity(intent)
                                                         } catch (_: Exception) {}
                                                     }
@@ -1031,7 +1033,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                                                     )
                                                     Spacer(modifier = Modifier.width(8.dp))
                                                     Text(
-                                                        text = anexo.nome,
+                                                        text = anexo.nomeSafe,
                                                         style = NotionTypography.bodySmall,
                                                         fontWeight = FontWeight.Medium,
                                                         color = MaterialTheme.colorScheme.onBackground,

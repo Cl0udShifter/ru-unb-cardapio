@@ -128,7 +128,48 @@ class StudentCardRepository(private val context: Context) {
         val json = prefs.getString(KEY_DISCIPLINAS, null) ?: return emptyList()
         return try {
             val type = object : com.google.gson.reflect.TypeToken<List<ClassSchedule>>() {}.type
-            gson.fromJson(json, type) ?: emptyList()
+            val raw: List<ClassSchedule>? = gson.fromJson(json, type)
+            raw?.map { c ->
+                c.copy(
+                    nome = c.nomeSafe,
+                    local = c.localSafe,
+                    horarioRaw = c.horarioRawSafe,
+                    turmaId = c.turmaIdSafe,
+                    codigo = c.codigoSafe,
+                    turma = c.turmaSafe,
+                    docente = c.docenteSafe,
+                    cargaHoraria = c.cargaHorariaSafe,
+                    aulasMinistradasTexto = c.aulasMinistradasTextoSafe,
+                    horarios = c.horariosSafe.map { h ->
+                        h.copy(
+                            diaNome = h.diaNomeSafe,
+                            inicio = h.inicioSafe,
+                            fim = h.fimSafe,
+                            horarioFormatado = h.horarioFormatadoSafe
+                        )
+                    },
+                    noticias = c.noticiasSafe.map { n ->
+                        n.copy(
+                            titulo = n.tituloSafe,
+                            data = n.dataSafe,
+                            conteudo = n.conteudoSafe,
+                            anexos = n.anexosSafe.map { a ->
+                                a.copy(
+                                    nome = a.nomeSafe,
+                                    url = a.urlSafe
+                                )
+                            }
+                        )
+                    },
+                    topicos = c.topicosSafe.map { t ->
+                        t.copy(
+                            data = t.dataSafe,
+                            titulo = t.tituloSafe,
+                            descricao = t.descricaoSafe
+                        )
+                    }
+                )
+            } ?: emptyList()
         } catch (_: Exception) {
             emptyList()
         }
@@ -914,15 +955,15 @@ class StudentCardRepository(private val context: Context) {
         val enriched = mutableListOf<ClassSchedule>()
 
         for (c in classes) {
-            if (c.turmaId.isBlank()) {
+            if (c.turmaIdSafe.isBlank()) {
                 enriched.add(c)
                 continue
             }
             try {
-                onProgress("Consultando turma ${c.codigo.ifBlank { c.nome.take(15) }}...")
+                onProgress("Consultando turma ${c.codigoSafe.ifBlank { c.nomeSafe.take(15) }}...")
                 val body = FormBody.Builder()
                     .add("form_acessarTurmaVirtual", "form_acessarTurmaVirtual")
-                    .add("form_acessarTurmaVirtual:frontEndIdTurma", c.turmaId)
+                    .add("form_acessarTurmaVirtual:frontEndIdTurma", c.turmaIdSafe)
                     .add("javax.faces.ViewState", viewState)
                     .build()
 
