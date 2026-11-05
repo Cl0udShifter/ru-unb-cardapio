@@ -245,17 +245,10 @@ function renderHomeScreen() {
 function updateHeaderActionButton() {
   const btn = document.getElementById('refreshBtn');
   if (!btn) return;
-  const isNotToday = appState.selectedDayIndex !== appState.todayIndex && appState.todayIndex !== -1;
+  btn.title = 'Atualizar';
+  btn.setAttribute('aria-label', 'Atualizar');
   const svg = btn.querySelector('svg');
-  if (isNotToday) {
-    btn.title = 'Ir para Hoje';
-    btn.setAttribute('aria-label', 'Ir para Hoje');
-    if (svg) svg.innerHTML = SVG_ACTION_TODAY;
-  } else {
-    btn.title = 'Atualizar';
-    btn.setAttribute('aria-label', 'Atualizar');
-    if (svg) svg.innerHTML = SVG_ACTION_REFRESH;
-  }
+  if (svg) svg.innerHTML = SVG_ACTION_REFRESH;
 }
 
 // Day Selector Rail (DaySelectorRail.kt 1:1)
@@ -1364,9 +1357,24 @@ function renderZxingQRCode(container, content, sizePx) {
   if (!container) return;
   container.innerHTML = '';
   const text = (content || '').trim();
+
+  // 1. Prioritize raw official QR code image from SIGAA PDF if available
+  if (appState.studentCard && appState.studentCard.qrImageBase64) {
+    const img = document.createElement('img');
+    img.src = appState.studentCard.qrImageBase64;
+    img.alt = 'QR Code da Catraca';
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'contain';
+    img.style.imageRendering = 'pixelated';
+    img.style.display = 'block';
+    container.appendChild(img);
+    return;
+  }
+
   if (!text) return;
 
-  // 1. Official ZXing port (matches Android ru-unb-app 1:1, Level L, Margin 1)
+  // 2. Official ZXing port (matches Android ru-unb-app 1:1, Level L, Margin 1)
   if (typeof ZXing !== 'undefined') {
     try {
       const hints = new Map();

@@ -1,10 +1,10 @@
-const CACHE_NAME = 'ru-unb-test-v4';
+const CACHE_NAME = 'ru-unb-test-v5';
 
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './style.css?v=7.0',
-  './app.js?v=7.0',
+  './style.css?v=7.1',
+  './app.js?v=7.1',
   './zxing.min.js',
   './jsqr.min.js',
   './qrcode.min.js?v=4.1',

@@ -1450,7 +1450,7 @@ input:checked + .slider:before {
 
 /* Dashboard Discente Container */
 .discente-container {
-  padding: 16px;
+  padding: 16px 16px 84px 16px;
   max-width: 540px;
   margin: 0 auto;
   display: flex;
@@ -2234,5 +2234,55 @@ input:checked + .slider:before {
 }
 
 body.discente-flipped .app-bottom-nav {
+  display: none !important;
+}
+
+/* Global Floating Tab Pill Navigation */
+.app-tab-pill-nav {
+  position: fixed;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 9999px;
+  padding: 4px;
+  z-index: 100;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.tab-pill-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 36px;
+  border-radius: 9999px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+  user-select: none;
+}
+
+.tab-pill-item.active {
+  background-color: var(--text-primary);
+  color: var(--background-color);
+}
+
+.tab-pill-item svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+body.discente-flipped .app-tab-pill-nav {
   display: none !important;
 }

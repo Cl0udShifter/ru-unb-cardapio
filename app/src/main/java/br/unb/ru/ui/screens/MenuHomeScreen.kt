@@ -3,9 +3,14 @@ package br.unb.ru.ui.screens
 import android.app.Activity
 import android.view.WindowManager
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -96,19 +101,14 @@ fun MenuHomeScreen(
     var currentTab by remember { mutableStateOf(MainScreenTab.CARDAPIO) }
     var isDiscenteFlipped by remember { mutableStateOf(false) }
 
-    // Screen brightness control on flip
-    DisposableEffect(isDiscenteFlipped) {
+    val discenteScrollState = rememberSaveable(saver = ScrollState.Saver) { ScrollState(0) }
+
+    // Screen brightness control on flip (restored only after rotation finishes to avoid jank)
+    LaunchedEffect(isDiscenteFlipped) {
         if (isDiscenteFlipped && activity != null) {
             val params = activity.window.attributes
-            val prevBrightness = params.screenBrightness
             params.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
             activity.window.attributes = params
-            onDispose {
-                params.screenBrightness = prevBrightness
-                activity.window.attributes = params
-            }
-        } else {
-            onDispose { }
         }
     }
 
@@ -117,6 +117,16 @@ fun MenuHomeScreen(
         animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
         label = "global_screen_flip"
     )
+
+    LaunchedEffect(rotation) {
+        if (rotation == 0f && !isDiscenteFlipped && activity != null) {
+            val params = activity.window.attributes
+            if (params.screenBrightness != WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE) {
+                params.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                activity.window.attributes = params
+            }
+        }
+    }
 
     val qrBitmap = remember(state.studentCard.codigoQr) {
         if (state.studentCard.codigoQr.isNotBlank()) {
@@ -155,484 +165,475 @@ fun MenuHomeScreen(
                 cameraDistance = 14f * density
             }
     ) {
-        if (rotation <= 90f) {
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                ) {
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
-                        thickness = 1.dp
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        horizontalArrangement = Arrangement.SpaceAround,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Cardápio
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .clickable { currentTab = MainScreenTab.CARDAPIO },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                val isSelected = currentTab == MainScreenTab.CARDAPIO
-                                Icon(
-                                    imageVector = Icons.Outlined.RestaurantMenu,
-                                    contentDescription = "Cardápio",
-                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Cardápio",
-                                    style = NotionTypography.labelSmall.copy(fontSize = 11.sp),
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                                )
-                            }
-                        }
-
-                        // Discente
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .clickable { currentTab = MainScreenTab.DISCENTE },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                val isSelected = currentTab == MainScreenTab.DISCENTE
-                                Icon(
-                                    imageVector = Icons.Outlined.School,
-                                    contentDescription = "Discente",
-                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Discente",
-                                    style = NotionTypography.labelSmall.copy(fontSize = 11.sp),
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    ) { innerPadding ->
+        // ==========================================
+        // FRENTE: PAINEL COMPLETO (Sempre mantido na composição para fluidez sem engasgos)
+        // ==========================================
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .nestedScroll(pullRefreshState.nestedScrollConnection)
+                .graphicsLayer {
+                    alpha = if (rotation > 90f) 0f else 1f
+                }
         ) {
-            if (currentTab == MainScreenTab.CARDAPIO) {
-                Column(
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                containerColor = MaterialTheme.colorScheme.background,
+                snackbarHost = { SnackbarHost(snackbarHostState) }
+            ) { innerPadding ->
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .statusBarsPadding()
+                        .padding(innerPadding)
+                        .nestedScroll(pullRefreshState.nestedScrollConnection)
                 ) {
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Cardápio RU",
-                        style = NotionTypography.displaySmall,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Row(
-                        modifier = Modifier
-                            .padding(top = 2.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .clickable { onOpenCampusSelector() }
-                            .padding(vertical = 2.dp, horizontal = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "UnB • ${state.selectedCampus.displayName}",
-                            style = NotionTypography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Icon(
-                            imageVector = Icons.Default.ArrowDropDown,
-                            contentDescription = "Trocar campus",
-                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-
-
-                    // Botão Notificações / Configurações
-                    IconButton(onClick = onOpenSettings) {
-                        val hasActiveAlerts = state.notificationConfig.cafeEnabled ||
-                                state.notificationConfig.almocoEnabled ||
-                                state.notificationConfig.jantarEnabled
-
-                        Icon(
-                            imageVector = if (hasActiveAlerts) Icons.Outlined.NotificationsActive else Icons.Outlined.NotificationsOff,
-                            contentDescription = "Configurar Notificações",
-                            tint = if (hasActiveAlerts) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f)
-                        )
-                    }
-
-                    // Botão Tema Claro / Escuro
-                    IconButton(onClick = onToggleTheme) {
-                        Icon(
-                            imageVector = if (state.isDarkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-                            contentDescription = if (state.isDarkTheme) "Mudar para modo claro" else "Mudar para modo escuro",
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-
-                    if (state.selectedDayIndex != state.todayIndex && state.todayIndex != -1) {
-                        IconButton(onClick = onGoToToday) {
-                            Icon(
-                                imageVector = Icons.Outlined.Today,
-                                contentDescription = "Ir para Hoje",
-                                tint = MaterialTheme.colorScheme.onBackground
-                            )
-                        }
-                    }
-
-                    IconButton(onClick = onRefresh) {
-                        Icon(
-                            imageVector = Icons.Outlined.Refresh,
-                            contentDescription = "Atualizar",
-                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            }
-
-            // Day Selector Rail
-            val dias = state.menu?.dias ?: emptyList()
-            if (dias.isNotEmpty()) {
-                DaySelectorRail(
-                    dias = dias,
-                    selectedDayIndex = state.selectedDayIndex,
-                    onDaySelected = onDaySelected,
-                    todayIndex = state.todayIndex
-                )
-            }
-
-            // Sub-cabeçalho Integrado: Refeição & Horário à esquerda + Seletor de Refeições à direita
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = state.selectedMeal.title,
-                        style = NotionTypography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = when (state.selectedMeal) {
-                            MealType.CAFE -> "07h às 09h30"
-                            MealType.ALMOCO -> "11h às 14h30"
-                            MealType.JANTAR -> "17h às 19h30"
-                        },
-                        style = NotionTypography.labelSmall.copy(fontSize = 11.sp),
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f)
-                    )
-                }
-
-                MealTopControl(
-                    selectedMeal = state.selectedMeal,
-                    onMealSelected = onMealSelected
-                )
-            }
-
-            // Swipeable and Scrollable Meal Card Area
-            var totalDrag by remember { mutableFloatStateOf(0f) }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(state.selectedDayIndex, dias.size) {
-                        detectHorizontalDragGestures(
-                            onDragEnd = {
-                                if (totalDrag < -100f && state.selectedDayIndex < dias.size - 1) {
-                                    onDaySelected(state.selectedDayIndex + 1)
-                                } else if (totalDrag > 100f && state.selectedDayIndex > 0) {
-                                    onDaySelected(state.selectedDayIndex - 1)
-                                }
-                                totalDrag = 0f
-                            },
-                            onHorizontalDrag = { _, dragAmount ->
-                                totalDrag += dragAmount
-                            }
-                        )
-                    }
-            ) {
-                if (state.isLoading) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            color = MaterialTheme.colorScheme.primary,
-                            strokeWidth = 2.dp
-                        )
-                    }
-                } else {
-                    val currentDay = state.currentDay
-                    if (currentDay == null) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
+                    if (currentTab == MainScreenTab.CARDAPIO) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .statusBarsPadding()
                         ) {
-                            Text(
-                                text = "Nenhum cardápio disponível para este dia.",
-                                style = NotionTypography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                            )
-                        }
-                    } else {
-                        AnimatedContent(
-                            targetState = Pair(state.selectedDayIndex, state.selectedMeal),
-                            transitionSpec = { fadeIn() togetherWith fadeOut() },
-                            label = "meal_content_transition"
-                        ) { (_, meal) ->
-                            Column(
+                            // Header
+                            Row(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .verticalScroll(rememberScrollState())
-                                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-
-
-                                when (meal) {
-                                    MealType.CAFE -> {
-                                        BreakfastCard(
-                                            menu = currentDay.cafe,
-                                            dietPreference = state.notificationConfig.effectiveDietPreference
-                                        )
-                                    }
-                                    MealType.ALMOCO -> {
-                                        LunchDinnerCard(
-                                            menu = currentDay.almoco,
-                                            isJantar = false,
-                                            dietPreference = state.notificationConfig.effectiveDietPreference
-                                        )
-                                    }
-                                    MealType.JANTAR -> {
-                                        LunchDinnerCard(
-                                            menu = currentDay.jantar,
-                                            isJantar = true,
-                                            dietPreference = state.notificationConfig.effectiveDietPreference
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(20.dp))
-
-                                // Mesa de apoio callout (Notion Style)
-                                Surface(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f))
+                                Column(
+                                    modifier = Modifier.clickable { onOpenCampusSelector() }
                                 ) {
+                                    Text(
+                                        text = "Cardápio RU",
+                                        style = NotionTypography.displaySmall,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(top = 2.dp)
                                     ) {
+                                        Text(
+                                            text = "UnB  •  ${state.selectedCampus.name}",
+                                            style = NotionTypography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                        )
                                         Icon(
-                                            imageVector = Icons.Outlined.Info,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                            imageVector = Icons.Filled.ArrowDropDown,
+                                            contentDescription = "Selecionar campus",
+                                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                                             modifier = Modifier.size(18.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Column {
+                                    }
+                                }
+
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    // Botão Configuração Notificações
+                                    IconButton(onClick = onOpenSettings) {
+                                        Icon(
+                                            imageVector = if (state.notificationConfig.hasAnyNotificationActive) {
+                                                Icons.Outlined.NotificationsActive
+                                            } else {
+                                                Icons.Outlined.Notifications
+                                            },
+                                            contentDescription = "Configurações de Notificação",
+                                            tint = if (state.notificationConfig.hasAnyNotificationActive) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                                            }
+                                        )
+                                    }
+
+                                    // Botão Tema Claro / Escuro
+                                    IconButton(onClick = onToggleTheme) {
+                                        Icon(
+                                            imageVector = if (state.isDarkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                                            contentDescription = if (state.isDarkTheme) "Mudar para modo claro" else "Mudar para modo escuro",
+                                            tint = MaterialTheme.colorScheme.onBackground
+                                        )
+                                    }
+
+                                    // Botão Atualizar Cardápio
+                                    IconButton(onClick = onRefresh) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Refresh,
+                                            contentDescription = "Atualizar",
+                                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Day Selector Rail
+                            val dias = state.menu?.dias ?: emptyList()
+                            if (dias.isNotEmpty()) {
+                                DaySelectorRail(
+                                    dias = dias,
+                                    selectedDayIndex = state.selectedDayIndex,
+                                    onDaySelected = onDaySelected,
+                                    todayIndex = state.todayIndex
+                                )
+                            }
+
+                            // Sub-cabeçalho Integrado: Refeição & Horário à esquerda + Seletor de Refeições à direita
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = state.selectedMeal.title,
+                                        style = NotionTypography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                    Text(
+                                        text = when (state.selectedMeal) {
+                                            MealType.CAFE -> "07h às 09h30"
+                                            MealType.ALMOCO -> "11h às 14h30"
+                                            MealType.JANTAR -> "17h às 19h30"
+                                        },
+                                        style = NotionTypography.labelSmall.copy(fontSize = 11.sp),
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f)
+                                    )
+                                }
+
+                                MealTopControl(
+                                    selectedMeal = state.selectedMeal,
+                                    onMealSelected = onMealSelected
+                                )
+                            }
+
+                            // Swipeable and Scrollable Meal Card Area
+                            var totalDrag by remember { mutableFloatStateOf(0f) }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .pointerInput(state.selectedDayIndex, dias.size) {
+                                        detectHorizontalDragGestures(
+                                            onDragEnd = {
+                                                if (totalDrag < -100f && state.selectedDayIndex < dias.size - 1) {
+                                                    onDaySelected(state.selectedDayIndex + 1)
+                                                } else if (totalDrag > 100f && state.selectedDayIndex > 0) {
+                                                    onDaySelected(state.selectedDayIndex - 1)
+                                                }
+                                                totalDrag = 0f
+                                            },
+                                            onHorizontalDrag = { _, dragAmount ->
+                                                totalDrag += dragAmount
+                                            }
+                                        )
+                                    }
+                            ) {
+                                if (state.isLoading) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            color = MaterialTheme.colorScheme.primary,
+                                            strokeWidth = 2.dp
+                                        )
+                                    }
+                                } else {
+                                    val currentDay = state.currentDay
+                                    if (currentDay == null) {
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
                                             Text(
-                                                text = "Mesa de apoio",
-                                                style = NotionTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 11.sp),
-                                                color = MaterialTheme.colorScheme.onSurface
+                                                text = "Nenhum cardápio disponível para este dia.",
+                                                style = NotionTypography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                                             )
-                                            Spacer(modifier = Modifier.height(2.dp))
+                                        }
+                                    } else {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .verticalScroll(rememberScrollState())
+                                                .padding(horizontal = 20.dp, vertical = 8.dp)
+                                        ) {
+                                            AnimatedContent(
+                                                targetState = state.selectedMeal,
+                                                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                                label = "meal_card_transition"
+                                            ) { mealType ->
+                                                when (mealType) {
+                                                    MealType.CAFE -> {
+                                                        BreakfastCard(menu = currentDay.cafe)
+                                                    }
+                                                    MealType.ALMOCO -> {
+                                                        LunchDinnerCard(
+                                                            menu = currentDay.almoco,
+                                                            isJantar = false,
+                                                            dietPreference = state.notificationConfig.dietPreference
+                                                        )
+                                                    }
+                                                    MealType.JANTAR -> {
+                                                        LunchDinnerCard(
+                                                            menu = currentDay.jantar,
+                                                            isJantar = true,
+                                                            dietPreference = state.notificationConfig.dietPreference
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.height(16.dp))
+
+                                            // Callout: Mesa de apoio
+                                            Surface(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(10.dp),
+                                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(14.dp),
+                                                    verticalAlignment = Alignment.Top
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Outlined.Info,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                                        modifier = Modifier
+                                                            .size(16.dp)
+                                                            .padding(top = 1.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(10.dp))
+                                                    Column {
+                                                        Text(
+                                                            text = "Mesa de apoio",
+                                                            style = NotionTypography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 11.sp),
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Spacer(modifier = Modifier.height(2.dp))
+                                                        Text(
+                                                            text = "Água, café, açúcar, adoçante e temperos disponíveis no salão.",
+                                                            style = NotionTypography.bodyMedium.copy(fontSize = 12.sp, lineHeight = 16.sp),
+                                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.height(16.dp))
+
+                                            // Aviso formal do RU
                                             Text(
-                                                text = "Água, café, açúcar, adoçante e temperos disponíveis no salão.",
-                                                style = NotionTypography.bodyMedium.copy(fontSize = 12.sp, lineHeight = 16.sp),
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                                text = "Cardápio sujeito a alterações sem aviso prévio pela administração do RU.",
+                                                style = NotionTypography.bodyMedium.copy(fontSize = 11.sp, lineHeight = 15.sp),
+                                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f),
+                                                textAlign = TextAlign.Center,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(bottom = 76.dp)
                                             )
                                         }
                                     }
                                 }
+                            }
+                        }
+                    } else {
+                        DiscenteScreen(
+                            card = state.studentCard,
+                            statement = state.statement,
+                            isSyncing = state.isSyncingCard,
+                            isRefreshingStatement = state.isRefreshingStatement,
+                            syncProgressMessage = state.syncProgressMessage,
+                            syncError = state.cardSyncError,
+                            onSyncFromSigaa = onSyncCardFromSigaa,
+                            onRefreshStatement = onRefreshStatement,
+                            onDisconnect = onDisconnectCard,
+                            onCheckForUpdate = onCheckForUpdate,
+                            isCheckingUpdate = state.isCheckingUpdate,
+                            onFlipToQr = { isDiscenteFlipped = true },
+                            scrollState = discenteScrollState,
+                            modifier = Modifier.statusBarsPadding()
+                        )
+                    }
 
-                                Spacer(modifier = Modifier.height(16.dp))
+                    // Indicador de Pull to Refresh
+                    if (pullRefreshState.verticalOffset > 0f || pullRefreshState.isRefreshing) {
+                        PullToRefreshContainer(
+                            state = pullRefreshState,
+                            modifier = Modifier.align(Alignment.TopCenter),
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    }
 
-                                // Aviso formal do RU
-                                Text(
-                                    text = "Cardápio sujeito a alterações sem aviso prévio pela administração do RU.",
-                                    style = NotionTypography.bodyMedium.copy(fontSize = 11.sp, lineHeight = 15.sp),
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f),
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 28.dp)
+                    // Seletor Flutuante em Pílula (Cardápio / Discente - Sem texto, apenas ícones)
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
+                        shadowElevation = 6.dp,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(bottom = 16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Aba Cardápio
+                            val isCardapio = currentTab == MainScreenTab.CARDAPIO
+                            val cardapioBg by animateColorAsState(
+                                targetValue = if (isCardapio) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                animationSpec = tween(durationMillis = 180),
+                                label = "tab_cardapio_bg"
+                            )
+                            val cardapioIconColor by animateColorAsState(
+                                targetValue = if (isCardapio) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                animationSpec = tween(durationMillis = 180),
+                                label = "tab_cardapio_icon"
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 48.dp, height = 36.dp)
+                                    .clip(CircleShape)
+                                    .background(cardapioBg)
+                                    .clickable { currentTab = MainScreenTab.CARDAPIO },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.RestaurantMenu,
+                                    contentDescription = "Cardápio",
+                                    tint = cardapioIconColor,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            // Aba Discente
+                            val isDiscente = currentTab == MainScreenTab.DISCENTE
+                            val discenteBg by animateColorAsState(
+                                targetValue = if (isDiscente) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                animationSpec = tween(durationMillis = 180),
+                                label = "tab_discente_bg"
+                            )
+                            val discenteIconColor by animateColorAsState(
+                                targetValue = if (isDiscente) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                animationSpec = tween(durationMillis = 180),
+                                label = "tab_discente_icon"
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 48.dp, height = 36.dp)
+                                    .clip(CircleShape)
+                                    .background(discenteBg)
+                                    .clickable { currentTab = MainScreenTab.DISCENTE },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.School,
+                                    contentDescription = "Discente",
+                                    tint = discenteIconColor,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
                     }
                 }
-            } // Fechamento do Box de gestos
-        } // Fechamento do Column principal
-    } else {
-        DiscenteScreen(
-            card = state.studentCard,
-            statement = state.statement,
-            isSyncing = state.isSyncingCard,
-            isRefreshingStatement = state.isRefreshingStatement,
-            syncProgressMessage = state.syncProgressMessage,
-            syncError = state.cardSyncError,
-            onSyncFromSigaa = onSyncCardFromSigaa,
-            onRefreshStatement = onRefreshStatement,
-            onDisconnect = onDisconnectCard,
-            onCheckForUpdate = onCheckForUpdate,
-            isCheckingUpdate = state.isCheckingUpdate,
-            onFlipToQr = { isDiscenteFlipped = true },
-            modifier = Modifier.statusBarsPadding()
-        )
-    }
-
-        if (pullRefreshState.verticalOffset > 0f || pullRefreshState.isRefreshing) {
-            PullToRefreshContainer(
-                state = pullRefreshState,
-                modifier = Modifier.align(Alignment.TopCenter),
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.primary
-            )
+            }
         }
-    } // Fechamento do Box outer
-    } // Fechamento do Scaffold
-    } else {
+
         // ==========================================
         // VERSO: 100% TELA CHEIA QR CODE (Desespelhado a 180f)
         // ==========================================
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer { rotationY = 180f }
-                .clickable { isDiscenteFlipped = false },
-            color = Color.White
-        ) {
-            Column(
+        if (isDiscenteFlipped || rotation > 0f) {
+            Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .systemBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .graphicsLayer {
+                        rotationY = 180f
+                        alpha = if (rotation <= 90f) 0f else 1f
+                    }
+                    .clickable { isDiscenteFlipped = false },
+                color = Color.White
             ) {
-                // QR Code Grande (290dp)
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color.White,
-                    shadowElevation = 8.dp,
-                    border = BorderStroke(1.dp, Color(0xFFE5E5E5))
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .systemBarsPadding()
+                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Box(
-                        modifier = Modifier.padding(18.dp),
-                        contentAlignment = Alignment.Center
+                    // QR Code Grande (290dp)
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.White,
+                        shadowElevation = 8.dp,
+                        border = BorderStroke(1.dp, Color(0xFFE5E5E5))
                     ) {
-                        if (qrBitmap != null) {
-                            Image(
-                                bitmap = qrBitmap.asImageBitmap(),
-                                contentDescription = "QR Code Catraca",
-                                modifier = Modifier.size(290.dp)
-                            )
-                        } else {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(40.dp),
-                                color = Color.Black
-                            )
+                        Box(
+                            modifier = Modifier.padding(18.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (qrBitmap != null) {
+                                Image(
+                                    bitmap = qrBitmap.asImageBitmap(),
+                                    contentDescription = "QR Code Catraca",
+                                    modifier = Modifier.size(290.dp)
+                                )
+                            } else {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(40.dp),
+                                    color = Color.Black
+                                )
+                            }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                Text(
-                    text = state.studentCard.nome.ifBlank { "Estudante UnB" },
-                    style = NotionTypography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF111111),
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Matrícula: ${state.studentCard.matricula}",
-                    style = NotionTypography.bodyMedium,
-                    color = Color(0xFF666666)
-                )
-
-                Spacer(modifier = Modifier.height(36.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.TouchApp,
-                        contentDescription = null,
-                        tint = Color(0xFF888888),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Toque para virar",
-                        style = NotionTypography.bodySmall,
-                        color = Color(0xFF888888),
-                        fontWeight = FontWeight.Medium
+                        text = state.studentCard.nome.ifBlank { "Estudante UnB" },
+                        style = NotionTypography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF111111),
+                        textAlign = TextAlign.Center
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Matrícula: ${state.studentCard.matricula}",
+                        style = NotionTypography.bodyMedium,
+                        color = Color(0xFF666666)
+                    )
+
+                    Spacer(modifier = Modifier.height(36.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.TouchApp,
+                            contentDescription = null,
+                            tint = Color(0xFF888888),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Toque para virar",
+                            style = NotionTypography.bodySmall,
+                            color = Color(0xFF888888),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
         }
     }
-    } // Fechamento do Box outer 3D flip
 
     // BottomSheet de Notificações
     if (state.isSettingsOpen) {
