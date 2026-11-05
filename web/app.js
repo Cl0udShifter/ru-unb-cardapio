@@ -1808,6 +1808,10 @@ function renderTurmasList() {
   listEl.innerHTML = classes.map((c, idx) => {
     const pctMinistradas = typeof c.percentualAulasMinistradas === 'number' ? c.percentualAulasMinistradas : null;
     const textoMinistradas = c.aulasMinistradasTexto || (pctMinistradas !== null ? `${Math.round(pctMinistradas)}% ministradas` : 'Aulas em andamento');
+    const pctFreq = typeof c.percentualFrequencia === 'number' ? c.percentualFrequencia : null;
+    const faltas = typeof c.faltas === 'number' ? c.faltas : 0;
+    const textoFreq = faltas > 0 ? `${Math.round(pctFreq)}% de presença • ${faltas} falta(s)` : `${Math.round(pctFreq)}% de presença`;
+    const isAlertaFalta = pctFreq !== null && pctFreq < 75;
 
     const weeklySchedule = (c.horarios || []).map(h => `${(h.diaNome || '').slice(0, 3)} ${h.horarioFormatado}`).join(' • ');
     const rawNotices = c.noticias || [];
@@ -1847,7 +1851,7 @@ function renderTurmasList() {
           </div>
         ` : ''}
 
-        <!-- Bloco de Métricas: Aulas Ministradas -->
+        <!-- Bloco de Métricas: Aulas Ministradas e Frequência -->
         <div class="turma-metrics-box">
           <div class="metric-line">
             <div class="metric-line-header">
@@ -1858,6 +1862,17 @@ function renderTurmasList() {
               <div class="metric-bar-fill" style="width: ${pctMinistradas !== null ? Math.min(100, Math.max(0, pctMinistradas)) : 0}%;"></div>
             </div>
           </div>
+          ${pctFreq !== null ? `
+            <div class="metric-line" style="margin-top: 10px;">
+              <div class="metric-line-header">
+                <span class="metric-line-label">Frequência</span>
+                <span class="metric-line-val ${isAlertaFalta ? 'warning' : ''}">${textoFreq}</span>
+              </div>
+              <div class="metric-bar-track">
+                <div class="metric-bar-fill ${isAlertaFalta ? 'warning' : ''}" style="width: ${Math.min(100, Math.max(0, pctFreq))}%;"></div>
+              </div>
+            </div>
+          ` : ''}
         </div>
 
         <!-- Accordion: Avisos da Turma Virtual -->

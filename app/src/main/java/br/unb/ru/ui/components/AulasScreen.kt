@@ -802,7 +802,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // BLOCO DE MÉTRICAS: Aulas Ministradas
+            // BLOCO DE MÉTRICAS: Aulas Ministradas e Frequência
             val pctMinistradas = disciplina.percentualAulasMinistradas
             val textoMinistradas = if (disciplina.aulasMinistradasTextoSafe.isNotBlank()) {
                 disciplina.aulasMinistradasTextoSafe
@@ -811,6 +811,8 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
             } else {
                 "Aulas em andamento"
             }
+            val pctFreq = disciplina.percentualFrequencia
+            val isAlertaFalta = pctFreq != null && pctFreq < 75f
 
             Surface(
                 shape = RoundedCornerShape(10.dp),
@@ -818,6 +820,7 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
+                    // Linha 1: Aulas ministradas
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -846,6 +849,44 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                         color = MaterialTheme.colorScheme.onBackground,
                         trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
                     )
+
+                    // Linha 2: Frequência
+                    if (pctFreq != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        val textoFreq = if (disciplina.faltas > 0) {
+                            "${pctFreq.toInt()}% de presença • ${disciplina.faltas} falta(s)"
+                        } else {
+                            "${pctFreq.toInt()}% de presença"
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Frequência",
+                                style = NotionTypography.labelSmall,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f)
+                            )
+                            Text(
+                                text = textoFreq,
+                                style = NotionTypography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isAlertaFalta) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+                        LinearProgressIndicator(
+                            progress = { (pctFreq / 100f).coerceIn(0f, 1f) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = if (isAlertaFalta) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
+                            trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                        )
+                    }
                 }
             }
 

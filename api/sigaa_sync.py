@@ -461,11 +461,11 @@ def sync_with_urllib(matricula, senha):
                                         if td_m:
                                             conteudo_not = html.unescape(re.sub(r'<[^>]+>', '', td_m.group(1).replace('<br />', '\n').replace('<br>', '\n'))).strip()
 
-                                        for att_m in re.finditer(r'<a[^>]+href=["\']([^"\']*(?:verArquivo|downloadArquivo)[^"\']*)["\'][^>]*>(.*?)</a>', det_html, re.I):
+                                        for att_m in re.finditer(r'<a\s+[^>]*href=["\']([^"\']*(?:verArquivo|downloadArquivo)[^"\']*)["\'][^>]*>(.*?)</a>', det_html, re.DOTALL | re.I):
                                             att_url = att_m.group(1)
                                             if not att_url.startswith('http'):
                                                 att_url = 'https://sigaa.unb.br' + att_url
-                                            raw_name = html.unescape(re.sub(r'<[^>]+>', '', att_m.group(2))).strip()
+                                            raw_name = html.unescape(re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', '', att_m.group(2)))).strip()
                                             if raw_name and 'idArquivo=&' not in att_url:
                                                 anexos.append({'nome': raw_name, 'url': att_url})
                                     except Exception:
@@ -477,6 +477,48 @@ def sync_with_urllib(matricula, senha):
                                         'conteudo': conteudo_not or 'Aviso publicado pelo docente na Turma Virtual do SIGAA.',
                                         'anexos': anexos
                                     })
+
+                            # 3. Extrair Frequência e Faltas
+                            pct_freq = None
+                            num_faltas = 0
+                            try:
+                                freq_m = re.search(
+                                    r"""jsfcljs\s*\(\s*document\.getElementById\(['"](formMenu)['"]\)\s*,\s*\{([^}]+)\}[^)]*\)[^>]*>[^<]*<div[^>]*>[^<]*Frequ""",
+                                    tv_html,
+                                    re.I
+                                )
+                                if freq_m:
+                                    fm_id = freq_m.group(1)
+                                    fm_params = {fm_id: fm_id}
+                                    vs_tv = re.search(r'name=["\']javax\.faces\.ViewState["\'][^>]+value=["\']([^"\']*)["\']', tv_html)
+                                    if vs_tv:
+                                        fm_params['javax.faces.ViewState'] = vs_tv.group(1)
+
+                                    for pm in re.finditer(r"""['"]([^'"]+)['"]\s*:\s*['"]([^'"]*)['"]""", freq_m.group(2)):
+                                        fm_params[pm.group(1)] = pm.group(2)
+
+                                    req_freq = urllib.request.Request(
+                                        'https://sigaa.unb.br/sigaa/ava/index.jsf',
+                                        data=urllib.parse.urlencode(fm_params).encode('utf-8'),
+                                        headers=headers
+                                    )
+                                    r_freq = opener.open(req_freq, timeout=6)
+                                    freq_html = r_freq.read().decode('latin-1', errors='ignore')
+
+                                    pf_ch = re.search(r'Porcentagem de Frequ(?:&#234;|[êe])ncia em rela(?:&#231;&#227;|[çc][ãa])o a CH[^:]*:\s*(?:<[^>]+>\s*)*([0-9\.,]+)%', freq_html, re.I)
+                                    if pf_ch:
+                                        pct_freq = float(pf_ch.group(1).replace(',', '.'))
+                                    else:
+                                        pf_gen = re.search(r'Porcentagem de Frequ(?:&#234;|[êe])ncia[^:]*:\s*(?:<[^>]+>\s*)*([0-9\.,]+)%', freq_html, re.I)
+                                        if pf_gen:
+                                            pct_freq = float(pf_gen.group(1).replace(',', '.'))
+                                        elif 'não foi lançada' in freq_html or 'n&#227;o foi lan&#231;ada' in freq_html:
+                                            pct_freq = 100.0
+
+                                    faltas_list = [int(x) for x in re.findall(r'(\d+)\s*Falta\(s\)', freq_html, re.I)]
+                                    num_faltas = sum(faltas_list)
+                            except Exception as e_f:
+                                print(f"Erro ao consultar frequência para {nome_disc}:", e_f)
 
                             # Reseta para discente.jsf
                             try:
@@ -502,8 +544,8 @@ def sync_with_urllib(matricula, senha):
                         'local': local,
                         'horarioRaw': horario_raw,
                         'horarios': horarios,
-                        'faltas': 0,
-                        'percentualFrequencia': None,
+                        'faltas': num_faltas,
+                        'percentualFrequencia': pct_freq,
                         'percentualAulasMinistradas': pct_ministradas,
                         'aulasMinistradasTexto': aulas_ministradas_texto,
                         'noticias': noticias

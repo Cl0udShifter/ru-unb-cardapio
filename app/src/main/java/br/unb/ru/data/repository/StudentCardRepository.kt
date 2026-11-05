@@ -1013,6 +1013,8 @@ class StudentCardRepository(private val context: Context) {
 
                 var pctMinistradas: Float? = null
                 var ministradasTexto = ""
+                var pctFreq: Float? = null
+                var numFaltas = 0
                 val noticias = mutableListOf<ClassNotice>()
 
                 if (isTv) {
@@ -1091,13 +1093,13 @@ class StudentCardRepository(private val context: Context) {
                                     conteudoNot = decodeHtmlEntities(tdM.group(1)?.replace(Regex("""<br\s*/?>"""), "\n")?.replace(Regex("<[^>]+>"), "") ?: "").trim()
                                 }
 
-                                val attM = Pattern.compile("""<a[^>]+href=["']([^"']*(?:verArquivo|downloadArquivo)[^"']*)["'][^>]*>(.*?)</a>""", Pattern.CASE_INSENSITIVE).matcher(detailHtml)
+                                val attM = Pattern.compile("""<a\s+[^>]*href=["']([^"']*(?:verArquivo|downloadArquivo)[^"']*)["'][^>]*>(.*?)</a>""", Pattern.DOTALL or Pattern.CASE_INSENSITIVE).matcher(detailHtml)
                                 while (attM.find()) {
                                     var attUrl = attM.group(1) ?: ""
                                     if (!attUrl.startsWith("http")) {
                                         attUrl = "https://sigaa.unb.br$attUrl"
                                     }
-                                    val rawAttName = decodeHtmlEntities(attM.group(2)?.replace(Regex("<[^>]+>"), "") ?: "").trim()
+                                    val rawAttName = decodeHtmlEntities(attM.group(2)?.replace(Regex("<[^>]+>"), "") ?: "").replace(Regex("""\s+"""), " ").trim()
                                     if (rawAttName.isNotBlank() && !attUrl.contains("idArquivo=&")) {
                                         anexos.add(ClassNoticeAttachment(rawAttName, attUrl))
                                     }
@@ -1112,6 +1114,58 @@ class StudentCardRepository(private val context: Context) {
                             ))
                         }
                     }
+                    // 3. Extrair Frequência e Faltas
+                    try {
+                        val freqMenuPattern = Pattern.compile(
+                            """jsfcljs\s*\(\s*document\.getElementById\(['"](formMenu)['"]\)\s*,\s*\{([^}]+)\}[^)]*\)[^>]*>[^<]*<div[^>]*>[^<]*Frequ""",
+                            Pattern.CASE_INSENSITIVE
+                        )
+                        val mFreqMenu = freqMenuPattern.matcher(tvHtml)
+                        if (mFreqMenu.find()) {
+                            val formMenuId = mFreqMenu.group(1) ?: "formMenu"
+                            val dictContent = mFreqMenu.group(2) ?: ""
+                            val vsM = Pattern.compile("""name=["']javax\.faces\.ViewState["'][^>]+value=["']([^"']*)["']""").matcher(tvHtml)
+
+                            val freqBody = FormBody.Builder()
+                            freqBody.add(formMenuId, formMenuId)
+                            if (vsM.find()) freqBody.add("javax.faces.ViewState", vsM.group(1) ?: "")
+
+                            val pM = Pattern.compile("""['"]([^'"]+)['"]\s*:\s*['"]([^'"]*)['"]""").matcher(dictContent)
+                            while (pM.find()) {
+                                val k = pM.group(1) ?: continue
+                                val v = pM.group(2) ?: ""
+                                freqBody.add(k, v)
+                            }
+
+                            val freqReq = Request.Builder()
+                                .url("https://sigaa.unb.br/sigaa/ava/index.jsf")
+                                .post(freqBody.build())
+                                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                                .build()
+
+                            val freqResp = client.newCall(freqReq).execute()
+                            val freqHtml = freqResp.body?.string() ?: ""
+
+                            val pfChM = Pattern.compile("""Porcentagem de Frequ(?:&#234;|[êe])ncia em rela(?:&#231;&#227;|[çc][ãa])o a CH[^:]*:\s*(?:<[^>]+>\s*)*([0-9.,]+)%""", Pattern.CASE_INSENSITIVE).matcher(freqHtml)
+                            if (pfChM.find()) {
+                                pctFreq = pfChM.group(1)?.replace(',', '.')?.toFloatOrNull()
+                            } else {
+                                val pfGenM = Pattern.compile("""Porcentagem de Frequ(?:&#234;|[êe])ncia[^:]*:\s*(?:<[^>]+>\s*)*([0-9.,]+)%""", Pattern.CASE_INSENSITIVE).matcher(freqHtml)
+                                if (pfGenM.find()) {
+                                    pctFreq = pfGenM.group(1)?.replace(',', '.')?.toFloatOrNull()
+                                } else if (freqHtml.contains("não foi lançada") || freqHtml.contains("n&#227;o foi lan&#231;ada")) {
+                                    pctFreq = 100f
+                                }
+                            }
+
+                            val faltasM = Pattern.compile("""(\d+)\s*Falta\(s\)""", Pattern.CASE_INSENSITIVE).matcher(freqHtml)
+                            while (faltasM.find()) {
+                                val qtd = faltasM.group(1)?.toIntOrNull() ?: 0
+                                numFaltas += qtd
+                            }
+                        }
+                    } catch (_: Exception) {}
+
                     // Reseta estado para discente.jsf para a próxima matéria
                     try {
                         val getReq = Request.Builder()
@@ -1126,7 +1180,8 @@ class StudentCardRepository(private val context: Context) {
                 enriched.add(c.copy(
                     percentualAulasMinistradas = pctMinistradas,
                     aulasMinistradasTexto = ministradasTexto,
-                    percentualFrequencia = null,
+                    percentualFrequencia = pctFreq,
+                    faltas = numFaltas,
                     noticias = noticias
                 ))
             } catch (_: Exception) {
