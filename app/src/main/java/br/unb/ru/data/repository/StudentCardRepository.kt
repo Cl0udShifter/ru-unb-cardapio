@@ -15,6 +15,8 @@ import br.unb.ru.data.model.ClassTopic
 import br.unb.ru.data.model.AcademicDiscipline
 import br.unb.ru.data.model.AcademicHistory
 import br.unb.ru.data.model.AcademicSemester
+import br.unb.ru.data.model.DigitalDocument
+import br.unb.ru.data.model.DocumentType
 import com.google.gson.Gson
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.DecodeHintType
@@ -1549,6 +1551,238 @@ class StudentCardRepository(private val context: Context) {
                 Result.success(history)
             } else {
                 Result.failure(Exception("Não foi possível obter o PDF do histórico escolar do SIGAA."))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    fun getDigitalDocuments(): List<DigitalDocument> {
+        val list = mutableListOf<DigitalDocument>()
+        for (type in DocumentType.values()) {
+            val file = getDocumentFile(type)
+            val isAvail = file != null && file.exists() && file.length() > 0
+            val lastEmitted = prefs.getString("doc_meta_last_emitted_${type.id}", null)
+                ?: if (isAvail) SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(file!!.lastModified())) else ""
+            val authCode = prefs.getString("doc_meta_auth_code_${type.id}", "") ?: ""
+            val sizeFormatted = if (isAvail) {
+                val kb = file!!.length() / 1024
+                if (kb > 1024) String.format(Locale.US, "%.1f MB", kb / 1024.0) else "$kb KB"
+            } else ""
+
+            val htmlContent = if (!type.isPdfDirect && isAvail) {
+                try { file!!.readText(Charsets.ISO_8859_1) } catch (_: Exception) { null }
+            } else null
+
+            list.add(
+                DigitalDocument(
+                    type = type,
+                    isAvailableOffline = isAvail,
+                    lastEmittedAt = lastEmitted,
+                    codigoAutenticidade = authCode,
+                    fileSizeFormatted = sizeFormatted,
+                    filePath = file?.absolutePath,
+                    htmlContent = htmlContent
+                )
+            )
+        }
+        return list
+    }
+
+    fun getDocumentFile(type: DocumentType): File? {
+        val filename = when (type) {
+            DocumentType.DECLARACAO_VINCULO -> "doc_declaracao_vinculo.pdf"
+            DocumentType.ATESTADO_MATRICULA -> "doc_atestado_matricula.html"
+            DocumentType.PASSE_LIVRE -> "doc_passe_livre.html"
+            DocumentType.HISTORICO_ESCOLAR -> "historico_escolar.pdf"
+        }
+        val file = File(context.filesDir, filename)
+        return if (file.exists() && file.length() > 0) file else null
+    }
+
+    fun getDocumentHtml(type: DocumentType): String? {
+        val file = getDocumentFile(type) ?: return null
+        return try {
+            file.readText(Charsets.ISO_8859_1)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    suspend fun emitDigitalDocument(
+        type: DocumentType,
+        matricula: String,
+        pass: String
+    ): Result<DigitalDocument> = withContext(Dispatchers.IO) {
+        try {
+            val cookieStore = mutableMapOf<String, MutableList<Cookie>>()
+            val client = OkHttpClient.Builder()
+                .cookieJar(object : CookieJar {
+                    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+                        cookieStore.getOrPut(url.host) { mutableListOf() }.addAll(cookies)
+                    }
+                    override fun loadForRequest(url: HttpUrl): List<Cookie> {
+                        return cookieStore[url.host] ?: emptyList()
+                    }
+                })
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build()
+
+            val ssoUrl = "https://autenticacao.unb.br/sso-server/login?service=https%3A%2F%2Fsig.unb.br%2Fsigaa%2Flogin%2Fcas"
+            val ssoReq = Request.Builder()
+                .url(ssoUrl)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                .build()
+
+            val ssoHtml = client.newCall(ssoReq).execute().body?.string() ?: ""
+            val actionUrl = extractFormAction(ssoHtml, "https://autenticacao.unb.br")
+            val hiddenInputs = extractInputFields(ssoHtml).toMutableMap()
+            hiddenInputs["username"] = matricula
+            hiddenInputs["password"] = pass
+            hiddenInputs["submit"] = "ENTRAR"
+
+            val postForm = FormBody.Builder()
+            hiddenInputs.forEach { (k, v) -> postForm.add(k, v) }
+
+            val loginReq = Request.Builder()
+                .url(actionUrl)
+                .post(postForm.build())
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                .build()
+
+            var currentResp = client.newCall(loginReq).execute()
+            var currentHtml = currentResp.body?.string() ?: ""
+            var currentUrl = currentResp.request.url.toString()
+
+            var avisoAttempts = 0
+            while (currentUrl.contains("telaAvisoLogon.jsf") && avisoAttempts < 6) {
+                val avisoFormAction = extractFormAction(currentHtml, "https://sigaa.unb.br")
+                val hasPasswordField = currentHtml.contains("type=\"password\"") || currentHtml.contains("formConfirmacaoDeclaracao")
+                val formBody = FormBody.Builder()
+
+                if (hasPasswordField) {
+                    val pInputName = extractInputNameByPattern(currentHtml, "password") ?: "formConfirmacaoDeclaracao:senha"
+                    val allInputs = extractInputFields(currentHtml)
+                    allInputs.forEach { (k, v) ->
+                        if (k == pInputName) formBody.add(k, pass) else formBody.add(k, v)
+                    }
+                    formBody.add("formConfirmacaoDeclaracao:buttonConfirmar", "Confirmar")
+                } else {
+                    val allInputs = extractInputFields(currentHtml)
+                    allInputs.forEach { (k, v) -> formBody.add(k, v) }
+                    val submitBtn = extractSubmitButton(currentHtml, "Continuar")
+                    if (submitBtn != null) formBody.add(submitBtn.first, submitBtn.second)
+                }
+
+                val avisoReq = Request.Builder()
+                    .url(avisoFormAction)
+                    .post(formBody.build())
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                    .build()
+
+                currentResp = client.newCall(avisoReq).execute()
+                currentHtml = currentResp.body?.string() ?: ""
+                currentUrl = currentResp.request.url.toString()
+                avisoAttempts++
+            }
+
+            val viewState = extractValue(currentHtml, "javax.faces.ViewState") ?: "j_id1"
+            val formId = extractMenuFormId(currentHtml) ?: "331956"
+
+            val docBody = FormBody.Builder()
+                .add("menu:form_menu_discente", "menu:form_menu_discente")
+                .add("id", formId)
+                .add("jscook_action", type.jsfAction)
+                .add("javax.faces.ViewState", viewState)
+                .build()
+
+            val docReq = Request.Builder()
+                .url("https://sigaa.unb.br/sigaa/portais/discente/discente.jsf")
+                .post(docBody)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                .build()
+
+            val docResp = client.newCall(docReq).execute()
+            val rawBytes = docResp.body?.bytes() ?: byteArrayOf()
+            val filename = when (type) {
+                DocumentType.DECLARACAO_VINCULO -> "doc_declaracao_vinculo.pdf"
+                DocumentType.ATESTADO_MATRICULA -> "doc_atestado_matricula.html"
+                DocumentType.PASSE_LIVRE -> "doc_passe_livre.html"
+                DocumentType.HISTORICO_ESCOLAR -> "historico_escolar.pdf"
+            }
+            val targetFile = File(context.filesDir, filename)
+
+            val nowStr = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
+
+            if (type.isPdfDirect) {
+                if (rawBytes.size > 1000 && rawBytes.take(4).toByteArray().contentEquals("%PDF".toByteArray())) {
+                    FileOutputStream(targetFile).use { it.write(rawBytes) }
+                    val kb = targetFile.length() / 1024
+                    val sizeFormatted = if (kb > 1024) String.format(Locale.US, "%.1f MB", kb / 1024.0) else "$kb KB"
+
+                    if (type == DocumentType.HISTORICO_ESCOLAR) {
+                        try {
+                            val studentCourse = extractStudentCourse(currentHtml)
+                            val ira = extractPattern(currentHtml, "IRA:\\s*(?:</acronym>)?</td>\\s*<td[^>]*>(?:<div[^>]*>)?([\\d\\.,]+)").ifBlank { "--" }
+                            val texts = extractTextFromPdfBytes(rawBytes)
+                            val history = parseAcademicHistory(texts, matricula, studentCourse, ira)
+                            saveAcademicHistory(history)
+                        } catch (_: Exception) {}
+                    }
+
+                    prefs.edit()
+                        .putString("doc_meta_last_emitted_${type.id}", nowStr)
+                        .putString("doc_meta_size_${type.id}", sizeFormatted)
+                        .apply()
+
+                    Result.success(
+                        DigitalDocument(
+                            type = type,
+                            isAvailableOffline = true,
+                            lastEmittedAt = nowStr,
+                            fileSizeFormatted = sizeFormatted,
+                            filePath = targetFile.absolutePath
+                        )
+                    )
+                } else {
+                    Result.failure(Exception("O SIGAA não retornou o PDF oficial do documento."))
+                }
+            } else {
+                val htmlText = String(rawBytes, Charsets.ISO_8859_1)
+                if (htmlText.isNotBlank() && htmlText.contains("<html", ignoreCase = true)) {
+                    FileOutputStream(targetFile).use { it.write(rawBytes) }
+                    val kb = targetFile.length() / 1024
+                    val sizeFormatted = "$kb KB"
+
+                    val codePattern = Pattern.compile("c(?:[oó]|&#243;)digo de verifica(?:[cç]|&#231;)(?:[aã]|&#227;)o[^<]*<span[^>]*>\\s*([a-zA-Z0-9]+)\\s*</span>", Pattern.CASE_INSENSITIVE)
+                    val codeMatcher = codePattern.matcher(htmlText)
+                    val authCode = if (codeMatcher.find()) codeMatcher.group(1) ?: "" else ""
+
+                    val dataPattern = Pattern.compile("Emitido em\\s+([\\d/]+\\s+[\\d:]+)", Pattern.CASE_INSENSITIVE)
+                    val dataMatcher = dataPattern.matcher(htmlText)
+                    val emittedDate = if (dataMatcher.find()) dataMatcher.group(1) ?: nowStr else nowStr
+
+                    prefs.edit()
+                        .putString("doc_meta_last_emitted_${type.id}", emittedDate)
+                        .putString("doc_meta_auth_code_${type.id}", authCode)
+                        .putString("doc_meta_size_${type.id}", sizeFormatted)
+                        .apply()
+
+                    Result.success(
+                        DigitalDocument(
+                            type = type,
+                            isAvailableOffline = true,
+                            lastEmittedAt = emittedDate,
+                            codigoAutenticidade = authCode,
+                            fileSizeFormatted = sizeFormatted,
+                            filePath = targetFile.absolutePath,
+                            htmlContent = htmlText
+                        )
+                    )
+                } else {
+                    Result.failure(Exception("Não foi possível gerar o documento pelo SIGAA."))
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)

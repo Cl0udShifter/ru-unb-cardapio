@@ -1245,6 +1245,7 @@ function setupCarteirinhaModal() {
 
   // Setup Histórico & Fluxograma Modal
   setupHistoricoModal();
+  setupDocumentosModal();
 
   // SIGAA Dialog Setup
   setupSigaaDialog();
@@ -2316,5 +2317,239 @@ window.syncHistoricoFromWeb = async function() {
       modalFlowBtn.disabled = false;
       modalFlowBtn.innerHTML = origFlowText;
     }
+  }
+};
+
+// ========================================================
+// MÓDULO 5: DOCUMENTOS DIGITAIS COM 1 TOQUE (LOGIC)
+// ========================================================
+const DIGITAL_DOCS_CATALOG = [
+  {
+    id: 'vinculo',
+    title: 'Declaração de Vínculo',
+    subtitle: 'Comprovante oficial de vínculo acadêmico regular com a UnB',
+    isPdfDirect: true,
+    icon: `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`
+  },
+  {
+    id: 'atestado',
+    title: 'Atestado de Matrícula',
+    subtitle: 'Disciplinas matriculadas, horários e código de autenticidade',
+    isPdfDirect: false,
+    icon: `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 11 17 15 13"/>`
+  },
+  {
+    id: 'passe_livre',
+    title: 'Declaração para Passe Livre',
+    subtitle: 'Documento oficial para o BRB Mobilidade / Passe Livre DF',
+    isPdfDirect: false,
+    icon: `<rect x="3" y="4" width="18" height="14" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="7" cy="15" r="1"/><circle cx="17" cy="15" r="1"/>`
+  },
+  {
+    id: 'historico',
+    title: 'Histórico Escolar Oficial',
+    subtitle: 'Histórico completo com notas, menções e carimbo digital do DEG',
+    isPdfDirect: true,
+    icon: `<path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>`
+  }
+];
+
+function getCachedDocs() {
+  try {
+    return JSON.parse(localStorage.getItem('ru_digital_documents') || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveCachedDoc(docId, docData) {
+  const all = getCachedDocs();
+  all[docId] = docData;
+  localStorage.setItem('ru_digital_documents', JSON.stringify(all));
+}
+
+function setupDocumentosModal() {
+  const modal = document.getElementById('documentosModal');
+  const btnOpen = document.getElementById('btnOpenDocumentos');
+  const btnClose = document.getElementById('btnCloseDocumentos');
+  const viewerModal = document.getElementById('docViewerModal');
+  const btnCloseViewer = document.getElementById('btnCloseDocViewer');
+  const btnPrintViewer = document.getElementById('btnPrintDocViewer');
+
+  if (btnOpen) {
+    btnOpen.onclick = () => {
+      renderDocumentosModal();
+      if (modal) modal.style.display = 'flex';
+    };
+  }
+
+  if (btnClose) {
+    btnClose.onclick = () => {
+      if (modal) modal.style.display = 'none';
+    };
+  }
+
+  if (btnCloseViewer) {
+    btnCloseViewer.onclick = () => {
+      if (viewerModal) viewerModal.style.display = 'none';
+    };
+  }
+
+  if (btnPrintViewer) {
+    btnPrintViewer.onclick = () => {
+      const iframe = document.getElementById('docViewerIframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      }
+    };
+  }
+}
+
+function renderDocumentosModal() {
+  const card = appState.studentCard || {};
+  const subEl = document.getElementById('documentosCursoSubtitle');
+  if (subEl) subEl.textContent = card.curso || 'Graduação UnB';
+
+  const listEl = document.getElementById('digitalDocsList');
+  if (!listEl) return;
+
+  const cachedDocs = getCachedDocs();
+
+  listEl.innerHTML = DIGITAL_DOCS_CATALOG.map(docDef => {
+    const cached = cachedDocs[docDef.id];
+    const isAvail = !!cached;
+    const sizeStr = cached?.fileSizeFormatted || '';
+    const dateStr = cached?.lastEmittedAt || '';
+
+    return `
+      <div class="dashboard-card" style="padding: 16px;">
+        <div style="display: flex; align-items: flex-start; gap: 14px;">
+          <div class="action-nav-icon-box" style="width: 42px; height: 42px; min-width: 42px;">
+            <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2">
+              ${docDef.icon}
+            </svg>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 700; font-size: 15px; color: var(--text-primary);">${docDef.title}</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${docDef.subtitle}</div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 14px;">
+          ${isAvail ? `
+            <span class="turma-code-pill" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 600;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <span>Salvo offline ${sizeStr ? `• ${sizeStr}` : ''}</span>
+            </span>
+          ` : `
+            <span class="turma-ch-pill">Não emitido</span>
+          `}
+          ${dateStr ? `<span style="font-size: 11px; color: var(--text-secondary);">Emitido em ${dateStr.split(' ')[0]}</span>` : ''}
+        </div>
+
+        <div style="margin-top: 14px; display: flex; align-items: center; gap: 8px;">
+          ${isAvail ? `
+            <button class="notion-btn notion-btn-primary" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="openCachedDocument('${docDef.id}')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                ${docDef.isPdfDirect ? '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'}
+              </svg>
+              <span>${docDef.isPdfDirect ? 'Baixar / Abrir PDF' : 'Visualizar / Imprimir'}</span>
+            </button>
+            <button class="notion-btn notion-btn-secondary" style="padding: 0 12px; height: 38px;" title="Atualizar do SIGAA" id="btnReemit_${docDef.id}" onclick="emitDigitalDocumentFromWeb('${docDef.id}')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            </button>
+          ` : `
+            <button class="notion-btn notion-btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;" id="btnEmit_${docDef.id}" onclick="emitDigitalDocumentFromWeb('${docDef.id}')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Emitir com 1 Toque</span>
+            </button>
+          `}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.emitDigitalDocumentFromWeb = async function(docId) {
+  let creds = null;
+  try {
+    creds = JSON.parse(localStorage.getItem('ru_sigaa_creds') || 'null');
+  } catch (e) {}
+
+  let mat = creds?.matricula;
+  let pass = creds?.senha;
+
+  if (!mat || !pass) {
+    const dlgBtn = document.getElementById('openSigaaDialogBtn');
+    if (dlgBtn) dlgBtn.click();
+    return;
+  }
+
+  const btnEmit = document.getElementById(`btnEmit_${docId}`) || document.getElementById(`btnReemit_${docId}`);
+  const origHtml = btnEmit ? btnEmit.innerHTML : '';
+  if (btnEmit) {
+    btnEmit.disabled = true;
+    btnEmit.innerHTML = `<span>Emitindo do SIGAA...</span>`;
+  }
+
+  try {
+    const isVercelHost = window.location.hostname.includes('vercel.app') || window.location.hostname === 'localhost';
+    const apiUrl = window.SIGAA_API_URL || (isVercelHost ? '/api' : 'https://ru-unb-cardapio-3zjv.vercel.app/api');
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'emit_document', docType: docId, matricula: mat, senha: pass })
+    });
+
+    const res = await response.json();
+    if (res.success) {
+      saveCachedDoc(docId, res);
+      renderDocumentosModal();
+      openCachedDocument(docId);
+    } else {
+      alert(res.error || 'Erro ao emitir documento do SIGAA.');
+    }
+  } catch (err) {
+    alert('Erro de conexão ao emitir documento: ' + (err.message || err));
+  } finally {
+    if (btnEmit) {
+      btnEmit.disabled = false;
+      btnEmit.innerHTML = origHtml;
+    }
+  }
+};
+
+window.openCachedDocument = function(docId) {
+  const cachedDocs = getCachedDocs();
+  const doc = cachedDocs[docId];
+  if (!doc) return;
+
+  if (doc.isPdfDirect && doc.pdfBase64) {
+    const byteCharacters = atob(doc.pdfBase64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${docId}_${doc.matricula || 'unb'}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } else if (!doc.isPdfDirect && doc.htmlContent) {
+    const viewerModal = document.getElementById('docViewerModal');
+    const titleEl = document.getElementById('docViewerTitle');
+    const iframe = document.getElementById('docViewerIframe');
+    if (titleEl) titleEl.textContent = doc.title || 'Documento Oficial';
+    if (iframe) {
+      iframe.srcdoc = doc.htmlContent;
+    }
+    if (viewerModal) viewerModal.style.display = 'flex';
   }
 };

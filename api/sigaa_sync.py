@@ -840,6 +840,118 @@ def sync_with_urllib(matricula, senha):
         'flowSemesters': flow_semesters
     }
 
+def emit_sigaa_document(matricula, senha, doc_type):
+    from datetime import datetime
+    cj = http.cookiejar.CookieJar()
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App'}
+
+    try:
+        sso_url = 'https://autenticacao.unb.br/sso-server/login?service=https%3A%2F%2Fsig.unb.br%2Fsigaa%2Flogin%2Fcas'
+        req_sso = urllib.request.Request(sso_url, headers=headers)
+        r_sso = opener.open(req_sso, timeout=20)
+        sso_html = r_sso.read().decode('utf-8', errors='ignore')
+
+        m_action = re.search(r'<form[^>]+action="([^"]+)"', sso_html)
+        action_url = urllib.parse.urljoin('https://autenticacao.unb.br', m_action.group(1)) if m_action else sso_url
+
+        login_data = dict(re.findall(r'<input[^>]+name="([^"]+)"[^>]+value="([^"]*)"', sso_html))
+        login_data['username'] = matricula
+        login_data['password'] = senha
+        login_data['submit'] = 'ENTRAR'
+
+        p_login = urllib.parse.urlencode(login_data).encode('utf-8')
+        req_login = urllib.request.Request(action_url, data=p_login, headers=headers)
+        r_login = opener.open(req_login, timeout=20)
+        cur_html = r_login.read().decode('utf-8', errors='ignore')
+        cur_url = r_login.geturl()
+
+        aviso_count = 0
+        while 'telaAvisoLogon.jsf' in cur_url and aviso_count < 6:
+            m_av = re.search(r'<form[^>]+action="([^"]+)"', cur_html)
+            av_url = urllib.parse.urljoin('https://sigaa.unb.br', m_av.group(1)) if m_av else cur_url
+            av_inputs = dict(re.findall(r'<input[^>]+name="([^"]+)"[^>]+value="([^"]*)"', cur_html))
+            if 'formConfirmacaoDeclaracao' in cur_html or 'type="password"' in cur_html:
+                p_name = 'formConfirmacaoDeclaracao:senha'
+                for k in av_inputs:
+                    if 'senha' in k.lower() or 'password' in k.lower():
+                        p_name = k
+                av_inputs[p_name] = senha
+                av_inputs['formConfirmacaoDeclaracao:buttonConfirmar'] = 'Confirmar'
+            else:
+                av_inputs['btnContinuar'] = 'Continuar'
+            p_av = urllib.parse.urlencode(av_inputs).encode('utf-8')
+            r_av = opener.open(urllib.request.Request(av_url, data=p_av, headers=headers), timeout=20)
+            cur_html = r_av.read().decode('utf-8', errors='ignore')
+            cur_url = r_av.geturl()
+            aviso_count += 1
+
+        vs_m = re.search(r'name=["\']javax\.faces\.ViewState["\'][^>]+value=["\']([^"\']*)["\']', cur_html, re.I)
+        view_state = vs_m.group(1) if vs_m else ''
+        id_m = re.search(r'name=["\']id["\'][^>]+value=["\']([^"\']*)["\']', cur_html, re.I)
+        form_id = id_m.group(1) if id_m else '331956'
+
+        action_map = {
+            'vinculo': ('menu_form_menu_discente_discente_menu:A]#{ declaracaoVinculo.emitirDeclaracao}', True, 'Declaração de Vínculo'),
+            'atestado': ('menu_form_menu_discente_discente_menu:A]#{ portalDiscente.atestadoMatriculaUnb }', False, 'Atestado de Matrícula'),
+            'passe_livre': ('menu_form_menu_discente_discente_menu:A]#{ portalDiscente.passeEstudantilUnb }', False, 'Declaração para Passe Livre'),
+            'historico': ('menu_form_menu_discente_discente_menu:A]#{ portalDiscente.historico }', True, 'Histórico Escolar Oficial')
+        }
+
+        if doc_type not in action_map:
+            return {'success': False, 'error': f'Tipo de documento inválido: {doc_type}'}
+
+        jsf_action, is_pdf, title = action_map[doc_type]
+
+        body = {
+            'menu:form_menu_discente': 'menu:form_menu_discente',
+            'id': form_id,
+            'jscook_action': jsf_action,
+            'javax.faces.ViewState': view_state
+        }
+        p_body = urllib.parse.urlencode(body).encode('utf-8')
+        req_doc = urllib.request.Request('https://sigaa.unb.br/sigaa/portais/discente/discente.jsf', data=p_body, headers=headers)
+        r_doc = opener.open(req_doc, timeout=25)
+        raw_bytes = r_doc.read()
+
+        now_str = datetime.now().strftime('%d/%m/%Y %H:%M')
+
+        if is_pdf:
+            if len(raw_bytes) > 1000 and raw_bytes.startswith(b'%PDF'):
+                b64 = base64.b64encode(raw_bytes).decode('ascii')
+                kb = len(raw_bytes) // 1024
+                size_str = f"{kb / 1024:.1f} MB" if kb > 1024 else f"{kb} KB"
+                return {
+                    'success': True,
+                    'docType': doc_type,
+                    'title': title,
+                    'isPdfDirect': True,
+                    'pdfBase64': b64,
+                    'fileSizeFormatted': size_str,
+                    'lastEmittedAt': now_str
+                }
+            else:
+                return {'success': False, 'error': 'O SIGAA não retornou o PDF oficial do documento.'}
+        else:
+            html_text = raw_bytes.decode('iso-8859-1', errors='ignore')
+            m_code = re.search(r'c(?:[oó]|&#243;)digo de verifica(?:[cç]|&#231;)(?:[aã]|&#227;)o[^<]*<span[^>]*>\s*([a-zA-Z0-9]+)\s*</span>', html_text, re.I)
+            m_data = re.search(r'Emitido em\s+([\d/]+\s+[\d:]+)', html_text, re.I)
+            auth_code = m_code.group(1) if m_code else ''
+            emitted_date = m_data.group(1) if m_data else now_str
+            kb = len(raw_bytes) // 1024
+            return {
+                'success': True,
+                'docType': doc_type,
+                'title': title,
+                'isPdfDirect': False,
+                'htmlContent': html_text,
+                'codigoAutenticidade': auth_code,
+                'lastEmittedAt': emitted_date,
+                'fileSizeFormatted': f"{kb} KB"
+            }
+    except Exception as e:
+        return {'success': False, 'error': f'Falha ao emitir documento do SIGAA: {str(e)}'}
+
 def full_sigaa_sync(matricula, senha):
     return sync_with_urllib(matricula, senha)
 
@@ -874,10 +986,18 @@ def app(environ, start_response):
 
         matricula = str(data.get('matricula', '')).strip()
         senha = str(data.get('senha', '')).strip()
+        action = str(data.get('action', '')).strip()
+        doc_type = str(data.get('docType', '')).strip()
 
         if not matricula or not senha:
             start_response('400 Bad Request', headers)
             return [json.dumps({'success': False, 'error': 'Matrícula e senha são obrigatórias.'}).encode('utf-8')]
+
+        if action == 'emit_document':
+            result = emit_sigaa_document(matricula, senha, doc_type)
+            status_code = '200 OK' if result.get('success') else '400 Bad Request'
+            start_response(status_code, headers)
+            return [json.dumps(result, ensure_ascii=False).encode('utf-8')]
 
         result = full_sigaa_sync(matricula, senha)
         status_code = '200 OK' if result.get('success') else '401 Unauthorized'

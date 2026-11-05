@@ -58,6 +58,8 @@ import br.unb.ru.ui.components.BreakfastCard
 import br.unb.ru.ui.components.CampusSelectorBottomSheet
 import br.unb.ru.ui.components.DaySelectorRail
 import br.unb.ru.ui.components.DiscenteScreen
+import br.unb.ru.data.model.DocumentType
+import br.unb.ru.ui.components.DocumentosScreen
 import br.unb.ru.ui.components.HistoricoFluxogramaScreen
 import br.unb.ru.ui.components.AulasScreen
 import br.unb.ru.ui.components.MealTopControl
@@ -103,6 +105,9 @@ fun MenuHomeScreen(
     onGetHistoryPdf: () -> java.io.File? = { null },
     onMarkNoticeAsRead: (String) -> Unit = {},
     onSyncHistory: () -> Unit = {},
+    onEmitDocument: (DocumentType) -> Unit = {},
+    onGetDocumentFile: (DocumentType) -> java.io.File? = { null },
+    onClearDocError: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -112,6 +117,7 @@ fun MenuHomeScreen(
     var currentTab by remember { mutableStateOf(MainScreenTab.CARDAPIO) }
     var isDiscenteFlipped by remember { mutableStateOf(false) }
     var showHistorico by rememberSaveable { mutableStateOf(false) }
+    var showDocumentos by rememberSaveable { mutableStateOf(false) }
 
     val discenteScrollState = rememberSaveable(saver = ScrollState.Saver) { ScrollState(0) }
 
@@ -140,8 +146,8 @@ fun MenuHomeScreen(
         }
     }
 
-    fun openHistoryPdf() {
-        val file = onGetHistoryPdf()
+    fun openPdfDocument(type: DocumentType) {
+        val file = if (type == DocumentType.HISTORICO_ESCOLAR) onGetHistoryPdf() else onGetDocumentFile(type)
         if (file != null && file.exists()) {
             try {
                 val uri = androidx.core.content.FileProvider.getUriForFile(
@@ -154,13 +160,40 @@ fun MenuHomeScreen(
                     addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                context.startActivity(android.content.Intent.createChooser(intent, "Histórico Escolar Oficial"))
+                context.startActivity(android.content.Intent.createChooser(intent, type.title))
             } catch (e: Exception) {
                 android.widget.Toast.makeText(context, "Nenhum visualizador de PDF encontrado.", android.widget.Toast.LENGTH_SHORT).show()
             }
         } else {
-            android.widget.Toast.makeText(context, "Arquivo PDF não encontrado. Sincronize com o SIGAA.", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(context, "Documento não encontrado. Emita pelo SIGAA primeiro.", android.widget.Toast.LENGTH_SHORT).show()
         }
+    }
+
+    fun sharePdfDocument(type: DocumentType) {
+        val file = if (type == DocumentType.HISTORICO_ESCOLAR) onGetHistoryPdf() else onGetDocumentFile(type)
+        if (file != null && file.exists()) {
+            try {
+                val uri = androidx.core.content.FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    file
+                )
+                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    setType("application/pdf")
+                    putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(android.content.Intent.createChooser(intent, "Compartilhar ${type.title}"))
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(context, "Não foi possível compartilhar o documento.", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            android.widget.Toast.makeText(context, "Documento não encontrado. Emita pelo SIGAA primeiro.", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun openHistoryPdf() {
+        openPdfDocument(DocumentType.HISTORICO_ESCOLAR)
     }
 
     val qrBitmap = remember(state.studentCard.codigoQr) {
@@ -224,6 +257,19 @@ fun MenuHomeScreen(
                         onOpenPdf = { openHistoryPdf() },
                         isSyncing = state.isSyncingHistory,
                         onSyncHistory = onSyncHistory,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else if (showDocumentos) {
+                    DocumentosScreen(
+                        documents = state.digitalDocuments,
+                        card = state.studentCard,
+                        emittingDocType = state.emittingDocType,
+                        errorMessage = state.docErrorMessage,
+                        onBack = { showDocumentos = false },
+                        onEmitDocument = onEmitDocument,
+                        onOpenPdfDocument = { openPdfDocument(it) },
+                        onSharePdfDocument = { sharePdfDocument(it) },
+                        onClearError = onClearDocError,
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
@@ -507,6 +553,7 @@ fun MenuHomeScreen(
                             isCheckingUpdate = state.isCheckingUpdate,
                             onFlipToQr = { isDiscenteFlipped = true },
                             onOpenHistorico = { showHistorico = true },
+                            onOpenDocumentos = { showDocumentos = true },
                             isSyncingHistory = state.isSyncingHistory,
                             onSyncHistory = onSyncHistory,
                             scrollState = discenteScrollState,

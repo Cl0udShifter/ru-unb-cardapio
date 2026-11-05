@@ -67,7 +67,10 @@ class MainActivity : ComponentActivity() {
                     onClearUpdateMessage = { viewModel.clearUpdateMessage() },
                     onGetHistoryPdf = { viewModel.getHistoryPdfFile() },
                     onMarkNoticeAsRead = { viewModel.markNoticeAsRead(it) },
-                    onSyncHistory = { viewModel.syncAcademicHistory() }
+                    onSyncHistory = { viewModel.syncAcademicHistory() },
+                    onEmitDocument = { viewModel.emitDocument(it) },
+                    onGetDocumentFile = { viewModel.getDocumentFile(it) },
+                    onClearDocError = { viewModel.clearDocError() }
                 )
             }
         }

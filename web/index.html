@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="icons/favicon.png?v=4.1">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4.1">
   
-  <link rel="stylesheet" href="style.css?v=8.3">
+  <link rel="stylesheet" href="style.css?v=8.4">
 </head>
 <body>
   <div id="app">
@@ -258,6 +258,28 @@
                     <div class="action-nav-info">
                       <div class="action-nav-title">Histórico & Fluxograma</div>
                       <div class="action-nav-sub">Disciplinas cursadas, menções e fluxo</div>
+                    </div>
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-nav-chevron">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </div>
+                </div>
+
+                <!-- Card: Documentos Digitais (Módulo 5) -->
+                <div class="dashboard-card action-nav-card" id="btnOpenDocumentos" style="margin-top: -4px;">
+                  <div class="action-nav-row">
+                    <div class="action-nav-icon-box">
+                      <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                      </svg>
+                    </div>
+                    <div class="action-nav-info">
+                      <div class="action-nav-title">Documentos Digitais</div>
+                      <div class="action-nav-sub">Declaração de vínculo, atestado e passe livre</div>
                     </div>
                     <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-nav-chevron">
                       <polyline points="9 18 15 12 9 6"></polyline>
@@ -908,9 +930,74 @@
       </div>
     </div>
 
+    <!-- MODAL / TELA DE DOCUMENTOS DIGITAIS (MÓDULO 5) -->
+    <div id="documentosModal" class="full-screen-modal" style="display: none;">
+      <div class="modal-header">
+        <button id="btnCloseDocumentos" class="modal-back-btn" aria-label="Voltar">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
+        <div class="modal-header-text">
+          <h2 class="modal-title">Documentos Digitais</h2>
+          <div id="documentosCursoSubtitle" class="modal-subtitle">Documentos oficiais com autenticação</div>
+        </div>
+        <div style="width: 36px;"></div>
+      </div>
+
+      <div class="modal-scroll-content">
+        <!-- Banner Informativo -->
+        <div class="dashboard-card" style="margin-bottom: 14px; padding: 14px 16px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="action-nav-icon-box" style="width: 38px; height: 38px; min-width: 38px;">
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 14px; color: var(--text-primary);">Emissão Oficial SIGAA</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Documentos autenticados para comprovação acadêmica e benefícios estudantis.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de Documentos -->
+        <div id="digitalDocsList" style="display: flex; flex-direction: column; gap: 12px; padding-bottom: 24px;">
+          <!-- Preenchido dinamicamente via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL / VIEWER HTML DE DOCUMENTOS (ATESTADO / PASSE LIVRE) -->
+    <div id="docViewerModal" class="full-screen-modal" style="display: none; z-index: 1050;">
+      <div class="modal-header">
+        <button id="btnCloseDocViewer" class="modal-back-btn" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <div class="modal-header-text">
+          <h2 class="modal-title" id="docViewerTitle">Visualizar Documento</h2>
+          <div class="modal-subtitle">Documento Oficial com Autenticação</div>
+        </div>
+        <button id="btnPrintDocViewer" class="modal-action-btn" title="Imprimir / Salvar PDF">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+        </button>
+      </div>
+      <div style="flex: 1; width: 100%; height: calc(100% - 60px); overflow: hidden; background: #fff;">
+        <iframe id="docViewerIframe" style="width: 100%; height: 100%; border: none;"></iframe>
+      </div>
+    </div>
+
   <script src="zxing.min.js"></script>
   <script src="jsqr.min.js"></script>
   <script src="qrcode.min.js?v=4.1"></script>
-  <script src="app.js?v=8.3"></script>
+  <script src="app.js?v=8.4"></script>
 </body>
 </html>

@@ -14,6 +14,8 @@ import br.unb.ru.data.model.ClassSchedule
 import br.unb.ru.data.model.AcademicHistory
 import br.unb.ru.data.model.CurriculumMatrix
 import br.unb.ru.data.model.FlowSemester
+import br.unb.ru.data.model.DigitalDocument
+import br.unb.ru.data.model.DocumentType
 import br.unb.ru.data.model.WeeklyMenu
 import br.unb.ru.data.repository.AppUpdateRepository
 import br.unb.ru.data.repository.MenuRepository
@@ -48,6 +50,9 @@ data class MenuUiState(
     val classes: List<ClassSchedule> = emptyList(),
     val academicHistory: AcademicHistory = AcademicHistory(),
     val flowSemesters: List<FlowSemester> = emptyList(),
+    val digitalDocuments: List<DigitalDocument> = emptyList(),
+    val emittingDocType: DocumentType? = null,
+    val docErrorMessage: String? = null,
     val isSyncingHistory: Boolean = false,
     val readNoticeIds: Set<String> = emptySet(),
     val isSyncingCard: Boolean = false,
@@ -101,6 +106,7 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
         val savedHistory = cardRepository.getAcademicHistory()
         val flowSemesters = CurriculumMatrix.resolveFlow(savedHistory)
         val savedReadNotices = cardRepository.getReadNoticeIds()
+        val savedDocs = cardRepository.getDigitalDocuments()
 
         // 4. Carregar campus selecionado
         val savedCampus = repository.getSelectedCampus()
@@ -115,6 +121,7 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
                 academicHistory = savedHistory,
                 flowSemesters = flowSemesters,
                 readNoticeIds = savedReadNotices,
+                digitalDocuments = savedDocs,
                 selectedCampus = savedCampus
             )
         }
@@ -433,4 +440,37 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun getHistoryPdfFile(): File? = cardRepository.getHistoryPdfFile()
+
+    fun emitDocument(type: DocumentType, onDone: ((DigitalDocument) -> Unit)? = null) {
+        val creds = cardRepository.getSavedCredentials() ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(emittingDocType = type, docErrorMessage = null) }
+            val result = cardRepository.emitDigitalDocument(type, creds.first, creds.second)
+            result.onSuccess { doc ->
+                val updatedDocs = cardRepository.getDigitalDocuments()
+                _uiState.update {
+                    it.copy(
+                        emittingDocType = null,
+                        digitalDocuments = updatedDocs
+                    )
+                }
+                onDone?.invoke(doc)
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        emittingDocType = null,
+                        docErrorMessage = err.message ?: "Erro ao emitir documento do SIGAA."
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearDocError() {
+        _uiState.update { it.copy(docErrorMessage = null) }
+    }
+
+    fun getDocumentFile(type: DocumentType): File? = cardRepository.getDocumentFile(type)
+
+    fun getDocumentHtml(type: DocumentType): String? = cardRepository.getDocumentHtml(type)
 }
