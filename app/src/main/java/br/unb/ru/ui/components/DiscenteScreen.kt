@@ -794,7 +794,7 @@ fun DiscenteScreen(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(72.dp))
+                    Spacer(modifier = Modifier.height(96.dp))
                 }
             }
 

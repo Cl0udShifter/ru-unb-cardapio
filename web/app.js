@@ -1460,15 +1460,18 @@ function renderTurnstileFullscreenQR() {
   renderZxingQRCode(container, qrPayload, 320);
 }
 
-// Touch Gestures: Horizontal Drag / Swipe between Days (MenuHomeScreen.kt 1:1)
+// Touch Gestures: Horizontal Swipe between Cardápio & Discente tabs (MenuHomeScreen.kt 1:1)
 function setupSwipeGestures() {
-  const area = document.getElementById('mainContentSwipeArea');
   let startX = 0;
   let startY = 0;
   let distX = 0;
   let distY = 0;
 
-  area.addEventListener('touchstart', (e) => {
+  window.addEventListener('touchstart', (e) => {
+    // Disable tab swiping when QR code is flipped or modal/sheet is open
+    if (document.body.classList.contains('discente-flipped')) return;
+    if (document.querySelector('.sheet-overlay.open')) return;
+
     const touch = e.touches[0];
     startX = touch.clientX;
     startY = touch.clientY;
@@ -1476,25 +1479,23 @@ function setupSwipeGestures() {
     distY = 0;
   }, { passive: true });
 
-  area.addEventListener('touchmove', (e) => {
+  window.addEventListener('touchmove', (e) => {
     if (!startX || !startY) return;
     const touch = e.touches[0];
     distX = touch.clientX - startX;
     distY = touch.clientY - startY;
   }, { passive: true });
 
-  area.addEventListener('touchend', () => {
-    // Check if horizontal swipe was dominant and exceeded threshold
-    if (Math.abs(distX) > 60 && Math.abs(distX) > Math.abs(distY) * 1.5) {
-      const diasCount = appState.menu && appState.menu.dias ? appState.menu.dias.length : 7;
-      if (distX < 0 && appState.selectedDayIndex < diasCount - 1) {
-        // Swipe left -> next day
-        appState.selectedDayIndex++;
-        renderHomeScreen();
-      } else if (distX > 0 && appState.selectedDayIndex > 0) {
-        // Swipe right -> previous day
-        appState.selectedDayIndex--;
-        renderHomeScreen();
+  window.addEventListener('touchend', () => {
+    // Require dominant horizontal movement exceeding threshold
+    if (Math.abs(distX) > 65 && Math.abs(distX) > Math.abs(distY) * 1.5) {
+      const isCardapio = document.getElementById('navCardapioBtn')?.classList.contains('active');
+      if (distX < 0 && isCardapio) {
+        // Swipe left -> go to Discente
+        document.getElementById('navDiscenteBtn')?.click();
+      } else if (distX > 0 && !isCardapio) {
+        // Swipe right -> go to Cardápio
+        document.getElementById('navCardapioBtn')?.click();
       }
     }
     startX = 0;

@@ -14,6 +14,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -180,13 +182,46 @@ fun MenuHomeScreen(
                 containerColor = MaterialTheme.colorScheme.background,
                 snackbarHost = { SnackbarHost(snackbarHostState) }
             ) { innerPadding ->
+                var totalSwipeDrag by remember { mutableFloatStateOf(0f) }
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
                         .nestedScroll(pullRefreshState.nestedScrollConnection)
+                        .pointerInput(currentTab, isDiscenteFlipped) {
+                            if (!isDiscenteFlipped) {
+                                detectHorizontalDragGestures(
+                                    onDragEnd = {
+                                        if (totalSwipeDrag < -70f && currentTab == MainScreenTab.CARDAPIO) {
+                                            currentTab = MainScreenTab.DISCENTE
+                                        } else if (totalSwipeDrag > 70f && currentTab == MainScreenTab.DISCENTE) {
+                                            currentTab = MainScreenTab.CARDAPIO
+                                        }
+                                        totalSwipeDrag = 0f
+                                    },
+                                    onHorizontalDrag = { _, dragAmount ->
+                                        totalSwipeDrag += dragAmount
+                                    }
+                                )
+                            }
+                        }
                 ) {
-                    if (currentTab == MainScreenTab.CARDAPIO) {
+                    AnimatedContent(
+                        targetState = currentTab,
+                        transitionSpec = {
+                            if (targetState == MainScreenTab.DISCENTE) {
+                                (slideInHorizontally(animationSpec = tween(260, easing = FastOutSlowInEasing)) { width -> width } + fadeIn(animationSpec = tween(220)))
+                                    .togetherWith(slideOutHorizontally(animationSpec = tween(260, easing = FastOutSlowInEasing)) { width -> -width } + fadeOut(animationSpec = tween(180)))
+                            } else {
+                                (slideInHorizontally(animationSpec = tween(260, easing = FastOutSlowInEasing)) { width -> -width } + fadeIn(animationSpec = tween(220)))
+                                    .togetherWith(slideOutHorizontally(animationSpec = tween(260, easing = FastOutSlowInEasing)) { width -> width } + fadeOut(animationSpec = tween(180)))
+                            }
+                        },
+                        label = "tab_slide_animation",
+                        modifier = Modifier.fillMaxSize()
+                    ) { tab ->
+                        if (tab == MainScreenTab.CARDAPIO) {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -307,27 +342,9 @@ fun MenuHomeScreen(
                                 )
                             }
 
-                            // Swipeable and Scrollable Meal Card Area
-                            var totalDrag by remember { mutableFloatStateOf(0f) }
-
+                            // Scrollable Meal Card Area
                             Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .pointerInput(state.selectedDayIndex, dias.size) {
-                                        detectHorizontalDragGestures(
-                                            onDragEnd = {
-                                                if (totalDrag < -100f && state.selectedDayIndex < dias.size - 1) {
-                                                    onDaySelected(state.selectedDayIndex + 1)
-                                                } else if (totalDrag > 100f && state.selectedDayIndex > 0) {
-                                                    onDaySelected(state.selectedDayIndex - 1)
-                                                }
-                                                totalDrag = 0f
-                                            },
-                                            onHorizontalDrag = { _, dragAmount ->
-                                                totalDrag += dragAmount
-                                            }
-                                        )
-                                    }
+                                modifier = Modifier.fillMaxSize()
                             ) {
                                 if (state.isLoading) {
                                     Box(
@@ -433,7 +450,7 @@ fun MenuHomeScreen(
                                                 textAlign = TextAlign.Center,
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .padding(bottom = 76.dp)
+                                                    .padding(bottom = 96.dp)
                                             )
                                         }
                                     }
@@ -458,6 +475,7 @@ fun MenuHomeScreen(
                             modifier = Modifier.statusBarsPadding()
                         )
                     }
+                    }
 
                     // Indicador de Pull to Refresh
                     if (pullRefreshState.verticalOffset > 0f || pullRefreshState.isRefreshing) {
@@ -469,20 +487,20 @@ fun MenuHomeScreen(
                         )
                     }
 
-                    // Seletor Flutuante em Pílula (Cardápio / Discente - Sem texto, apenas ícones)
+                    // Seletor Flutuante em Pílula Aumentado (Cardápio / Discente - Sem texto, ícones grandes e toque fácil)
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
-                        shadowElevation = 6.dp,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
+                        shadowElevation = 8.dp,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .navigationBarsPadding()
-                            .padding(bottom = 16.dp)
+                            .padding(bottom = 20.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             // Aba Cardápio
@@ -499,7 +517,7 @@ fun MenuHomeScreen(
                             )
                             Box(
                                 modifier = Modifier
-                                    .size(width = 48.dp, height = 36.dp)
+                                    .size(width = 72.dp, height = 48.dp)
                                     .clip(CircleShape)
                                     .background(cardapioBg)
                                     .clickable { currentTab = MainScreenTab.CARDAPIO },
@@ -509,7 +527,7 @@ fun MenuHomeScreen(
                                     imageVector = Icons.Outlined.RestaurantMenu,
                                     contentDescription = "Cardápio",
                                     tint = cardapioIconColor,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(26.dp)
                                 )
                             }
 
@@ -527,7 +545,7 @@ fun MenuHomeScreen(
                             )
                             Box(
                                 modifier = Modifier
-                                    .size(width = 48.dp, height = 36.dp)
+                                    .size(width = 72.dp, height = 48.dp)
                                     .clip(CircleShape)
                                     .background(discenteBg)
                                     .clickable { currentTab = MainScreenTab.DISCENTE },
@@ -537,7 +555,7 @@ fun MenuHomeScreen(
                                     imageVector = Icons.Outlined.School,
                                     contentDescription = "Discente",
                                     tint = discenteIconColor,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(26.dp)
                                 )
                             }
                         }
