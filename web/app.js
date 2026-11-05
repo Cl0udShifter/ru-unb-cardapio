@@ -846,29 +846,29 @@ function setupDiscenteDashboard() {
     };
   }
 
-  const flipInner = document.getElementById('ruFlipInner');
+  const flipper = document.getElementById('discenteScreenFlipper') || document.getElementById('ruFlipInner');
   const flipToQrBtn = document.getElementById('ruFlipToQrBtn');
   const flipToFrontBtn = document.getElementById('ruFlipToFrontBtn');
 
-  if (flipToQrBtn && flipInner) {
+  if (flipToQrBtn && flipper) {
     flipToQrBtn.onclick = (e) => {
       e.stopPropagation();
-      flipInner.classList.add('flipped');
+      flipper.classList.add('flipped');
     };
   }
 
-  if (flipToFrontBtn && flipInner) {
+  if (flipToFrontBtn && flipper) {
     flipToFrontBtn.onclick = (e) => {
       e.stopPropagation();
-      flipInner.classList.remove('flipped');
+      flipper.classList.remove('flipped');
     };
   }
 
-  const flipBack = document.querySelector('.ru-flip-back');
-  if (flipBack && flipInner) {
+  const flipBack = document.getElementById('discenteScreenBack') || document.querySelector('.ru-flip-back');
+  if (flipBack && flipper) {
     flipBack.onclick = (e) => {
       if (e.target.closest('#ruFlipToFrontBtn')) return;
-      flipInner.classList.remove('flipped');
+      flipper.classList.remove('flipped');
     };
   }
 

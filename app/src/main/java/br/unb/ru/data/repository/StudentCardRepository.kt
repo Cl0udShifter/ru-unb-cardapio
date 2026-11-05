@@ -331,17 +331,17 @@ class StudentCardRepository(private val context: Context) {
             val ira = extractPattern(currentHtml, "IRA:\\s*(?:</acronym>)?</td>\\s*<td[^>]*>(?:<div[^>]*>)?([\\d\\.,]+)").ifBlank { "--" }
             val mp = extractPattern(currentHtml, "MP:\\s*(?:</acronym>)?</td>\\s*<td[^>]*>(?:<div[^>]*>)?([\\d\\.,]+)").ifBlank { "--" }
 
-            val chTotalStr = extractPattern(currentHtml, "CH\\.\\s*Total\\s*Curr[ií]culo\\s*</td>\\s*<td[^>]*>\\s*(\\d+)\\s*</td>")
-            val chObStr = extractPattern(currentHtml, "CH\\.\\s*Obrigat[oó]ria\\s*Pendente\\s*</td>\\s*<td[^>]*>\\s*(\\d+)\\s*</td>")
-            val chOpStr = extractPattern(currentHtml, "CH\\.\\s*Optativa\\s*Pendente\\s*</td>\\s*<td[^>]*>\\s*(\\d+)\\s*</td>")
-            val chCompStr = extractPattern(currentHtml, "CH\\.\\s*Complementar\\s*Pendente\\s*</td>\\s*<td[^>]*>\\s*(\\d+)\\s*</td>")
+            val chTotalStr = extractPattern(currentHtml, "CH\\.\\s*Total.*?</td>\\s*<td[^>]*>\\s*(\\d+)\\s*</td>")
+            val chObStr = extractPattern(currentHtml, "CH\\.\\s*Obrigat.*?Pendente\\s*</td>\\s*<td[^>]*>\\s*(\\d+)\\s*</td>")
+            val chOpStr = extractPattern(currentHtml, "CH\\.\\s*Optativa.*?Pendente\\s*</td>\\s*<td[^>]*>\\s*(\\d+)\\s*</td>")
+            val chCompStr = extractPattern(currentHtml, "CH\\.\\s*Complementar.*?Pendente\\s*</td>\\s*<td[^>]*>\\s*(\\d+)\\s*</td>")
 
             val chTotal = chTotalStr.toIntOrNull() ?: 0
             val chOb = chObStr.toIntOrNull() ?: 0
             val chOp = chOpStr.toIntOrNull() ?: 0
             val chComp = chCompStr.toIntOrNull() ?: 0
             val chConcluida = kotlin.math.max(0, chTotal - (chOb + chOp + chComp))
-            val pct = if (chTotal > 0) ((chConcluida.toFloat() / chTotal) * 100f) else 0f
+            val pct = if (chTotal > 0) { val raw = (chConcluida.toFloat() / chTotal.toFloat()) * 100f; kotlin.math.round(raw * 10f) / 10f } else 0f
 
             var fotoUrl = ""
             try {
@@ -540,8 +540,14 @@ class StudentCardRepository(private val context: Context) {
         val mergedMap = mutableMapOf<String, TransactionItem>()
 
         // Inserir transações novas e existentes sem duplicações
-        existing.transacoes.forEach { mergedMap["${it.dataHora}|${it.descricao}|${it.valor}"] = it }
-        newTransactions.forEach { mergedMap["${it.dataHora}|${it.descricao}|${it.valor}"] = it }
+        existing.transacoes.forEach {
+            val cleanItem = it.copy(descricao = decodeHtmlEntities(it.descricao))
+            mergedMap["${cleanItem.dataHora}|${cleanItem.descricao}|${cleanItem.valor}"] = cleanItem
+        }
+        newTransactions.forEach {
+            val cleanItem = it.copy(descricao = decodeHtmlEntities(it.descricao))
+            mergedMap["${cleanItem.dataHora}|${cleanItem.descricao}|${cleanItem.valor}"] = cleanItem
+        }
 
         val sortedList = mergedMap.values.toList()
         val now = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
@@ -556,7 +562,29 @@ class StudentCardRepository(private val context: Context) {
     }
 
     private fun decodeHtmlEntities(input: String): String {
-        return android.text.Html.fromHtml(input, android.text.Html.FROM_HTML_MODE_LEGACY).toString().trim()
+        return try {
+            val unescaped = android.text.Html.fromHtml(input, android.text.Html.FROM_HTML_MODE_LEGACY).toString().trim()
+            unescaped.replace("&#233;", "é")
+                .replace("&#225;", "á")
+                .replace("&#227;", "ã")
+                .replace("&#243;", "ó")
+                .replace("&#245;", "õ")
+                .replace("&#237;", "í")
+                .replace("&#250;", "ú")
+                .replace("&#231;", "ç")
+                .replace("&eacute;", "é")
+                .replace("&atilde;", "ã")
+        } catch (e: Exception) {
+            input.replace("&#233;", "é")
+                .replace("&#225;", "á")
+                .replace("&#227;", "ã")
+                .replace("&#243;", "ó")
+                .replace("&#245;", "õ")
+                .replace("&#237;", "í")
+                .replace("&#250;", "ú")
+                .replace("&#231;", "ç")
+                .trim()
+        }
     }
 
     private fun decodeQrFromBitmap(bitmap: Bitmap): String? {

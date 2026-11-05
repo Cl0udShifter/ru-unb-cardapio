@@ -68,14 +68,14 @@ fun DiscenteScreen(
     var showDisconnectConfirm by remember { mutableStateOf(false) }
     var isFlipped by remember { mutableStateOf(false) }
 
-    // Close sync dialog upon successful sync
+    // Fechar dialog ao concluir sincronização com sucesso
     LaunchedEffect(isSyncing, card.isConfigured, syncError) {
         if (!isSyncing && card.isConfigured && syncError == null) {
             showSyncDialog = false
         }
     }
 
-    // High brightness trigger when QR card is flipped
+    // Aumento de brilho da tela quando girar para o QR Code da catraca
     DisposableEffect(isFlipped) {
         if (isFlipped && activity != null) {
             val params = activity.window.attributes
@@ -92,13 +92,14 @@ fun DiscenteScreen(
         }
     }
 
+    // Rotação 3D da tela inteira
     val rotation by animateFloatAsState(
         targetValue = if (isFlipped) 180f else 0f,
-        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
-        label = "ru_card_flip"
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "full_screen_flip"
     )
 
-    // Load profile photo in background if URL available
+    // Foto de perfil via URL em segundo plano
     var avatarBitmap by remember(card.fotoPerfilUrl) { mutableStateOf<Bitmap?>(null) }
     LaunchedEffect(card.fotoPerfilUrl) {
         if (card.fotoPerfilUrl.isNotBlank()) {
@@ -123,7 +124,7 @@ fun DiscenteScreen(
 
     val qrBitmap = remember(card.codigoQr) {
         if (card.codigoQr.isNotBlank()) {
-            QrCodeGenerator.generateQrBitmap(card.codigoQr, sizePx = 600)
+            QrCodeGenerator.generateQrBitmap(card.codigoQr, sizePx = 650)
         } else null
     }
 
@@ -136,616 +137,322 @@ fun DiscenteScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .graphicsLayer {
+                rotationY = rotation
+                cameraDistance = 14f * density
+            }
     ) {
-        // Cabeçalho da Aba Discente
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "Painel Discente",
-                    style = NotionTypography.displaySmall,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = if (card.isConfigured) {
-                        "Atualizado em ${statement.ultimaAtualizacao.ifBlank { "Hoje" }}"
-                    } else {
-                        "Não conectado"
-                    },
-                    style = NotionTypography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                )
-            }
-
-            if (card.isConfigured) {
-                IconButton(
-                    onClick = onRefreshStatement,
-                    enabled = !isRefreshingStatement && !isSyncing
-                ) {
-                    if (isRefreshingStatement || isSyncing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Outlined.Sync,
-                            contentDescription = "Sincronizar dados",
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                }
-            }
-        }
-
-        if (!card.isConfigured) {
+        if (rotation <= 90f) {
             // ==========================================
-            // ESTADO DESCONECTADO (SKELETONS + CTA)
+            // FRENTE: PAINEL DISCENTE COMPLETO
             // ==========================================
-            // Skeleton 1: Perfil
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                    )
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.7f)
-                                .height(16.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(0.45f)
-                                .height(12.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                        )
-                    }
-                }
-            }
-
-            // CTA Central Primário
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Button(
-                    onClick = { showSyncDialog = true },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    modifier = Modifier.fillMaxWidth(0.85f),
-                    contentPadding = PaddingValues(vertical = 14.dp)
+                // Cabeçalho da Aba Discente
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.Login,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Sincronizar com SIGAA",
-                        style = NotionTypography.titleSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Text(
-                    text = "Conecte sua conta do SIGAA da UnB para acessar sua carteirinha, saldo do RU e histórico acadêmico.",
-                    style = NotionTypography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(0.85f)
-                )
-            }
-
-            // Skeleton 2: Métricas
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.35f)
-                            .height(14.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(68.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                    Column {
+                        Text(
+                            text = "Painel Discente",
+                            style = NotionTypography.displaySmall,
+                            color = MaterialTheme.colorScheme.onBackground
                         )
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(68.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        Text(
+                            text = if (card.isConfigured) {
+                                "Atualizado em ${statement.ultimaAtualizacao.ifBlank { "Hoje" }}"
+                            } else {
+                                "Não conectado"
+                            },
+                            style = NotionTypography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         )
                     }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                    )
-                }
-            }
 
-        } else {
-            // ==========================================
-            // ESTADO CONECTADO (DASHBOARD COMPLETO)
-            // ==========================================
-
-            // CARD 1: PERFIL DO ESTUDANTE
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Avatar com foto ou iniciais
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .border(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), CircleShape),
-                            contentAlignment = Alignment.Center
+                    if (card.isConfigured) {
+                        IconButton(
+                            onClick = onRefreshStatement,
+                            enabled = !isRefreshingStatement && !isSyncing
                         ) {
-                            if (avatarBitmap != null) {
-                                Image(
-                                    bitmap = avatarBitmap!!.asImageBitmap(),
-                                    contentDescription = "Foto do discente",
-                                    modifier = Modifier.fillMaxSize()
+                            if (isRefreshingStatement || isSyncing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onBackground
                                 )
                             } else {
-                                Text(
-                                    text = initials,
-                                    style = NotionTypography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                Icon(
+                                    imageVector = Icons.Outlined.Sync,
+                                    contentDescription = "Sincronizar dados",
+                                    tint = MaterialTheme.colorScheme.onBackground
                                 )
-                            }
-                        }
-
-                        // Informações do aluno
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = card.nome.ifBlank { "Estudante UnB" },
-                                style = NotionTypography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = "Matrícula: ${card.matricula}",
-                                style = NotionTypography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            )
-                            Text(
-                                text = card.curso.ifBlank { "Graduação" },
-                                style = NotionTypography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            // Badges: Status, Nível, Semestre
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // Status
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = Color(0x254CAF50)
-                                ) {
-                                    Text(
-                                        text = card.status.ifBlank { "ATIVO" },
-                                        style = NotionTypography.labelSmall,
-                                        color = Color(0xFF4CAF50),
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                                // Nível
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant
-                                ) {
-                                    Text(
-                                        text = card.nivel.ifBlank { "GRADUAÇÃO" },
-                                        style = NotionTypography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                                // Semestre
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = Color(0x25EAB308)
-                                ) {
-                                    Text(
-                                        text = card.semestreAtual.ifBlank { "2026.2" },
-                                        style = NotionTypography.labelSmall,
-                                        color = Color(0xFFEAB308),
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
                             }
                         }
                     }
                 }
-            }
 
-            // CARD 2: RENDIMENTO ACADÊMICO
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-            ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text(
-                        text = "RENDIMENTO ACADÊMICO",
-                        style = NotionTypography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                        letterSpacing = 0.5.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Caixas de IRA e MP
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Surface(
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = "IRA",
-                                    style = NotionTypography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = card.ira.ifBlank { "--" },
-                                    style = NotionTypography.displaySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFEAB308)
-                                )
-                                Text(
-                                    text = "Índice de Rendimento",
-                                    style = NotionTypography.bodySmall,
-                                    fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                )
-                            }
-                        }
-
-                        Surface(
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = "MÉDIA PONDERADA",
-                                    style = NotionTypography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = card.mediaPonderada.ifBlank { "--" },
-                                    style = NotionTypography.displaySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Ponderada Geral",
-                                    style = NotionTypography.bodySmall,
-                                    fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Barra de Progresso de Integralização
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Integralização Curricular",
-                            style = NotionTypography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "${card.percentualConcluido}%",
-                            style = NotionTypography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF4CAF50)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    val progressFraction = (card.percentualConcluido / 100f).coerceIn(0f, 1f)
-                    LinearProgressIndicator(
-                        progress = { progressFraction },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(CircleShape),
-                        color = Color(0xFF4CAF50),
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Concluídas: ${card.chConcluida}h",
-                            style = NotionTypography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
-                        )
-                        Text(
-                            text = "Total: ${card.chTotal}h",
-                            style = NotionTypography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
-                        )
-                    }
-
-                    if (card.chObrigatoriaPendente > 0 || card.chOptativaPendente > 0) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Pendentes: Obrigatórias: ${card.chObrigatoriaPendente}h • Optativas: ${card.chOptativaPendente}h",
-                            style = NotionTypography.bodySmall,
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-            }
-
-            // CARD 3: RU COM 3D FLIP CARD
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer {
-                        rotationY = rotation
-                        cameraDistance = 12f * density
-                    },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (rotation > 90f) Color.White else MaterialTheme.colorScheme.surface
-                ),
-                border = BorderStroke(
-                    1.dp,
-                    if (rotation > 90f) Color(0xFFDDDDDD) else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                )
-            ) {
-                if (rotation <= 90f) {
+                if (!card.isConfigured) {
                     // ==========================================
-                    // FRENTE: SALDO E EXTRATO RECENTE DO RU
+                    // ESTADO DESCONECTADO (CTA NO TOPO + ESQUELETO ABAIXO)
                     // ==========================================
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "RESTAURANTE UNIVERSITÁRIO",
-                                    style = NotionTypography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                                    letterSpacing = 0.5.sp
-                                )
-                                Text(
-                                    text = "Saldo Disponível",
-                                    style = NotionTypography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                            }
-                        }
-
-                        // Hero Saldo
-                        Surface(
+                    // CTA Primário no Topo
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    ) {
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 12.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                                .padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(vertical = 14.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                            Button(
+                                onClick = { showSyncDialog = true },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                                contentPadding = PaddingValues(vertical = 14.dp)
                             ) {
-                                Text(
-                                    text = statement.saldoAtual.ifBlank { "R$ 0,00" },
-                                    style = NotionTypography.displayLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Outlined.Login,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
                                 )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Sincronizar com SIGAA",
+                                    style = NotionTypography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Text(
+                                text = "Conecte sua conta do SIGAA da UnB para acessar sua carteirinha, saldo do RU e histórico acadêmico.",
+                                style = NotionTypography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    // Esqueleto discreto abaixo (Apenas 2 cards)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer { alpha = 0.45f },
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Esqueleto 1: Perfil
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(18.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(54.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                )
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth(0.6f)
+                                            .height(14.dp)
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth(0.4f)
+                                            .height(11.dp)
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    )
+                                }
                             }
                         }
 
-                        // Botão Girar para QR Code
-                        OutlinedButton(
-                            onClick = { isFlipped = true },
-                            shape = RoundedCornerShape(12.dp),
+                        // Esqueleto 2: Métricas
+                        Card(
                             modifier = Modifier.fillMaxWidth(),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            ),
-                            contentPadding = PaddingValues(vertical = 12.dp)
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
                         ) {
-                            Icon(
-                                imageVector = Icons.Outlined.FlipCameraAndroid,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Girar para QR Code da Catraca",
-                                style = NotionTypography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(18.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.35f)
+                                        .height(12.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(60.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(60.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    )
+                                }
+                            }
                         }
+                    }
 
-                        Spacer(modifier = Modifier.height(14.dp))
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
-                        Spacer(modifier = Modifier.height(10.dp))
+                } else {
+                    // ==========================================
+                    // ESTADO CONECTADO (DASHBOARD COMPLETO)
+                    // ==========================================
 
-                        // Extrato Recente
-                        Text(
-                            text = "TRANSAÇÕES RECENTES",
-                            style = NotionTypography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-                            letterSpacing = 0.5.sp
-                        )
+                    // CARD 1: PERFIL DO ESTUDANTE
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                    ) {
+                        Column(modifier = Modifier.padding(18.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Avatar com foto ou iniciais
+                                Box(
+                                    modifier = Modifier
+                                        .size(64.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .border(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (avatarBitmap != null) {
+                                        Image(
+                                            bitmap = avatarBitmap!!.asImageBitmap(),
+                                            contentDescription = "Foto do discente",
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    } else {
+                                        Text(
+                                            text = initials,
+                                            style = NotionTypography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                                // Informações do aluno
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = card.nome.ifBlank { "Estudante UnB" },
+                                        style = NotionTypography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "Matrícula: ${card.matricula}",
+                                        style = NotionTypography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                    )
+                                    Text(
+                                        text = card.curso.ifBlank { "Graduação" },
+                                        style = NotionTypography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
 
-                        val transactions = statement.transacoes.take(4)
-                        if (transactions.isEmpty()) {
-                            Text(
-                                text = "Nenhuma transação recente registrada",
-                                style = NotionTypography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                modifier = Modifier.padding(vertical = 6.dp)
-                            )
-                        } else {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                transactions.forEach { item ->
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.fillMaxWidth()
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    // Badges: Status, Nível, Semestre (Tudo na cor neutra/branca unificada)
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 10.dp, vertical = 8.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
+                                        // Status
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant
                                         ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = item.descricao,
-                                                    style = NotionTypography.bodyMedium,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                                Text(
-                                                    text = item.dataHora,
-                                                    style = NotionTypography.bodySmall,
-                                                    fontSize = 11.sp,
-                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                                )
-                                            }
                                             Text(
-                                                text = item.valor,
-                                                style = NotionTypography.titleSmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color(0xFFEF4444)
+                                                text = card.status.ifBlank { "ATIVO" },
+                                                style = NotionTypography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                                fontWeight = FontWeight.SemiBold,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                        // Nível
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant
+                                        ) {
+                                            Text(
+                                                text = card.nivel.ifBlank { "GRADUAÇÃO" },
+                                                style = NotionTypography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                                fontWeight = FontWeight.SemiBold,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                        // Semestre
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant
+                                        ) {
+                                            Text(
+                                                text = card.semestreAtual.ifBlank { "2026.2" },
+                                                style = NotionTypography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                                fontWeight = FontWeight.SemiBold,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
                                         }
                                     }
@@ -753,224 +460,534 @@ fun DiscenteScreen(
                             }
                         }
                     }
-                } else {
-                    // ==========================================
-                    // VERSO: CARTEIRINHA E QR CODE (3D FLIPPED)
-                    // ==========================================
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .graphicsLayer {
-                                rotationY = 180f // Desespelha o verso
-                            }
-                            .clickable { isFlipped = false }
-                            .padding(18.dp)
+
+                    // CARD 2: RENDIMENTO ACADÊMICO
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                     ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
+                        Column(modifier = Modifier.padding(18.dp)) {
+                            Text(
+                                text = "RENDIMENTO ACADÊMICO",
+                                style = NotionTypography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                letterSpacing = 0.5.sp
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Caixas de IRA e MP (Valores em branco consistente)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Surface(
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(12.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = "IRA",
+                                            style = NotionTypography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = card.ira.ifBlank { "--" },
+                                            style = NotionTypography.displaySmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "Índice de Rendimento",
+                                            style = NotionTypography.bodySmall,
+                                            fontSize = 10.sp,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                }
+
+                                Surface(
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(12.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = "MÉDIA PONDERADA",
+                                            style = NotionTypography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = card.mediaPonderada.ifBlank { "--" },
+                                            style = NotionTypography.displaySmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "Ponderada Geral",
+                                            style = NotionTypography.bodySmall,
+                                            fontSize = 10.sp,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Barra de Progresso de Integralização
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "LEITOR DA CATRACA",
-                                    style = NotionTypography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF555555),
-                                    letterSpacing = 0.5.sp
+                                    text = "Integralização Curricular",
+                                    style = NotionTypography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
+                                Text(
+                                    text = "${card.percentualConcluido}%",
+                                    style = NotionTypography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
 
-                                Surface(
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = Color(0xFFF1F1F1),
-                                    border = BorderStroke(1.dp, Color(0xFFCCCCCC)),
-                                    modifier = Modifier.clickable { isFlipped = false }
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            val progressFraction = (card.percentualConcluido / 100f).coerceIn(0f, 1f)
+                            LinearProgressIndicator(
+                                progress = { progressFraction },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .clip(CircleShape),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Concluídas: ${card.chConcluida}h",
+                                    style = NotionTypography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                                )
+                                Text(
+                                    text = "Total: ${card.chTotal}h",
+                                    style = NotionTypography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                                )
+                            }
+
+                            if (card.chObrigatoriaPendente > 0 || card.chOptativaPendente > 0) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Pendentes: Obrigatórias: ${card.chObrigatoriaPendente}h • Optativas: ${card.chOptativaPendente}h",
+                                    style = NotionTypography.bodySmall,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+
+                    // CARD 3: RESTAURANTE UNIVERSITÁRIO (SALDO + EXTRATO + CTA GIRO DE TELA)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                    ) {
+                        Column(modifier = Modifier.padding(18.dp)) {
+                            Text(
+                                text = "RESTAURANTE UNIVERSITÁRIO",
+                                style = NotionTypography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                letterSpacing = 0.5.sp
+                            )
+                            Text(
+                                text = "Saldo Disponível",
+                                style = NotionTypography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+
+                            // Hero Saldo
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(vertical = 14.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.RotateLeft,
-                                            contentDescription = null,
-                                            tint = Color(0xFF222222),
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "Saldo",
-                                            style = NotionTypography.labelSmall,
-                                            color = Color(0xFF222222),
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
+                                    Text(
+                                        text = statement.saldoAtual.ifBlank { "R$ 0,00" },
+                                        style = NotionTypography.displayLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
                                 }
                             }
 
-                            // Frame do QR Code em fundo branco puro
-                            Surface(
+                            // Botão Girar para QR Code da Catraca (Gira a tela inteira)
+                            OutlinedButton(
+                                onClick = { isFlipped = true },
                                 shape = RoundedCornerShape(12.dp),
-                                color = Color.White,
-                                modifier = Modifier.padding(vertical = 4.dp)
+                                modifier = Modifier.fillMaxWidth(),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                                contentPadding = PaddingValues(vertical = 12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.FlipCameraAndroid,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Girar para QR Code da Catraca",
+                                    style = NotionTypography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Extrato Recente (Valores em branco consistente)
+                            Text(
+                                text = "TRANSAÇÕES RECENTES",
+                                style = NotionTypography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                                letterSpacing = 0.5.sp
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            val transactions = statement.transacoes.take(4)
+                            if (transactions.isEmpty()) {
+                                Text(
+                                    text = "Nenhuma transação recente registrada",
+                                    style = NotionTypography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    modifier = Modifier.padding(vertical = 6.dp)
+                                )
+                            } else {
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    transactions.forEach { item ->
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = item.descricao,
+                                                        style = NotionTypography.bodyMedium,
+                                                        fontWeight = FontWeight.Medium,
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                    Text(
+                                                        text = item.dataHora,
+                                                        style = NotionTypography.bodySmall,
+                                                        fontSize = 11.sp,
+                                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                                    )
+                                                }
+                                                Text(
+                                                    text = item.valor,
+                                                    style = NotionTypography.titleSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // CARD 4: ATUALIZAÇÕES E VERSÃO DO APP
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onCheckForUpdate() },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.SystemUpdate,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Column {
+                                    Text(
+                                        text = "Versão do Aplicativo",
+                                        style = NotionTypography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Toque para verificar atualizações",
+                                        style = NotionTypography.bodySmall,
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                                    )
+                                }
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                if (isCheckingUpdate) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                } else {
+                                    Text(
+                                        text = "v${br.unb.ru.BuildConfig.VERSION_NAME}",
+                                        style = NotionTypography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Outlined.ChevronRight,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // RODAPÉ: DESCONECTAR CONTA
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        TextButton(
+                            onClick = { showDisconnectConfirm = true },
+                            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFEF4444))
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.Logout,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Desconectar conta",
+                                style = NotionTypography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            // ==========================================
+            // VERSO: TELA INTEIRA GIRADA PARA O QR CODE DA CATRACA
+            // ==========================================
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        rotationY = 180f // Desespelha o verso
+                    }
+                    .clickable { isFlipped = false },
+                color = Color.White
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Topo: Indicador e Botão Voltar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "LEITOR DA CATRACA",
+                            style = NotionTypography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF555555),
+                            letterSpacing = 0.5.sp
+                        )
+
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFFF1F1F1),
+                            border = BorderStroke(1.dp, Color(0xFFCCCCCC)),
+                            modifier = Modifier.clickable { isFlipped = false }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.RotateLeft,
+                                    contentDescription = null,
+                                    tint = Color(0xFF222222),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Voltar ao Saldo",
+                                    style = NotionTypography.labelSmall,
+                                    color = Color(0xFF222222),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+
+                    // Centro: QR Code Oficial de Alta Resolução em moldura branca
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color.White,
+                            shadowElevation = 8.dp,
+                            border = BorderStroke(1.dp, Color(0xFFEEEEEE)),
+                            modifier = Modifier.padding(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.padding(16.dp),
+                                contentAlignment = Alignment.Center
                             ) {
                                 if (qrBitmap != null) {
                                     Image(
                                         bitmap = qrBitmap.asImageBitmap(),
                                         contentDescription = "QR Code Catraca",
-                                        modifier = Modifier.size(200.dp)
+                                        modifier = Modifier.size(240.dp)
                                     )
                                 } else {
                                     Box(
-                                        modifier = Modifier.size(200.dp),
+                                        modifier = Modifier.size(240.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         CircularProgressIndicator(
-                                            modifier = Modifier.size(32.dp),
+                                            modifier = Modifier.size(36.dp),
                                             color = Color.Black
                                         )
                                     }
                                 }
                             }
-
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = card.nome.ifBlank { "Estudante UnB" },
-                                    style = NotionTypography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF111111)
-                                )
-                                Text(
-                                    text = "Matrícula: ${card.matricula}",
-                                    style = NotionTypography.bodyMedium,
-                                    color = Color(0xFF555555)
-                                )
-                            }
-
-                            Surface(
-                                shape = CircleShape,
-                                color = Color(0xFFF3F3F3)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.BrightnessHigh,
-                                        contentDescription = null,
-                                        tint = Color(0xFF333333),
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Brilho no máximo • Toque para virar",
-                                        style = NotionTypography.bodySmall,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = Color(0xFF333333)
-                                    )
-                                }
-                            }
                         }
-                    }
-                }
-            }
 
-                        // CARD DE ATUALIZAÇÕES E VERSÃO DO APP
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onCheckForUpdate() },
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.SystemUpdate,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Column {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "Versão do Aplicativo",
-                                style = NotionTypography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Toque para verificar atualizações",
-                                style = NotionTypography.bodySmall,
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-                            )
-                        }
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        if (isCheckingUpdate) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        } else {
-                            Text(
-                                text = "v${br.unb.ru.BuildConfig.VERSION_NAME}",
-                                style = NotionTypography.labelSmall,
+                                text = card.nome.ifBlank { "Estudante UnB" },
+                                style = NotionTypography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = Color(0xFF111111),
+                                textAlign = TextAlign.Center
                             )
-                            Icon(
-                                imageVector = Icons.Outlined.ChevronRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                modifier = Modifier.size(12.dp)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Matrícula: ${card.matricula}",
+                                style = NotionTypography.bodyMedium,
+                                color = Color(0xFF555555)
                             )
                         }
                     }
-                }
-            }
 
-            // RODAPÉ: DESCONECTAR CONTA
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                TextButton(
-                    onClick = { showDisconnectConfirm = true },
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFEF4444))
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.Logout,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Desconectar conta",
-                        style = NotionTypography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    // Rodapé: Indicador de Toque
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFFF3F3F3)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.BrightnessHigh,
+                                contentDescription = null,
+                                tint = Color(0xFF333333),
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Brilho no máximo ativado • Toque para virar",
+                                style = NotionTypography.bodySmall,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF333333)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1137,7 +1154,11 @@ fun DiscenteScreen(
                             },
                             enabled = !isSyncing
                         ) {
-                            Text(if (isSyncing) "Sincronizando..." else "Conectar e Sincronizar")
+                            Text(
+                                text = if (isSyncing) "Sincronizando..." else "Conectar",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }

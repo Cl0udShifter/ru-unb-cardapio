@@ -106,13 +106,16 @@ fun MenuHomeScreen(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 0.dp,
-                modifier = Modifier.border(
-                    BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f))
+            Column {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                    thickness = 1.dp
                 )
-            ) {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp,
+                    windowInsets = NavigationBarDefaults.windowInsets
+                ) {
                 NavigationBarItem(
                     selected = currentTab == MainScreenTab.CARDAPIO,
                     onClick = { currentTab = MainScreenTab.CARDAPIO },
@@ -161,6 +164,7 @@ fun MenuHomeScreen(
                         unselectedTextColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     )
                 )
+            }
             }
         }
     ) { innerPadding ->

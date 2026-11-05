@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="icons/favicon.png?v=4.1">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=4.1">
   
-  <link rel="stylesheet" href="style.css?v=6.0">
+  <link rel="stylesheet" href="style.css?v=7.0">
 </head>
 <body>
   <div id="app">
@@ -146,8 +146,19 @@
             </button>
           </div>
 
-          <!-- ESTADO 1: Desconectado / Esqueleto Placeholder -->
+          <!-- ESTADO 1: Desconectado / Esqueleto Placeholder (CTA no Topo + 2 Esqueletos) -->
           <div id="discenteDisconnectedState" class="discente-skeleton-wrapper">
+            <!-- Botão de Sincronização no TOPO -->
+            <div class="discente-central-cta">
+              <button id="openSigaaSyncCtaBtn" class="primary-sync-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                <span>Sincronizar com SIGAA</span>
+              </button>
+              <p class="central-cta-desc">Conecte sua conta do SIGAA da UnB para acessar sua carteirinha, saldo do RU e histórico acadêmico.</p>
+            </div>
+
             <!-- Skeleton Card 1: Perfil -->
             <div class="dashboard-card skeleton-card">
               <div class="skeleton-avatar"></div>
@@ -170,100 +181,83 @@
               </div>
               <div class="skeleton-bar progress"></div>
             </div>
-
-            <!-- Skeleton Card 3: RU -->
-            <div class="dashboard-card skeleton-card">
-              <div class="skeleton-bar section-title"></div>
-              <div class="skeleton-bar large"></div>
-            </div>
-
-            <!-- Botão de Sincronização Centralizado -->
-            <div class="discente-central-cta">
-              <button id="openSigaaSyncCtaBtn" class="primary-sync-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
-                </svg>
-                <span>Sincronizar com SIGAA</span>
-              </button>
-              <p class="central-cta-desc">Conecte sua matrícula para carregar seu IRA, horas do curso, carteirinha e saldo do RU.</p>
-            </div>
           </div>
 
           <!-- ESTADO 2: Conectado com Dados Oficiais -->
           <div id="discenteConnectedState" class="discente-connected-wrapper" style="display: none;">
             
-            <!-- Card 1: Perfil do Estudante -->
-            <div class="dashboard-card profile-card">
-              <div class="profile-header-row">
-                <div class="profile-avatar-container">
-                  <img id="discentePhotoImg" class="profile-photo-img" src="" alt="Foto Estudante" style="display: none;">
-                  <div id="discenteInitialsAvatar" class="profile-avatar-initials">UN</div>
-                </div>
-                <div class="profile-info-col">
-                  <h3 id="discenteNome" class="profile-student-name">Estudante UnB</h3>
-                  <div class="profile-matricula-txt">Matrícula: <strong id="discenteMatricula">--</strong></div>
-                  <div id="discenteCurso" class="profile-course-txt">Graduação</div>
-                  <div class="profile-tag-pills">
-                    <span id="discenteStatusBadge" class="profile-pill status">ATIVO</span>
-                    <span id="discenteNivelBadge" class="profile-pill">GRADUAÇÃO</span>
-                    <span id="discenteSemestreBadge" class="profile-pill semester">2026.2</span>
+            <div class="discente-screen-flipper" id="discenteScreenFlipper">
+              
+              <!-- FRENTE: Dashboard Acadêmico Completo -->
+              <div class="discente-flipper-face discente-flipper-front">
+                
+                <!-- Card 1: Perfil do Estudante -->
+                <div class="dashboard-card profile-card">
+                  <div class="profile-header-row">
+                    <div class="profile-avatar-container">
+                      <img id="discentePhotoImg" class="profile-photo-img" src="" alt="Foto Estudante" style="display: none;">
+                      <div id="discenteInitialsAvatar" class="profile-avatar-initials">UN</div>
+                    </div>
+                    <div class="profile-info-col">
+                      <h3 id="discenteNome" class="profile-student-name">Estudante UnB</h3>
+                      <div class="profile-matricula-txt">Matrícula: <strong id="discenteMatricula">--</strong></div>
+                      <div id="discenteCurso" class="profile-course-txt">Graduação</div>
+                      <div class="profile-tag-pills">
+                        <span id="discenteStatusBadge" class="profile-pill">ATIVO</span>
+                        <span id="discenteNivelBadge" class="profile-pill">GRADUAÇÃO</span>
+                        <span id="discenteSemestreBadge" class="profile-pill">2026.2</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <!-- Card 2: Rendimento Acadêmico -->
-            <div class="dashboard-card metrics-card">
-              <div class="card-section-header">
-                <span class="card-section-title">Rendimento Acadêmico</span>
-                <span class="card-section-badge">SIGAA</span>
-              </div>
+                <!-- Card 2: Rendimento Acadêmico -->
+                <div class="dashboard-card metrics-card">
+                  <div class="card-section-header">
+                    <span class="card-section-title">Rendimento Acadêmico</span>
+                    <span class="card-section-badge">SIGAA</span>
+                  </div>
 
-              <!-- Caixas Lado a Lado: IRA e Média Ponderada -->
-              <div class="metrics-two-col">
-                <div class="metric-value-box">
-                  <span class="metric-box-label">IRA</span>
-                  <div id="discenteIraVal" class="metric-box-num highlight">--</div>
-                  <span class="metric-box-caption">Rendimento Geral</span>
-                </div>
-                <div class="metric-value-box">
-                  <span class="metric-box-label">Média Ponderada</span>
-                  <div id="discenteMpVal" class="metric-box-num">--</div>
-                  <span class="metric-box-caption">Com Reprovações</span>
-                </div>
-              </div>
+                  <!-- Caixas Lado a Lado: IRA e Média Ponderada -->
+                  <div class="metrics-two-col">
+                    <div class="metric-value-box">
+                      <span class="metric-box-label">IRA</span>
+                      <div id="discenteIraVal" class="metric-box-num">--</div>
+                      <span class="metric-box-caption">Índice de Rendimento</span>
+                    </div>
+                    <div class="metric-value-box">
+                      <span class="metric-box-label">Média Ponderada</span>
+                      <div id="discenteMpVal" class="metric-box-num">--</div>
+                      <span class="metric-box-caption">Ponderada Geral</span>
+                    </div>
+                  </div>
 
-              <!-- Barra de Progresso de Integralização -->
-              <div class="progress-block">
-                <div class="progress-header-row">
-                  <span class="progress-header-label">Integralização do Curso</span>
-                  <span id="discentePctVal" class="progress-header-pct">0%</span>
+                  <!-- Barra de Progresso de Integralização -->
+                  <div class="progress-block">
+                    <div class="progress-header-row">
+                      <span class="progress-header-label">Integralização Curricular</span>
+                      <span id="discentePctVal" class="progress-header-pct">0.0%</span>
+                    </div>
+                    <div class="progress-track-bg">
+                      <div id="discenteProgressBar" class="progress-track-fill" style="width: 0%;"></div>
+                    </div>
+                    <div class="progress-numbers-row">
+                      <span id="discenteHoursConcluidas">0h concluídas</span>
+                      <span id="discenteHoursTotal">de 0h exigidas</span>
+                    </div>
+                    <div id="discenteHoursDetails" class="progress-sub-breakdown">
+                      Pendentes: Obrigatórias: <strong id="discenteChOb">0h</strong> • Optativas: <strong id="discenteChOp">0h</strong>
+                    </div>
+                  </div>
                 </div>
-                <div class="progress-track-bg">
-                  <div id="discenteProgressBar" class="progress-track-fill" style="width: 0%;"></div>
-                </div>
-                <div class="progress-numbers-row">
-                  <span id="discenteHoursConcluidas">0h concluídas</span>
-                  <span id="discenteHoursTotal">de 0h exigidas</span>
-                </div>
-                <div id="discenteHoursDetails" class="progress-sub-breakdown">
-                  Obrigatórias pendentes: <strong id="discenteChOb">0h</strong> • Optativas: <strong id="discenteChOp">0h</strong>
-                </div>
-              </div>
-            </div>
 
-            <!-- Card 3: Restaurante Universitário (3D Flip Card) -->
-            <div class="ru-flip-wrapper" id="ruFlipWrapper">
-              <div class="ru-flip-inner" id="ruFlipInner">
-                
-                <!-- Frente: Saldo e Extrato Recente -->
-                <div class="ru-flip-face ru-flip-front dashboard-card">
+                <!-- Card 3: Restaurante Universitário -->
+                <div class="dashboard-card ru-balance-card">
                   <div class="card-section-header">
                     <div>
                       <span class="card-section-title">Restaurante Universitário</span>
                       <div class="ru-front-sub">Carteirinha Digital & Saldo</div>
                     </div>
-                    <span class="card-section-badge active-badge">Ativo</span>
                   </div>
 
                   <div class="ru-balance-hero">
@@ -271,7 +265,7 @@
                     <div id="discenteRuSaldoVal" class="ru-balance-amount">R$ 0,00</div>
                   </div>
 
-                  <!-- Botão para Girar e Exibir QR Code -->
+                  <!-- Botão para Girar a Tela Inteira para o QR Code -->
                   <button id="ruFlipToQrBtn" class="ru-flip-cta-btn" type="button">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -285,49 +279,52 @@
                       <span class="ru-statement-heading">Histórico de Consumo</span>
                     </div>
                     <div id="discenteMiniTransacoes" class="ru-statement-items">
-                      <!-- Renderizado via app.js -->
                     </div>
                   </div>
                 </div>
 
-                <!-- Verso: QR Code em Alta Definição com Brilho Máximo -->
-                <div class="ru-flip-face ru-flip-back dashboard-card">
-                  <div class="ru-back-top-row">
-                    <span class="ru-back-hint">Aponte para o leitor de vidro</span>
-                    <button id="ruFlipToFrontBtn" class="ru-back-turn-btn" type="button" title="Voltar para o saldo">
-                      <span>Voltar</span> ✕
-                    </button>
-                  </div>
-
-                  <div class="ru-back-qr-frame">
-                    <img id="discenteQrImg" class="ru-back-qr-image" src="" alt="QR Code Catraca RU">
-                  </div>
-
-                  <div class="ru-back-meta">
-                    <div id="discenteBackNome" class="ru-back-student-name">Estudante UnB</div>
-                    <div id="discenteBackMatricula" class="ru-back-student-mat">Matrícula: --</div>
-                  </div>
-
-                  <div class="ru-back-notice-pill">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0z"/>
-                    </svg>
-                    <span>Brilho no máximo • Toque para virar</span>
-                  </div>
+                <!-- Rodapé: Botão de Desconectar Conta -->
+                <div class="discente-disconnect-section">
+                  <button id="discenteDisconnectBtn" class="discente-danger-btn" type="button">
+                    Desconectar conta
+                  </button>
                 </div>
 
               </div>
-            </div>
 
-            <!-- Rodapé: Botão de Desconectar Conta -->
-            <div class="discente-disconnect-section">
-              <button id="discenteDisconnectBtn" class="discente-danger-btn" type="button">
-                Desconectar conta
-              </button>
-            </div>
+              <!-- VERSO: Tela Cheia QR Code da Catraca (Desespelhado a 180deg) -->
+              <div class="discente-flipper-face discente-flipper-back" id="discenteScreenBack">
+                <div class="catraca-top-bar">
+                  <span class="catraca-label">LEITOR DA CATRACA</span>
+                  <button id="ruFlipToFrontBtn" class="catraca-back-btn" type="button" title="Voltar ao Saldo">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 12h18M3 12l6-6M3 12l6 6"/>
+                    </svg>
+                    <span>Voltar ao Saldo</span>
+                  </button>
+                </div>
 
+                <div class="catraca-qr-card">
+                  <div class="catraca-qr-frame">
+                    <img id="discenteQrImg" class="catraca-qr-image" src="" alt="QR Code Catraca RU">
+                  </div>
+                </div>
+
+                <div class="catraca-meta">
+                  <div id="discenteBackNome" class="catraca-student-name">Estudante UnB</div>
+                  <div id="discenteBackMatricula" class="catraca-student-mat">Matrícula: --</div>
+                </div>
+
+                <div class="catraca-notice-pill">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0z"/>
+                  </svg>
+                  <span>Brilho no máximo • Toque para virar</span>
+                </div>
+              </div>
+
+            </div>
           </div>
-
         </div>
       </section>
 
@@ -763,6 +760,6 @@
   <script src="zxing.min.js"></script>
   <script src="jsqr.min.js"></script>
   <script src="qrcode.min.js?v=4.1"></script>
-  <script src="app.js?v=6.0"></script>
+  <script src="app.js?v=7.0"></script>
 </body>
 </html>

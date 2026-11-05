@@ -50,7 +50,7 @@ Caso utilize o gerenciador open source **[Obtainium](https://github.com/ImranR98
 
 Acesso direto pelo navegador sem necessidade de instalar arquivos:
 
-**[Acessar Web PWA: cl0udshifter.github.io/ru-unb-cardapio](https://cl0udshifter.github.io/ru-unb-cardapio/)**
+**[Acessar Web PWA (Branch Testes): ru-unb-cardapio-git-testes-ru-unb-cardapio.vercel.app](https://ru-unb-cardapio-git-testes-ru-unb-cardapio.vercel.app)**
 
 Para instalar no iPhone como app na tela de início:
 1. Abra o link acima no **Safari**.

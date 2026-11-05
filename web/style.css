@@ -1601,14 +1601,10 @@ input:checked + .slider:before {
   letter-spacing: 0.3px;
 }
 
-.profile-pill.status {
-  background: rgba(46, 125, 50, 0.15);
-  color: #4caf50;
-}
-
+.profile-pill.status,
 .profile-pill.semester {
-  background: rgba(234, 179, 8, 0.15);
-  color: #eab308;
+  background-color: var(--surface-variant);
+  color: var(--text-secondary);
 }
 
 /* Card 2: Rendimento Acadêmico */
@@ -1650,7 +1646,7 @@ input:checked + .slider:before {
 }
 
 .metric-box-num.highlight {
-  color: #eab308;
+  color: var(--text-primary);
 }
 
 .metric-box-caption {
@@ -1681,7 +1677,7 @@ input:checked + .slider:before {
   font-family: var(--font-sans);
   font-size: 14px;
   font-weight: 700;
-  color: #4caf50;
+  color: var(--text-primary);
 }
 
 .progress-track-bg {
@@ -1695,7 +1691,7 @@ input:checked + .slider:before {
 
 .progress-track-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4caf50, #81c784);
+  background-color: var(--text-primary);
   border-radius: 9999px;
   transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1852,7 +1848,7 @@ input:checked + .slider:before {
 .ru-statement-val {
   font-size: 13px;
   font-weight: 700;
-  color: #ef4444;
+  color: var(--text-primary);
 }
 
 /* Verso do Card (Giro 3D - Carteirinha QR Code) */
@@ -2062,4 +2058,147 @@ input:checked + .slider:before {
   max-width: 320px;
   margin-top: 10px;
   line-height: 1.4;
+}
+
+/* 3D Full-Screen Flip Container para Painel Discente */
+.discente-screen-flipper {
+  perspective: 1400px;
+  width: 100%;
+  position: relative;
+}
+
+.discente-screen-flipper-inner,
+.discente-screen-flipper {
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.discente-screen-flipper.flipped {
+  transform: rotateY(180deg);
+}
+
+.discente-flipper-face {
+  width: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.discente-flipper-front {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.discente-flipper-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 540px;
+  transform: rotateY(180deg);
+  background-color: #ffffff !important;
+  color: #111111 !important;
+  border-radius: 20px;
+  padding: 24px 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
+.catraca-top-bar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.catraca-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: #555555;
+  text-transform: uppercase;
+}
+
+.catraca-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f1f1;
+  border: 1px solid #cccccc;
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: #222222;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.catraca-back-btn:hover {
+  background: #e5e5e5;
+}
+
+.catraca-qr-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #eeeeee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.catraca-qr-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.catraca-qr-image {
+  width: 220px;
+  height: 220px;
+  object-fit: contain;
+  display: block;
+}
+
+.catraca-meta {
+  text-align: center;
+}
+
+.catraca-student-name {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 700;
+  color: #111111;
+  margin-bottom: 4px;
+}
+
+.catraca-student-mat {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: #555555;
+}
+
+.catraca-notice-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f7f7f7;
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: #666666;
+  font-weight: 500;
+  margin-top: 10px;
 }

@@ -151,10 +151,10 @@ def sync_with_urllib(matricula, senha):
         media_ponderada = m_mp.group(1).strip()
 
     # Carga Horária e Integralização
-    m_ob = re.search(r'CH\.\s*Obrigat[oó]ria\s*Pendente\s*</td>\s*<td[^>]*>\s*(\d+)\s*</td>', clean_html, re.I)
-    m_op = re.search(r'CH\.\s*Optativa\s*Pendente\s*</td>\s*<td[^>]*>\s*(\d+)\s*</td>', clean_html, re.I)
-    m_tot = re.search(r'CH\.\s*Total\s*Curr[ií]culo\s*</td>\s*<td[^>]*>\s*(\d+)\s*</td>', clean_html, re.I)
-    m_comp = re.search(r'CH\.\s*Complementar\s*Pendente\s*</td>\s*<td[^>]*>\s*(\d+)\s*</td>', clean_html, re.I)
+    m_ob = re.search(r'CH\.\s*Obrigat.*?Pendente\s*</td>\s*<td[^>]*>\s*(\d+)\s*</td>', clean_html, re.I | re.S)
+    m_op = re.search(r'CH\.\s*Optativa.*?Pendente\s*</td>\s*<td[^>]*>\s*(\d+)\s*</td>', clean_html, re.I | re.S)
+    m_tot = re.search(r'CH\.\s*Total.*?</td>\s*<td[^>]*>\s*(\d+)\s*</td>', clean_html, re.I | re.S)
+    m_comp = re.search(r'CH\.\s*Complementar.*?Pendente\s*</td>\s*<td[^>]*>\s*(\d+)\s*</td>', clean_html, re.I | re.S)
 
     ch_total = int(m_tot.group(1)) if m_tot else 0
     ch_ob_pend = int(m_ob.group(1)) if m_ob else 0

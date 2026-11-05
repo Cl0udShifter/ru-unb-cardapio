@@ -1,6 +1,7 @@
 package br.unb.ru.ui.theme
 
 import android.app.Activity
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -49,8 +50,11 @@ fun RUUnBTheme(
             window.statusBarColor = colorScheme.background.toArgb()
             insetsController.isAppearanceLightStatusBars = !darkTheme
 
-            // Navigation bar (Xiaomi/POCO & standard Android)
-            window.navigationBarColor = colorScheme.background.toArgb()
+            // Navigation bar (Xiaomi/HyperOS/POCO & standard Android)
+            window.navigationBarColor = colorScheme.surface.toArgb()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                window.isNavigationBarContrastEnforced = false
+            }
             insetsController.isAppearanceLightNavigationBars = !darkTheme
         }
     }
