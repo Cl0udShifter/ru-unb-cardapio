@@ -429,17 +429,15 @@ private fun DocumentCardItem(
                         )
                     }
 
-                    if (document.type.isPdfDirect) {
-                        IconButton(
-                            onClick = onShare,
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Share,
-                                contentDescription = "Compartilhar",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
+                    IconButton(
+                        onClick = onShare,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Share,
+                            contentDescription = "Compartilhar",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
 
                     OutlinedButton(
@@ -545,14 +543,12 @@ fun UnifiedDocumentViewerDialog(
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        if (document.type.isPdfDirect && pdfFile != null && pdfFile.exists()) {
-                            IconButton(onClick = onSharePdf) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Share,
-                                    contentDescription = "Compartilhar PDF",
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
+                        IconButton(onClick = onSharePdf) {
+                            Icon(
+                                imageVector = Icons.Outlined.Share,
+                                contentDescription = "Compartilhar",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
                         }
                         IconButton(onClick = { printDocument() }) {
                             Icon(
@@ -625,19 +621,17 @@ fun UnifiedDocumentViewerDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (document.type.isPdfDirect && pdfFile != null && pdfFile.exists()) {
-                        OutlinedButton(
-                            onClick = onSharePdf,
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Share,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Compartilhar", style = NotionTypography.labelMedium)
-                        }
+                    OutlinedButton(
+                        onClick = onSharePdf,
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Share,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Compartilhar", style = NotionTypography.labelMedium)
                     }
 
                     Button(

@@ -2462,6 +2462,15 @@ function renderDocumentosModal() {
               </svg>
               <span>Visualizar Documento</span>
             </button>
+            <button class="notion-btn notion-btn-secondary" style="padding: 0 12px; height: 38px;" title="Compartilhar / Baixar" onclick="downloadOrShareDoc('${docDef.id}')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+            </button>
             <button class="notion-btn notion-btn-secondary" style="padding: 0 12px; height: 38px;" title="Atualizar do SIGAA" id="btnReemit_${docDef.id}" onclick="emitDigitalDocumentFromWeb('${docDef.id}')">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
             </button>
@@ -2524,6 +2533,41 @@ window.emitDigitalDocumentFromWeb = async function(docId) {
       btnEmit.disabled = false;
       btnEmit.innerHTML = origHtml;
     }
+  }
+};
+
+window.downloadOrShareDoc = function(docId) {
+  const cachedDocs = getCachedDocs();
+  const doc = cachedDocs[docId];
+  if (!doc) return;
+
+  const filename = `${docId}_${appState.studentCard?.matricula || 'unb'}.${doc.isPdfDirect ? 'pdf' : 'html'}`;
+  if (doc.isPdfDirect && doc.pdfBase64) {
+    const byteCharacters = atob(doc.pdfBase64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } else if (!doc.isPdfDirect && doc.htmlContent) {
+    const blob = new Blob([doc.htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
 };
 

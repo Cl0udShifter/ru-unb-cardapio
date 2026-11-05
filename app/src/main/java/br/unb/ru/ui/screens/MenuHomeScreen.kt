@@ -180,7 +180,8 @@ fun MenuHomeScreen(
                     file
                 )
                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                    setType("application/pdf")
+                    val mimeType = if (type.isPdfDirect) "application/pdf" else "text/html"
+                    setType(mimeType)
                     putExtra(android.content.Intent.EXTRA_STREAM, uri)
                     addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
