@@ -32,7 +32,7 @@ Aplicativo para consulta do cardápio semanal dos Restaurantes Universitários d
 
 Baixe diretamente a versão estável pronta para instalar:
 
-**[Download RU-UnB-Testes.apk (Versão de Testes v1.2.0-test.13)](https://github.com/Cl0udShifter/ru-unb-cardapio/releases/download/v1.2.0-test.13/RU-UnB-Testes.apk)**\n\n*(Para a versão estável da branch principal, utilize o release estável [RU-UnB.apk](https://github.com/Cl0udShifter/ru-unb-cardapio/releases/latest/download/RU-UnB.apk))*
+**[Download RU-UnB-Testes.apk (Versão de Testes v1.2.0-test.14)](https://github.com/Cl0udShifter/ru-unb-cardapio/releases/download/v1.2.0-test.14/RU-UnB-Testes.apk)**\n\n*(Para a versão estável da branch principal, utilize o release estável [RU-UnB.apk](https://github.com/Cl0udShifter/ru-unb-cardapio/releases/latest/download/RU-UnB.apk))*
 
 1. Baixe o arquivo `RU-UnB.apk` no celular.
 2. Abra o arquivo baixado nas notificações ou no gerenciador de arquivos.

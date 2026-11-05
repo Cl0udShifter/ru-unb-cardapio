@@ -1807,11 +1807,7 @@ function renderTurmasList() {
 
   listEl.innerHTML = classes.map((c, idx) => {
     const pctMinistradas = typeof c.percentualAulasMinistradas === 'number' ? c.percentualAulasMinistradas : null;
-    const textoMinistradas = c.aulasMinistradasTexto || (pctMinistradas !== null ? `${Math.round(pctMinistradas)}% ministradas` : 'Em andamento');
-    const pctFreq = typeof c.percentualFrequencia === 'number' ? c.percentualFrequencia : null;
-    const faltasCount = typeof c.faltas === 'number' ? c.faltas : 0;
-    const textoFreq = pctFreq !== null ? `${Math.round(pctFreq)}% • ${faltasCount} falta(s)` : 'A apurar no SIGAA';
-    const isWarningFreq = pctFreq !== null && pctFreq < 75;
+    const textoMinistradas = c.aulasMinistradasTexto || (pctMinistradas !== null ? `${Math.round(pctMinistradas)}% ministradas` : 'Aulas em andamento');
 
     const weeklySchedule = (c.horarios || []).map(h => `${(h.diaNome || '').slice(0, 3)} ${h.horarioFormatado}`).join(' • ');
     const rawNotices = c.noticias || [];
@@ -1851,7 +1847,7 @@ function renderTurmasList() {
           </div>
         ` : ''}
 
-        <!-- Bloco de Métricas: Aulas Ministradas & Frequência -->
+        <!-- Bloco de Métricas: Aulas Ministradas -->
         <div class="turma-metrics-box">
           <div class="metric-line">
             <div class="metric-line-header">
@@ -1860,16 +1856,6 @@ function renderTurmasList() {
             </div>
             <div class="metric-bar-track">
               <div class="metric-bar-fill" style="width: ${pctMinistradas !== null ? Math.min(100, Math.max(0, pctMinistradas)) : 0}%;"></div>
-            </div>
-          </div>
-
-          <div class="metric-line">
-            <div class="metric-line-header">
-              <span class="metric-line-label">Frequência</span>
-              <span class="metric-line-val ${isWarningFreq ? 'warning' : ''}">${textoFreq}</span>
-            </div>
-            <div class="metric-bar-track">
-              <div class="metric-bar-fill ${isWarningFreq ? 'warning' : ''}" style="width: ${pctFreq !== null ? Math.min(100, Math.max(0, pctFreq)) : 0}%;"></div>
             </div>
           </div>
         </div>

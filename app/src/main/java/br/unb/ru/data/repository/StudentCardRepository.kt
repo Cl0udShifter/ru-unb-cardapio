@@ -934,15 +934,17 @@ class StudentCardRepository(private val context: Context) {
                 }
 
                 val jsfMap = mutableMapOf<String, String>()
-                val jsfMatcher = Pattern.compile("jsfcljs\\s*\\(\\s*document\\.getElementById\\(['\"]form_acessarTurmaVirtual['\"]\\)\\s*,\\s*\\{([^}]+)\\}", Pattern.CASE_INSENSITIVE).matcher(r)
+                val jsfMatcher = Pattern.compile("jsfcljs\\s*\\(\\s*document\\.getElementById\\(['\"]([^'\"]+)['\"]\\)\\s*,\\s*\\{([^}]+)\\}", Pattern.CASE_INSENSITIVE).matcher(r)
                 if (jsfMatcher.find()) {
-                    val dictContent = jsfMatcher.group(1) ?: ""
+                    val fId = jsfMatcher.group(1) ?: "form_acessarTurmaVirtual"
+                    val dictContent = jsfMatcher.group(2) ?: ""
                     val pM = Pattern.compile("['\"]([^'\"]+)['\"]\\s*:\\s*['\"]([^'\"]*)['\"]").matcher(dictContent)
                     while (pM.find()) {
                         val k = pM.group(1) ?: continue
                         val v = pM.group(2) ?: ""
                         jsfMap[k] = v
                     }
+                    jsfMap["_form_id"] = fId
                 }
 
                 list.add(ClassSchedule(
@@ -982,14 +984,17 @@ class StudentCardRepository(private val context: Context) {
             }
             try {
                 onProgress("Consultando turma ${c.codigoSafe.ifBlank { c.nomeSafe.take(15) }}...")
-                val formAction = extractFormActionById(currentPortalHtml, "form_acessarTurmaVirtual") ?: "https://sigaa.unb.br/sigaa/portais/discente/discente.jsf"
-                val formInputs = extractFormInputsById(currentPortalHtml, "form_acessarTurmaVirtual").toMutableMap()
+                val targetFormId = params["_form_id"]?.ifBlank { "form_acessarTurmaVirtual" } ?: "form_acessarTurmaVirtual"
+                val formAction = extractFormActionById(currentPortalHtml, targetFormId) ?: "https://sigaa.unb.br/sigaa/portais/discente/discente.jsf"
+                val formInputs = extractFormInputsById(currentPortalHtml, targetFormId).toMutableMap()
 
-                params.forEach { (k, v) -> formInputs[k] = v }
+                params.forEach { (k, v) ->
+                    if (k != "_form_id") formInputs[k] = v
+                }
                 if (c.turmaIdSafe.isNotBlank() && !formInputs.containsKey("frontEndIdTurma")) {
                     formInputs["frontEndIdTurma"] = c.turmaIdSafe
                 }
-                formInputs["form_acessarTurmaVirtual"] = "form_acessarTurmaVirtual"
+                formInputs[targetFormId] = targetFormId
 
                 val body = FormBody.Builder()
                 formInputs.forEach { (k, v) -> body.add(k, v) }
@@ -1004,65 +1009,110 @@ class StudentCardRepository(private val context: Context) {
                 val tvHtml = resp.body?.string() ?: ""
                 val respUrl = resp.request.url.toString()
 
-                val isTv = (respUrl.contains("turmaVirtual") || respUrl.contains("ava") || tvHtml.contains("Menu Turma Virtual") || tvHtml.contains("Aulas Ministradas")) && !tvHtml.contains("Componente Curricular")
+                val isTv = (respUrl.contains("turmaVirtual") || respUrl.contains("ava") || tvHtml.contains("Menu Turma Virtual") || tvHtml.contains("Ministradas/Total") || tvHtml.contains("Aulas Ministradas")) && !tvHtml.contains("Componente Curricular")
 
-                var pctFreq: Float? = null
-                var faltas = 0
                 var pctMinistradas: Float? = null
                 var ministradasTexto = ""
                 val noticias = mutableListOf<ClassNotice>()
 
                 if (isTv) {
-                    val mMinistradas = Pattern.compile("Aulas\\s+Ministradas:\\s*(?:<strong>)?\\s*([0-9]+\\s*(?:de|/)\\s*[0-9]+[^<]*|[0-9\\.,]+%)", Pattern.CASE_INSENSITIVE).matcher(tvHtml)
-                    if (mMinistradas.find()) {
-                        ministradasTexto = mMinistradas.group(1)?.trim() ?: ""
-                        val mPct = Pattern.compile("([0-9\\.,]+)%").matcher(ministradasTexto)
-                        if (mPct.find()) {
-                            pctMinistradas = mPct.group(1)?.replace(',', '.')?.toFloatOrNull()
+                    // 1. Extrair Aulas Ministradas
+                    val mRatio = Pattern.compile("""Aulas\s*\(Ministradas/Total\):\s*(?:<[^>]+>)*\s*([0-9]+\s*/\s*[0-9]+)""", Pattern.CASE_INSENSITIVE).matcher(tvHtml)
+                    if (mRatio.find()) {
+                        val ratio = mRatio.group(1)?.trim() ?: ""
+                        val parts = ratio.split('/')
+                        if (parts.size == 2) {
+                            ministradasTexto = "${parts[0].trim()} de ${parts[1].trim()} aulas ministradas"
+                        } else {
+                            ministradasTexto = "$ratio aulas ministradas"
                         }
                     }
 
-                    val mFreq = Pattern.compile("Frequ[êe]ncia:\\s*(?:<strong>)?\\s*([0-9\\.,]+)%", Pattern.CASE_INSENSITIVE).matcher(tvHtml)
-                    if (mFreq.find()) {
-                        pctFreq = mFreq.group(1)?.replace(',', '.')?.toFloatOrNull()
+                    val mProgress = Pattern.compile("""class=["']progress-bar["'][^>]*style=["'][^"']*width:\s*([0-9.,]+)%""", Pattern.CASE_INSENSITIVE).matcher(tvHtml)
+                    if (mProgress.find()) {
+                        pctMinistradas = mProgress.group(1)?.replace(',', '.')?.toFloatOrNull()
                     }
 
-                    val mFaltas = Pattern.compile("Faltas:\\s*(?:<strong>)?\\s*([0-9]+)", Pattern.CASE_INSENSITIVE).matcher(tvHtml)
-                    if (mFaltas.find()) {
-                        faltas = mFaltas.group(1)?.toIntOrNull() ?: 0
+                    if (pctMinistradas != null && ministradasTexto.isNotBlank()) {
+                        ministradasTexto = "$ministradasTexto (${Math.round(pctMinistradas)}%)"
+                    } else if (pctMinistradas != null && ministradasTexto.isBlank()) {
+                        ministradasTexto = "${Math.round(pctMinistradas)}% de aulas ministradas"
                     }
 
-                    val notBlocoPattern = Pattern.compile("<(?:div|table)[^>]+(?:id|class)=[\"'][^\"']*(?:noticia|aviso)[^\"']*[\"'][^>]*>(.*?)</(?:div|table)>", Pattern.DOTALL or Pattern.CASE_INSENSITIVE)
-                    val mBloco = notBlocoPattern.matcher(tvHtml)
-                    val noticiaHtml = if (mBloco.find()) mBloco.group(1) ?: tvHtml else ""
+                    // 2. Extrair Notícias / Avisos
+                    val notPattern = Pattern.compile(
+                        """(\d{2}/\d{2}/\d{4}(?:\s+\d{2}:\d{2})?)\s*<br\s*/?>\s*<i>(.*?)</i>\s*<br\s*/?>\s*<form[^>]+id=["']([^"']+)["'][^>]*>(.*?)</form>""",
+                        Pattern.DOTALL or Pattern.CASE_INSENSITIVE
+                    )
+                    val mNot = notPattern.matcher(tvHtml)
 
-                    if (noticiaHtml.isNotBlank()) {
-                        val mNoticias = Pattern.compile("<tr[^>]*>(.*?)</tr>", Pattern.DOTALL or Pattern.CASE_INSENSITIVE).matcher(noticiaHtml)
-                        while (mNoticias.find()) {
-                            val rowHtml = mNoticias.group(1) ?: continue
-                            val mDate = Pattern.compile("(\\d{2}/\\d{2}/\\d{4})").matcher(rowHtml)
-                            val mTitle = Pattern.compile("<a[^>]*>(.*?)</a>", Pattern.DOTALL).matcher(rowHtml)
-                            if (mTitle.find()) {
-                                val titulo = decodeHtmlEntities(mTitle.group(1)?.replace(Regex("<[^>]+>"), "") ?: "").trim()
-                                val data = if (mDate.find()) mDate.group(1) ?: "" else ""
+                    while (mNot.find()) {
+                        val dataNot = mNot.group(1)?.trim() ?: ""
+                        val tituloRaw = mNot.group(2)?.replace(Regex("<[^>]+>"), "")?.trim() ?: ""
+                        val tituloNot = decodeHtmlEntities(tituloRaw).trim()
+                        val fId = mNot.group(3)?.trim() ?: ""
+                        val fContent = mNot.group(4) ?: ""
 
-                                if (titulo.isNotBlank() && !allCourseNames.contains(titulo.lowercase())) {
-                                    val anexos = mutableListOf<ClassNoticeAttachment>()
-                                    val mAtt = Pattern.compile("<a[^>]+href=[\"']([^\"']*(?:verArquivo|downloadArquivo)[^\"']*)[\"'][^>]*>(.*?)</a>", Pattern.CASE_INSENSITIVE).matcher(rowHtml)
-                                    while (mAtt.find()) {
-                                        var attUrl = mAtt.group(1) ?: ""
-                                        if (!attUrl.startsWith("http")) {
-                                            attUrl = "https://sigaa.unb.br$attUrl"
-                                        }
-                                        val attName = decodeHtmlEntities(mAtt.group(2)?.replace(Regex("<[^>]+>"), "") ?: "").trim().ifBlank { "Baixar anexo" }
-                                        anexos.add(ClassNoticeAttachment(attName, attUrl))
+                        if (tituloNot.isNotBlank() && !allCourseNames.contains(tituloNot.lowercase())) {
+                            var conteudoNot = ""
+                            val anexos = mutableListOf<ClassNoticeAttachment>()
+
+                            // Buscar detalhes completos do aviso (texto e anexos)
+                            try {
+                                val idM = Pattern.compile("""name=["']id["'][^>]+value=["']([^"']+)["']""").matcher(fContent)
+                                val vsM = Pattern.compile("""name=["']javax\.faces\.ViewState["'][^>]+value=["']([^"']*)["']""").matcher(fContent)
+                                val ocM = Pattern.compile("""jsfcljs\s*\(\s*document\.getElementById\(['"][^'"]+['"]\)\s*,\s*\{([^}]+)\}""").matcher(fContent)
+
+                                val detailBody = FormBody.Builder()
+                                detailBody.add(fId, fId)
+                                if (idM.find()) detailBody.add("id", idM.group(1) ?: "")
+                                if (vsM.find()) detailBody.add("javax.faces.ViewState", vsM.group(1) ?: "")
+
+                                if (ocM.find()) {
+                                    val pM = Pattern.compile("""['"]([^'"]+)['"]\s*:\s*['"]([^'"]*)['"]""").matcher(ocM.group(1) ?: "")
+                                    while (pM.find()) {
+                                        val k = pM.group(1) ?: continue
+                                        val v = pM.group(2) ?: ""
+                                        detailBody.add(k, v)
                                     }
-                                    noticias.add(ClassNotice(titulo, data, "", anexos))
                                 }
-                            }
+
+                                val detailReq = Request.Builder()
+                                    .url("https://sigaa.unb.br/sigaa/ava/index.jsf")
+                                    .post(detailBody.build())
+                                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RU-UnB-App")
+                                    .build()
+
+                                val detailResp = client.newCall(detailReq).execute()
+                                val detailHtml = detailResp.body?.string() ?: ""
+
+                                val tdM = Pattern.compile("""<td[^>]+class=["']conteudoNoticia["'][^>]*>(.*?)</td>""", Pattern.DOTALL or Pattern.CASE_INSENSITIVE).matcher(detailHtml)
+                                if (tdM.find()) {
+                                    conteudoNot = decodeHtmlEntities(tdM.group(1)?.replace(Regex("""<br\s*/?>"""), "\n")?.replace(Regex("<[^>]+>"), "") ?: "").trim()
+                                }
+
+                                val attM = Pattern.compile("""<a[^>]+href=["']([^"']*(?:verArquivo|downloadArquivo)[^"']*)["'][^>]*>(.*?)</a>""", Pattern.CASE_INSENSITIVE).matcher(detailHtml)
+                                while (attM.find()) {
+                                    var attUrl = attM.group(1) ?: ""
+                                    if (!attUrl.startsWith("http")) {
+                                        attUrl = "https://sigaa.unb.br$attUrl"
+                                    }
+                                    val rawAttName = decodeHtmlEntities(attM.group(2)?.replace(Regex("<[^>]+>"), "") ?: "").trim()
+                                    if (rawAttName.isNotBlank() && !attUrl.contains("idArquivo=&")) {
+                                        anexos.add(ClassNoticeAttachment(rawAttName, attUrl))
+                                    }
+                                }
+                            } catch (_: Exception) {}
+
+                            noticias.add(ClassNotice(
+                                titulo = tituloNot,
+                                data = dataNot,
+                                conteudo = conteudoNot.ifBlank { "Aviso publicado pelo docente na Turma Virtual do SIGAA." },
+                                anexos = anexos
+                            ))
                         }
                     }
-
+                    // Reseta estado para discente.jsf para a próxima matéria
                     try {
                         val getReq = Request.Builder()
                             .url("https://sigaa.unb.br/sigaa/portais/discente/discente.jsf")
@@ -1074,10 +1124,9 @@ class StudentCardRepository(private val context: Context) {
                 }
 
                 enriched.add(c.copy(
-                    faltas = faltas,
-                    percentualFrequencia = pctFreq,
                     percentualAulasMinistradas = pctMinistradas,
                     aulasMinistradasTexto = ministradasTexto,
+                    percentualFrequencia = null,
                     noticias = noticias
                 ))
             } catch (_: Exception) {

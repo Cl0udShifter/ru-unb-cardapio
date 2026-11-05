@@ -802,23 +802,22 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // BLOCO DE MÉTRICAS: Aulas Ministradas e Frequência
+            // BLOCO DE MÉTRICAS: Aulas Ministradas
+            val pctMinistradas = disciplina.percentualAulasMinistradas
+            val textoMinistradas = if (disciplina.aulasMinistradasTextoSafe.isNotBlank()) {
+                disciplina.aulasMinistradasTextoSafe
+            } else if (pctMinistradas != null && pctMinistradas > 0f) {
+                "${pctMinistradas.toInt()}% ministradas"
+            } else {
+                "Aulas em andamento"
+            }
+
             Surface(
                 shape = RoundedCornerShape(10.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    // 1. Aulas Ministradas
-                    val pctMinistradas = disciplina.percentualAulasMinistradas
-                    val textoMinistradas = if (pctMinistradas != null && pctMinistradas > 0f) {
-                        disciplina.aulasMinistradasTextoSafe.ifBlank { "${pctMinistradas.toInt()}% ministradas" }
-                    } else if (disciplina.aulasMinistradasTextoSafe.isNotBlank()) {
-                        disciplina.aulasMinistradasTextoSafe
-                    } else {
-                        "Em andamento"
-                    }
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -845,45 +844,6 @@ private fun SemesterTurmaCardItem(disciplina: ClassSchedule) {
                             .height(6.dp)
                             .clip(RoundedCornerShape(3.dp)),
                         color = MaterialTheme.colorScheme.onBackground,
-                        trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 2. Frequência / Faltas
-                    val pctFreq = disciplina.percentualFrequencia
-                    val textoFreq = if (pctFreq != null) {
-                        "${pctFreq.toInt()}% • ${disciplina.faltas} falta(s)"
-                    } else {
-                        "A apurar no SIGAA"
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Frequência",
-                            style = NotionTypography.labelSmall,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f)
-                        )
-                        Text(
-                            text = textoFreq,
-                            style = NotionTypography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (pctFreq != null && pctFreq < 75f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-                    LinearProgressIndicator(
-                        progress = { if (pctFreq != null) (pctFreq / 100f).coerceIn(0f, 1f) else 0f },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = if (pctFreq != null && pctFreq < 75f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
                         trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
                     )
                 }
