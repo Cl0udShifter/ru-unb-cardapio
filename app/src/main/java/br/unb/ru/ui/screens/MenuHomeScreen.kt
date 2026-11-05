@@ -23,7 +23,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,7 +41,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -186,65 +184,24 @@ fun MenuHomeScreen(
                 containerColor = MaterialTheme.colorScheme.background,
                 snackbarHost = { SnackbarHost(snackbarHostState) }
             ) { innerPadding ->
-                var totalSwipeDrag by remember { mutableFloatStateOf(0f) }
-                var hasSwipedInGesture by remember { mutableStateOf(false) }
-
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
                         .nestedScroll(pullRefreshState.nestedScrollConnection)
-                        .pointerInput(isDiscenteFlipped) {
-                            if (!isDiscenteFlipped) {
-                                detectHorizontalDragGestures(
-                                    onDragStart = {
-                                        totalSwipeDrag = 0f
-                                        hasSwipedInGesture = false
-                                    },
-                                    onDragEnd = {
-                                        totalSwipeDrag = 0f
-                                        hasSwipedInGesture = false
-                                    },
-                                    onDragCancel = {
-                                        totalSwipeDrag = 0f
-                                        hasSwipedInGesture = false
-                                    },
-                                    onHorizontalDrag = { _, dragAmount ->
-                                        if (!hasSwipedInGesture) {
-                                            totalSwipeDrag += dragAmount
-                                            if (totalSwipeDrag < -30f) {
-                                                hasSwipedInGesture = true
-                                                currentTab = when (currentTab) {
-                                                    MainScreenTab.CARDAPIO -> MainScreenTab.AULAS
-                                                    MainScreenTab.AULAS -> MainScreenTab.DISCENTE
-                                                    MainScreenTab.DISCENTE -> MainScreenTab.DISCENTE
-                                                }
-                                            } else if (totalSwipeDrag > 30f) {
-                                                hasSwipedInGesture = true
-                                                currentTab = when (currentTab) {
-                                                    MainScreenTab.DISCENTE -> MainScreenTab.AULAS
-                                                    MainScreenTab.AULAS -> MainScreenTab.CARDAPIO
-                                                    MainScreenTab.CARDAPIO -> MainScreenTab.CARDAPIO
-                                                }
-                                            }
-                                        }
-                                    }
-                                )
-                            }
-                        }
                 ) {
                     AnimatedContent(
                         targetState = currentTab,
                         transitionSpec = {
                             if (initialState.ordinal < targetState.ordinal) {
-                                (slideInHorizontally(animationSpec = tween(130, easing = FastOutLinearInEasing)) { width -> width } + fadeIn(animationSpec = tween(100)))
-                                    .togetherWith(slideOutHorizontally(animationSpec = tween(130, easing = FastOutLinearInEasing)) { width -> -width } + fadeOut(animationSpec = tween(90)))
+                                (slideInHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { width -> (width * 0.25f).toInt() } + fadeIn(animationSpec = tween(180)))
+                                    .togetherWith(slideOutHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { width -> -(width * 0.25f).toInt() } + fadeOut(animationSpec = tween(140)))
                             } else {
-                                (slideInHorizontally(animationSpec = tween(130, easing = FastOutLinearInEasing)) { width -> -width } + fadeIn(animationSpec = tween(100)))
-                                    .togetherWith(slideOutHorizontally(animationSpec = tween(130, easing = FastOutLinearInEasing)) { width -> width } + fadeOut(animationSpec = tween(90)))
+                                (slideInHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { width -> -(width * 0.25f).toInt() } + fadeIn(animationSpec = tween(180)))
+                                    .togetherWith(slideOutHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { width -> (width * 0.25f).toInt() } + fadeOut(animationSpec = tween(140)))
                             }
                         },
-                        label = "tab_slide_animation",
+                        label = "tab_smooth_transition",
                         modifier = Modifier.fillMaxSize()
                     ) { tab ->
                         if (tab == MainScreenTab.CARDAPIO) {

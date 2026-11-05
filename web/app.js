@@ -1478,53 +1478,9 @@ function renderTurnstileFullscreenQR() {
   renderZxingQRCode(container, qrPayload, 320);
 }
 
-// Touch Gestures: Horizontal Swipe between Cardápio & Discente tabs (MenuHomeScreen.kt 1:1)
+// Navegação de abas exclusivamente pelos botões inferiores
 function setupSwipeGestures() {
-  let startX = 0;
-  let startY = 0;
-  let hasSwipedTab = false;
-
-  window.addEventListener('touchstart', (e) => {
-    // Disable tab swiping when QR code is flipped or modal/sheet is open
-    if (document.body.classList.contains('discente-flipped')) return;
-    if (document.querySelector('.sheet-overlay.open')) return;
-
-    const touch = e.touches[0];
-    startX = touch.clientX;
-    startY = touch.clientY;
-    hasSwipedTab = false;
-  }, { passive: true });
-
-  window.addEventListener('touchmove', (e) => {
-    if (!startX || !startY || hasSwipedTab) return;
-    const touch = e.touches[0];
-    const dX = touch.clientX - startX;
-    const dY = touch.clientY - startY;
-
-    // Trigger immediately without delay once horizontal movement is decisive
-    if (Math.abs(dX) > 36 && Math.abs(dX) > Math.abs(dY) * 1.25) {
-      hasSwipedTab = true;
-      const isCardapio = document.getElementById('navCardapioBtn')?.classList.contains('active');
-      const isAulas = document.getElementById('navAulasBtn')?.classList.contains('active');
-      const isDiscente = document.getElementById('navDiscenteBtn')?.classList.contains('active');
-
-      if (dX < 0) {
-        // Swipe left -> advance right
-        if (isCardapio) document.getElementById('navAulasBtn')?.click();
-        else if (isAulas) document.getElementById('navDiscenteBtn')?.click();
-      } else if (dX > 0) {
-        // Swipe right -> advance left
-        if (isDiscente) document.getElementById('navAulasBtn')?.click();
-        else if (isAulas) document.getElementById('navCardapioBtn')?.click();
-      }
-    }
-  }, { passive: true });
-
-  window.addEventListener('touchend', () => {
-    startX = 0;
-    startY = 0;
-    hasSwipedTab = false;
-  });
+  // Swipe lateral desativado conforme alinhado
 }
 
 // Service Worker Registration with Immediate Update Check
