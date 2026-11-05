@@ -2070,21 +2070,7 @@ function setupHistoricoModal() {
   const triggerDownload = () => {
     const hist = appState.historico;
     if (hist && hist.pdfBase64) {
-      const byteCharacters = atob(hist.pdfBase64);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `historico_escolar_${hist.matricula || 'unb'}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      window.openPdfInViewer(hist.pdfBase64, 'Histórico Escolar Oficial', `historico_escolar_${hist.matricula || 'unb'}.pdf`);
     } else {
       alert('PDF do histórico não disponível. Sincronize com o SIGAA.');
     }
@@ -2375,6 +2361,26 @@ function setupDocumentosModal() {
   const viewerModal = document.getElementById('docViewerModal');
   const btnCloseViewer = document.getElementById('btnCloseDocViewer');
   const btnPrintViewer = document.getElementById('btnPrintDocViewer');
+  const btnDownloadViewer = document.getElementById('btnDownloadDocViewer');
+
+  if (btnDownloadViewer) {
+    btnDownloadViewer.onclick = () => {
+      if (window._activeDoc?.url) {
+        const a = document.createElement('a');
+        a.href = window._activeDoc.url;
+        a.download = window._activeDoc.filename || 'documento.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else if (window._activeDoc && !window._activeDoc.isPdf) {
+        const iframe = document.getElementById('docViewerIframe');
+        if (iframe && iframe.contentWindow) {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        }
+      }
+    };
+  }
 
   if (btnOpen) {
     btnOpen.onclick = () => {
@@ -2452,9 +2458,9 @@ function renderDocumentosModal() {
           ${isAvail ? `
             <button class="notion-btn notion-btn-primary" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="openCachedDocument('${docDef.id}')">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                ${docDef.isPdfDirect ? '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'}
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
               </svg>
-              <span>${docDef.isPdfDirect ? 'Baixar / Abrir PDF' : 'Visualizar / Imprimir'}</span>
+              <span>Visualizar Documento</span>
             </button>
             <button class="notion-btn notion-btn-secondary" style="padding: 0 12px; height: 38px;" title="Atualizar do SIGAA" id="btnReemit_${docDef.id}" onclick="emitDigitalDocumentFromWeb('${docDef.id}')">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
@@ -2521,35 +2527,48 @@ window.emitDigitalDocumentFromWeb = async function(docId) {
   }
 };
 
+window.openPdfInViewer = function(pdfBase64, title, downloadFilename) {
+  if (!pdfBase64) return;
+  const byteCharacters = atob(pdfBase64);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  const blob = new Blob([byteArray], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+
+  const viewerModal = document.getElementById('docViewerModal');
+  const titleEl = document.getElementById('docViewerTitle');
+  const iframe = document.getElementById('docViewerIframe');
+
+  if (titleEl) titleEl.textContent = title || 'Documento Oficial em PDF';
+  if (iframe) {
+    iframe.removeAttribute('srcdoc');
+    iframe.src = url;
+  }
+  window._activeDoc = { url, filename: downloadFilename || 'documento.pdf', isPdf: true };
+  if (viewerModal) viewerModal.style.display = 'flex';
+};
+
 window.openCachedDocument = function(docId) {
   const cachedDocs = getCachedDocs();
   const doc = cachedDocs[docId];
   if (!doc) return;
 
   if (doc.isPdfDirect && doc.pdfBase64) {
-    const byteCharacters = atob(doc.pdfBase64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${docId}_${doc.matricula || 'unb'}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    const filename = `${docId}_${appState.studentCard?.matricula || 'unb'}.pdf`;
+    window.openPdfInViewer(doc.pdfBase64, doc.title || 'Documento Oficial', filename);
   } else if (!doc.isPdfDirect && doc.htmlContent) {
     const viewerModal = document.getElementById('docViewerModal');
     const titleEl = document.getElementById('docViewerTitle');
     const iframe = document.getElementById('docViewerIframe');
     if (titleEl) titleEl.textContent = doc.title || 'Documento Oficial';
     if (iframe) {
+      iframe.removeAttribute('src');
       iframe.srcdoc = doc.htmlContent;
     }
+    window._activeDoc = { isPdf: false };
     if (viewerModal) viewerModal.style.display = 'flex';
   }
 };

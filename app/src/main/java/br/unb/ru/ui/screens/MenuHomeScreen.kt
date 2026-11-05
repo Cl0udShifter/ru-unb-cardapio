@@ -118,6 +118,7 @@ fun MenuHomeScreen(
     var isDiscenteFlipped by remember { mutableStateOf(false) }
     var showHistorico by rememberSaveable { mutableStateOf(false) }
     var showDocumentos by rememberSaveable { mutableStateOf(false) }
+    var previewHistoryInApp by rememberSaveable { mutableStateOf(false) }
 
     val discenteScrollState = rememberSaveable(saver = ScrollState.Saver) { ScrollState(0) }
 
@@ -254,7 +255,7 @@ fun MenuHomeScreen(
                         flowSemesters = state.flowSemesters,
                         card = state.studentCard,
                         onBack = { showHistorico = false },
-                        onOpenPdf = { openHistoryPdf() },
+                        onOpenPdf = { previewHistoryInApp = true },
                         isSyncing = state.isSyncingHistory,
                         onSyncHistory = onSyncHistory,
                         modifier = Modifier.fillMaxSize()
@@ -267,6 +268,7 @@ fun MenuHomeScreen(
                         errorMessage = state.docErrorMessage,
                         onBack = { showDocumentos = false },
                         onEmitDocument = onEmitDocument,
+                        onGetDocumentFile = onGetDocumentFile,
                         onOpenPdfDocument = { openPdfDocument(it) },
                         onSharePdfDocument = { sharePdfDocument(it) },
                         onClearError = onClearDocError,
@@ -831,6 +833,19 @@ fun MenuHomeScreen(
             downloadedFileReady = state.downloadedApkFile != null && state.downloadedApkFile.exists(),
             onConfirmUpdate = onConfirmUpdate,
             onDismiss = onDismissUpdate
+        )
+    }
+
+    // Modal de Visualização Integrada do Histórico Escolar Oficial em PDF
+    if (previewHistoryInApp) {
+        val histDoc = state.digitalDocuments.firstOrNull { it.type == br.unb.ru.data.model.DocumentType.HISTORICO_ESCOLAR }
+            ?: br.unb.ru.data.model.DigitalDocument(br.unb.ru.data.model.DocumentType.HISTORICO_ESCOLAR, isAvailableOffline = true)
+        val histFile = onGetHistoryPdf() ?: onGetDocumentFile(br.unb.ru.data.model.DocumentType.HISTORICO_ESCOLAR)
+        br.unb.ru.ui.components.UnifiedDocumentViewerDialog(
+            document = histDoc,
+            pdfFile = histFile,
+            onSharePdf = { sharePdfDocument(br.unb.ru.data.model.DocumentType.HISTORICO_ESCOLAR) },
+            onDismiss = { previewHistoryInApp = false }
         )
     }
 }
