@@ -27,6 +27,8 @@ class AppUpdateRepository(private val context: Context) {
     private val prefs = context.getSharedPreferences("ru_update_prefs", Context.MODE_PRIVATE)
 
     companion object {
+        private const val GITHUB_RELEASES_URL =
+            "https://api.github.com/repos/Cl0udShifter/ru-unb-cardapio/releases"
         private const val GITHUB_LATEST_RELEASE_URL =
             "https://api.github.com/repos/Cl0udShifter/ru-unb-cardapio/releases/latest"
         private const val PREF_LAST_CHECK = "last_update_check_millis"
@@ -42,8 +44,11 @@ class AppUpdateRepository(private val context: Context) {
         }
 
         try {
+            val isTestBuild = BuildConfig.VERSION_NAME.contains("test", ignoreCase = true)
+            val url = if (isTestBuild) GITHUB_RELEASES_URL else GITHUB_LATEST_RELEASE_URL
+
             val request = Request.Builder()
-                .url(GITHUB_LATEST_RELEASE_URL)
+                .url(url)
                 .header("Accept", "application/vnd.github.v3+json")
                 .header("User-Agent", "RU-UnB-Android/${BuildConfig.VERSION_NAME}")
                 .build()
@@ -52,14 +57,29 @@ class AppUpdateRepository(private val context: Context) {
             if (!response.isSuccessful) return@withContext null
 
             val bodyString = response.body?.string() ?: return@withContext null
-            val json = JsonParser.parseString(bodyString).asJsonObject
 
-            val tagName = json.get("tag_name")?.asString ?: ""
-            val releaseNotes = json.get("body")?.asString ?: ""
-            
+            val targetRelease = if (isTestBuild) {
+                val jsonArray = JsonParser.parseString(bodyString).asJsonArray
+                var found: com.google.gson.JsonObject? = null
+                for (elem in jsonArray) {
+                    val obj = elem.asJsonObject
+                    val tag = obj.get("tag_name")?.asString ?: ""
+                    if (tag.contains("test", ignoreCase = true)) {
+                        found = obj
+                        break
+                    }
+                }
+                found ?: jsonArray.firstOrNull()?.asJsonObject
+            } else {
+                JsonParser.parseString(bodyString).asJsonObject
+            } ?: return@withContext null
+
+            val tagName = targetRelease.get("tag_name")?.asString ?: ""
+            val releaseNotes = targetRelease.get("body")?.asString ?: ""
+
             // Find APK asset
             var apkDownloadUrl = ""
-            val assets = json.getAsJsonArray("assets")
+            val assets = targetRelease.getAsJsonArray("assets")
             if (assets != null) {
                 for (assetElement in assets) {
                     val assetObj = assetElement.asJsonObject
@@ -73,7 +93,8 @@ class AppUpdateRepository(private val context: Context) {
 
             // Fallback download URL if not listed directly in assets
             if (apkDownloadUrl.isBlank() && tagName.isNotBlank()) {
-                apkDownloadUrl = "https://github.com/Cl0udShifter/ru-unb-cardapio/releases/download/$tagName/RU-UnB.apk"
+                val apkName = if (isTestBuild) "RU-UnB-Testes.apk" else "RU-UnB.apk"
+                apkDownloadUrl = "https://github.com/Cl0udShifter/ru-unb-cardapio/releases/download/$tagName/$apkName"
             }
 
             prefs.edit().putLong(PREF_LAST_CHECK, now).apply()
@@ -95,8 +116,11 @@ class AppUpdateRepository(private val context: Context) {
 
     fun isNewerVersion(current: String, latest: String): Boolean {
         if (latest.isBlank()) return false
-        val currSegments = current.removePrefix("v").removePrefix("V").split(".").mapNotNull { it.toIntOrNull() }
-        val latestSegments = latest.removePrefix("v").removePrefix("V").split(".").mapNotNull { it.toIntOrNull() }
+        val currParts = current.removePrefix("v").removePrefix("V").split("-", limit = 2)
+        val latestParts = latest.removePrefix("v").removePrefix("V").split("-", limit = 2)
+
+        val currSegments = currParts[0].split(".").mapNotNull { it.toIntOrNull() }
+        val latestSegments = latestParts[0].split(".").mapNotNull { it.toIntOrNull() }
 
         val maxLen = maxOf(currSegments.size, latestSegments.size)
         for (i in 0 until maxLen) {
@@ -105,8 +129,17 @@ class AppUpdateRepository(private val context: Context) {
             if (latestVal > currVal) return true
             if (latestVal < currVal) return false
         }
-        return false
+
+        val currSuffix = currParts.getOrNull(1) ?: ""
+        val latestSuffix = latestParts.getOrNull(1) ?: ""
+
+        val regexDigits = Regex("""\\d+""")
+        val currTestNum = regexDigits.findAll(currSuffix).lastOrNull()?.value?.toIntOrNull() ?: 0
+        val latestTestNum = regexDigits.findAll(latestSuffix).lastOrNull()?.value?.toIntOrNull() ?: 0
+
+        return latestTestNum > currTestNum
     }
+
 
     suspend fun downloadApk(
         downloadUrl: String,
