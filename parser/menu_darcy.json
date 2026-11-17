@@ -1,8 +1,8 @@
 {
   "campus": "Darcy Ribeiro",
   "vigencia": "16/11/2026 À 22/11/2026",
-  "atualizado_em": "2026-11-17T03:18:49.059536+00:00",
-  "pdf_url": "https://ru.unb.br/wp-content/uploads/2026/11/Darcy-Ribeiro-Semana-01-16-11-a-22-11.pdf",
+  "atualizado_em": "2026-11-17T17:59:10.259509+00:00",
+  "pdf_url": "https://ru.unb.br/wp-content/uploads/2026/11/Darcy-Ribeiro-Semana-01-16-11-a-22-11-2.pdf",
   "dias": [
     {
       "dia_semana": "Segunda-feira",
@@ -59,7 +59,7 @@
       },
       "almoco": {
         "salada_1": "Alface com chicória",
-        "salada_2": "Tomate, cebola, pimentão em cubos",
+        "salada_2": "Tomate",
         "molho": "Gengibre /Limão",
         "prato_principal": "Suíno com cebola caramelizada",
         "vegetariano": "Ovos mexidos com castanhas",
@@ -72,7 +72,7 @@
       "jantar": {
         "salada_1": "Acelga com agrião",
         "salada_2": "Beterraba cozida",
-        "molho": "Alho / Limão",
+        "molho": "Alho",
         "prato_principal": "Frango assado",
         "vegetariano": "Batalhoada",
         "vegano": "Guisado de lentilha",
@@ -141,7 +141,7 @@
         "salada_1": "Hakussai",
         "salada_2": "Beterraba ralada",
         "molho": "Ervas finas / Limão",
-        "prato_principal": "Carne de sol acebolada",
+        "prato_principal": "Lagarto ao molho escuro",
         "vegetariano": "Bife de soja ao sugo gratinado",
         "vegano": "Soja xadrez",
         "guarnicao": "Polenta com espinafre",
@@ -219,7 +219,7 @@
       },
       "almoco": {
         "salada_1": "Mostarda",
-        "salada_2": "Tomate",
+        "salada_2": "Tomate, cebola, pimentão em cubos",
         "molho": "Alho e limão",
         "prato_principal": "Torta de carne com calabresa",
         "vegetariano": "Lasanha de espinafre gratinada",
@@ -232,7 +232,7 @@
       "jantar": {
         "salada_1": "Alface lisa",
         "salada_2": "Tabule",
-        "molho": "Salsa",
+        "molho": "Salsa / Limão",
         "prato_principal": "Suíno africano",
         "vegetariano": "Macarrão à bolonhesa de soja com queijo",
         "vegano": "Isca de soja ao sugo",
