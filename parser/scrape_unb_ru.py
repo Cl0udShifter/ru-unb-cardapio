@@ -133,7 +133,7 @@ def parse_pdf_menu(pdf_path, vigencia_label, pdf_url, campus_name="Darcy Ribeiro
             if not tables:
                 continue
             for r in tables[0][:4]:
-                found = [c.strip() for c in r if c and date_pattern.search(c)]
+                found = [m.group(0) for c in r if c for m in [date_pattern.search(c)] if m]
                 if len(found) >= 3:
                     extracted_dates = found
                     break
