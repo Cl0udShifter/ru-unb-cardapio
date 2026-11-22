@@ -127,11 +127,17 @@ function toggleTheme() {
   applyTheme(current === 'dark' ? 'light' : 'dark');
 }
 
+function normalizeMenuDate(rawDate) {
+  if (!rawDate) return '';
+  const match = String(rawDate).match(/\d{2}\/\d{2}\/\d{4}/);
+  return match ? match[0] : String(rawDate).trim();
+}
+
 function isMenuExpired(menu) {
   if (!menu || !menu.dias || menu.dias.length === 0) return true;
   const lastDay = menu.dias[menu.dias.length - 1];
   if (!lastDay || !lastDay.data) return true;
-  const parts = lastDay.data.trim().split('/');
+  const parts = normalizeMenuDate(lastDay.data).split('/');
   if (parts.length !== 3) return false;
   const lastDate = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10), 23, 59, 59);
   return lastDate < new Date();
@@ -219,7 +225,7 @@ function calculateTodayIndex() {
   const todayStr = `${dd}/${mm}/${yyyy}`;
 
   // Strict date string matching
-  const foundIdx = appState.menu.dias.findIndex(d => d.data && d.data.trim() === todayStr);
+  const foundIdx = appState.menu.dias.findIndex(d => d.data && normalizeMenuDate(d.data) === todayStr);
 
   appState.todayIndex = foundIdx;
   if (foundIdx !== -1) {
@@ -266,8 +272,8 @@ function renderDaySelectorRail() {
     const isToday = index === appState.todayIndex;
 
     const shortDay = WEEKDAYS_SHORT[index] || `DIA`;
-    const dateStr = dayObj.data || '';
-    const dayNumber = dateStr.split('/')[0] || `${index + 1}`;
+    const dateStr = normalizeMenuDate(dayObj.data || '');
+    const dayNumber = (dateStr.split('/')[0] || '').replace(/\D/g, '') || `${index + 1}`;
 
     const item = document.createElement('div');
     item.className = `day-item ${isSelected ? 'active' : ''}`;

@@ -49,8 +49,8 @@ fun DaySelectorRail(
                 else -> "DIA"
             }
 
-            // Extract day number (e.g. "26" from "26/10/2026")
-            val dayNumber = dia.data.split("/").firstOrNull() ?: "${index + 1}"
+            // Extract clean day number (e.g. "26" from "26/10/2026" or "(26/10/2026)")
+            val dayNumber = dia.dayNumber(index)
 
             Column(
                 modifier = Modifier

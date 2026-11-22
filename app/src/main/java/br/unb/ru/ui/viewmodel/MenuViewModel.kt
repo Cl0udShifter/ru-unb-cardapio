@@ -157,7 +157,7 @@ class MenuViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun syncDatesWithMenu(weeklyMenu: WeeklyMenu) {
         val todayStr = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
-        val matchedIdx = weeklyMenu.dias.indexOfFirst { it.data.trim() == todayStr }
+        val matchedIdx = weeklyMenu.dias.indexOfFirst { it.normalizedDate() == todayStr }
 
         _uiState.update { current ->
             val newTodayIdx = matchedIdx

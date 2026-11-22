@@ -16,7 +16,21 @@ data class DailyMenu(
     @SerializedName("cafe") val cafe: BreakfastMenu = BreakfastMenu(),
     @SerializedName("almoco") val almoco: LunchDinnerMenu = LunchDinnerMenu(),
     @SerializedName("jantar") val jantar: LunchDinnerMenu = LunchDinnerMenu()
-)
+) {
+    fun normalizedDate(): String {
+        return DATE_REGEX.find(data)?.value ?: data.trim()
+    }
+
+    fun dayNumber(fallbackIndex: Int): String {
+        val clean = normalizedDate()
+        return clean.split("/").firstOrNull()?.filter { it.isDigit() }?.ifEmpty { null }
+            ?: "${fallbackIndex + 1}"
+    }
+
+    companion object {
+        private val DATE_REGEX = Regex("""\d{2}/\d{2}/\d{4}""")
+    }
+}
 
 data class BreakfastMenu(
     @SerializedName("bebidas") val bebidas: String = "",

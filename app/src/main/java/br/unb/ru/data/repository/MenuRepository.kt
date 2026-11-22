@@ -90,7 +90,7 @@ class MenuRepository(private val context: Context) {
 
     private fun isMenuExpired(menu: WeeklyMenu?): Boolean {
         if (menu == null || menu.dias.isEmpty()) return true
-        val lastDateStr = menu.dias.lastOrNull()?.data?.trim() ?: return true
+        val lastDateStr = menu.dias.lastOrNull()?.normalizedDate() ?: return true
         return try {
             val sdf = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
             val lastDate = sdf.parse(lastDateStr) ?: return true

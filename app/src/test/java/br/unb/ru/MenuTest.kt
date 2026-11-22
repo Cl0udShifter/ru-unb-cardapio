@@ -49,4 +49,18 @@ class MenuTest {
         assertEquals("Almoço", MealType.ALMOCO.title)
         assertEquals("Jantar", MealType.JANTAR.title)
     }
+
+    @Test
+    fun testDailyMenuDateNormalizationStripsParentheses() {
+        val withParens = br.unb.ru.data.model.DailyMenu(diaSemana = "Segunda-feira", data = "(16/11/2026)")
+        assertEquals("16/11/2026", withParens.normalizedDate())
+        assertEquals("16", withParens.dayNumber(0))
+
+        val clean = br.unb.ru.data.model.DailyMenu(diaSemana = "Terça-feira", data = "17/11/2026")
+        assertEquals("17/11/2026", clean.normalizedDate())
+        assertEquals("17", clean.dayNumber(1))
+
+        val fallback = br.unb.ru.data.model.DailyMenu(diaSemana = "Sábado", data = "Dia 6")
+        assertEquals("6", fallback.dayNumber(5))
+    }
 }
