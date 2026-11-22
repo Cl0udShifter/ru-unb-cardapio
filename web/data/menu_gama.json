@@ -1,12 +1,12 @@
 {
   "campus": "FGA (Gama)",
   "vigencia": "16/11/2026 À 22/11/2026",
-  "atualizado_em": "2026-11-21T16:29:25.562914+00:00",
+  "atualizado_em": "2026-11-22T14:07:23.807260+00:00",
   "pdf_url": "https://ru.unb.br/wp-content/uploads/2026/11/Gama-Semana-01-16-11-a-20-11-1.pdf",
   "dias": [
     {
       "dia_semana": "Segunda-feira",
-      "data": "(16/11/2026)",
+      "data": "16/11/2026",
       "cafe": {
         "bebidas": "Leite Integral OU Bebida de Soja",
         "panificacao": "Pão francês ou Pão careca ou Pão integral",
@@ -46,7 +46,7 @@
     },
     {
       "dia_semana": "Terça-feira",
-      "data": "(17/11/2026)",
+      "data": "17/11/2026",
       "cafe": {
         "bebidas": "Leite Integral OU Bebida de Soja",
         "panificacao": "Pão francês ou Pão careca ou Pão integral",
@@ -86,7 +86,7 @@
     },
     {
       "dia_semana": "Quarta-feira",
-      "data": "(18/11/2026)",
+      "data": "18/11/2026",
       "cafe": {
         "bebidas": "Leite Integral OU Bebida de Soja",
         "panificacao": "Pão francês ou Pão careca ou Pão integral",
@@ -126,7 +126,7 @@
     },
     {
       "dia_semana": "Quinta-feira",
-      "data": "(19/11/2026)",
+      "data": "19/11/2026",
       "cafe": {
         "bebidas": "Leite Integral OU Bebida de Soja",
         "panificacao": "Pão francês ou Pão careca ou",
@@ -166,7 +166,7 @@
     },
     {
       "dia_semana": "Sexta-feira",
-      "data": "(20/11/2026)",
+      "data": "20/11/2026",
       "cafe": {
         "bebidas": "Leite Integral OU Bebida de Soja",
         "panificacao": "Pão francês ou Pão careca ou Pão integral",
@@ -206,7 +206,7 @@
     },
     {
       "dia_semana": "Sábado",
-      "data": "Dia 6",
+      "data": "21/11/2026",
       "cafe": {
         "bebidas": "",
         "panificacao": "",
@@ -246,7 +246,7 @@
     },
     {
       "dia_semana": "Domingo",
-      "data": "Dia 7",
+      "data": "22/11/2026",
       "cafe": {
         "bebidas": "",
         "panificacao": "",
